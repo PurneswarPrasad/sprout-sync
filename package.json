@@ -1,0 +1,37 @@
+{
+  "name": "plant-care-app",
+  "version": "1.0.0",
+  "description": "A beautiful, GenZ-friendly plant care application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && npm run lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "type-check": "npm run type-check:frontend && npm run type-check:backend",
+    "type-check:frontend": "cd frontend && npm run type-check",
+    "type-check:backend": "cd backend && npm run type-check"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.1.1"
+  },
+  "keywords": [
+    "plant-care",
+    "react",
+    "typescript",
+    "nodejs",
+    "express",
+    "vite"
+  ],
+  "author": "Plant Care Team",
+  "license": "MIT"
+}
+

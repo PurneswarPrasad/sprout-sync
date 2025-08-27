@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  googleId    String   @unique
+  email       String   @unique
+  name        String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  plants       Plant[]
+  tags         Tag[]
+  notifications NotificationLog[]
+  settings     UserSettings?
+}
+
+model Plant {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  name            String
+  type            String?
+  acquisitionDate DateTime?
+  city            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tasks           PlantTask[]
+  tags            PlantTag[]
+  notes           Note[]
+  photos          Photo[]
+}
+
+model TaskTemplate {
+  id                  String   @id @default(uuid())
+  key                 String   @unique
+  label               String
+  colorHex            String
+  defaultFrequencyDays Int
+}
+
+model PlantTask {
+  id              String   @id @default(uuid())
+  plantId         String
+  plant           Plant    @relation(fields: [plantId], references: [id])
+  taskKey         String
+  frequencyDays   Int
+  nextDueOn       DateTime
+  lastCompletedOn DateTime?
+  active          Boolean   @default(true)
+}
+
+model Tag {
+  id      String   @id @default(uuid())
+  userId  String
+  user    User     @relation(fields: [userId], references: [id])
+  name    String
+  colorHex String?
+
+  plants  PlantTag[]
+}
+
+model PlantTag {
+  plantId String
+  tagId   String
+
+  plant   Plant @relation(fields: [plantId], references: [id])
+  tag     Tag   @relation(fields: [tagId], references: [id])
+
+  @@id([plantId, tagId])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  plantId   String
+  plant     Plant    @relation(fields: [plantId], references: [id])
+  taskKey   String?
+  body      String
+  preset    Preset?
+  createdAt DateTime @default(now())
+}
+
+enum Preset {
+  STRESSED
+  NEEDS_PRUNING
+  FERTILIZER_DUE
+  PEST_ISSUE
+}
+
+model Photo {
+  id              String   @id @default(uuid())
+  plantId         String
+  plant           Plant    @relation(fields: [plantId], references: [id])
+  cloudinaryPublicId String
+  secureUrl       String
+  takenAt         DateTime
+  pointsAwarded   Int      @default(0)
+}
+
+model NotificationLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  payloadJson String
+  sentAt    DateTime @default(now())
+  channel   Channel
+}
+
+enum Channel {
+  WEB_PUSH
+}
+
+model UserSettings {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  persona          Persona
+  timezone         String
+  onesignalPlayerId String?
+}
+
+enum Persona {
+  PRIMARY
+  SECONDARY
+  TERTIARY
+}
+

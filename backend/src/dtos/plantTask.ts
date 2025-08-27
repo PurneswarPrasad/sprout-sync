@@ -1,0 +1,40 @@
+import { z } from 'zod';
+
+// Create PlantTask DTO
+export const createPlantTaskSchema = z.object({
+  plantId: z.string().uuid('Invalid plant ID'),
+  taskKey: z.string().min(1, 'Task key is required'),
+  frequencyDays: z.number().positive('Frequency must be positive'),
+  nextDueOn: z.string().datetime('Invalid due date'),
+});
+
+export type CreatePlantTaskDTO = z.infer<typeof createPlantTaskSchema>;
+
+// Update PlantTask DTO (partial)
+export const updatePlantTaskSchema = z.object({
+  frequencyDays: z.number().positive('Frequency must be positive').optional(),
+  nextDueOn: z.string().datetime('Invalid due date').optional(),
+  lastCompletedOn: z.string().datetime('Invalid completion date').optional(),
+  active: z.boolean().optional(),
+});
+
+export type UpdatePlantTaskDTO = z.infer<typeof updatePlantTaskSchema>;
+
+// PlantTask Response DTO
+export const plantTaskResponseSchema = z.object({
+  id: z.string(),
+  plantId: z.string(),
+  taskKey: z.string(),
+  frequencyDays: z.number(),
+  nextDueOn: z.date(),
+  lastCompletedOn: z.date().nullable(),
+  active: z.boolean(),
+  plant: z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.string().nullable(),
+  }).optional(),
+});
+
+export type PlantTaskResponseDTO = z.infer<typeof plantTaskResponseSchema>;
+
