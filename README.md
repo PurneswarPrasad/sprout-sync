@@ -7,7 +7,8 @@ A beautiful, plant-themed application for tracking and managing your plant care 
 - **Google OAuth Authentication** - Secure sign-in with Google
 - **Plant Management** - Add, track, and manage your plants
 - **Care Scheduling** - Never miss watering, fertilizing, or pruning
-- **Plant Identification** - AI-powered plant recognition
+- **AI Plant Identification** - Powered by Google Gemini Vision API
+- **Smart Onboarding** - Camera capture or image URL upload
 - **Beautiful UI** - Warm, plant-themed design with calming colors
 
 ## Tech Stack
@@ -52,6 +53,9 @@ DATABASE_URL="postgresql://username:password@localhost:5432/plant_care_db"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 OAUTH_CALLBACK_URL="http://localhost:3001/auth/google/callback"
+
+# AI Services
+GEMINI_API_KEY="your-gemini-api-key"
 
 # Frontend URL
 FRONTEND_URL="http://localhost:5173"
@@ -176,6 +180,11 @@ npm run dev
 - `DELETE /api/plants/:plantId/tags` - Unassign a tag from a plant
 - `DELETE /api/plants/:plantId/tags/:tagId` - Unassign a specific tag from a plant
 
+### AI Plant Identification
+- `POST /api/ai/identify` - Identify plant from image (file upload or URL)
+- `POST /api/ai/identify/file` - Identify plant from uploaded image file
+- `POST /api/ai/identify/url` - Identify plant from image URL
+
 ## Design System
 
 The app uses a warm, plant-themed color palette:
@@ -193,6 +202,39 @@ The app uses a warm, plant-themed color palette:
 - **Authentication Middleware** - Protects private routes
 - **RBAC (Role-Based Access Control)** - Users can only access their own plants and data
 - **Plant Ownership Verification** - Middleware ensures users own plants before access
+
+## AI Features
+
+### Plant Identification
+- **Gemini Vision API Integration** - Powered by Google's latest AI model
+- **Multiple Input Methods** - Camera capture or image URL upload
+- **Structured Response** - Returns plant species, care instructions, and suggested tasks
+- **Confidence Scoring** - Shows identification accuracy to users
+- **Smart Task Generation** - Automatically suggests care frequencies based on plant type
+- **Fallback Handling** - Graceful degradation when AI identification fails
+
+### AI Response Format
+```json
+{
+  "speciesGuess": "Ficus lyrata",
+  "plantType": "Indoor ornamental",
+  "confidence": 0.92,
+  "care": {
+    "watering": "Water thoroughly every 3 days or when the topsoil is dry",
+    "fertilizing": "Feed with balanced fertilizer every 14 days during growing season",
+    "pruning": "Prune old or yellow leaves every 30 days",
+    "spraying": "Mist or spray leaves every 7 days to maintain humidity",
+    "sunlightRotation": "Rotate plant every 14 days to ensure even sunlight exposure"
+  },
+  "suggestedTasks": [
+    { "name": "watering", "frequencyDays": 3 },
+    { "name": "fertilizing", "frequencyDays": 14 },
+    { "name": "pruning", "frequencyDays": 30 },
+    { "name": "spraying", "frequencyDays": 7 },
+    { "name": "sunlightRotation", "frequencyDays": 14 }
+  ]
+}
+```
 
 ## API Features
 

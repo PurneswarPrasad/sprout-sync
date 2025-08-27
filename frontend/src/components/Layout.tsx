@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Leaf, Calendar, User, LogOut, Plus } from 'lucide-react';
+import { AddPlantModal } from './AddPlantModal';
 import axios from 'axios';
 
 interface User {
@@ -18,6 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const [showAddPlantModal, setShowAddPlantModal] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -130,11 +132,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Floating Action Button */}
       <button
-        onClick={() => navigate('/add-plant')}
+        onClick={() => setShowAddPlantModal(true)}
         className="fixed bottom-20 right-4 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center z-50"
       >
         <Plus className="w-6 h-6" />
       </button>
+
+      {/* Add Plant Modal */}
+      <AddPlantModal
+        isOpen={showAddPlantModal}
+        onClose={() => setShowAddPlantModal(false)}
+        onManualEntry={() => {
+          setShowAddPlantModal(false);
+          navigate('/add-plant');
+        }}
+        onCameraID={() => {
+          setShowAddPlantModal(false);
+          navigate('/ai-identification');
+        }}
+      />
     </div>
   );
 };

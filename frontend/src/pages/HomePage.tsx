@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Layout } from '../components/Layout';
+import { AddPlantModal } from '../components/AddPlantModal';
 
 interface User {
   id: string;
@@ -42,6 +43,7 @@ const HomePage: React.FC = () => {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddPlantModal, setShowAddPlantModal] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -242,7 +244,7 @@ const HomePage: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-800">Your Plants</h3>
               <button 
-                onClick={() => navigate('/add-plant')}
+                onClick={() => setShowAddPlantModal(true)}
                 className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors duration-200"
               >
                 Add Plant
@@ -362,6 +364,20 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Plant Modal */}
+      <AddPlantModal
+        isOpen={showAddPlantModal}
+        onClose={() => setShowAddPlantModal(false)}
+        onManualEntry={() => {
+          setShowAddPlantModal(false);
+          navigate('/add-plant');
+        }}
+        onCameraID={() => {
+          setShowAddPlantModal(false);
+          navigate('/ai-identification');
+        }}
+      />
     </Layout>
   );
 };

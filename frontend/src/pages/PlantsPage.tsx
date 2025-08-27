@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle } from 'lucide-react';
 import { Layout } from '../components/Layout';
+import { AddPlantModal } from '../components/AddPlantModal';
 
 interface Plant {
   id: string;
@@ -42,6 +43,7 @@ export function PlantsPage() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddPlantModal, setShowAddPlantModal] = useState(false);
 
   useEffect(() => {
     fetchPlants();
@@ -161,7 +163,10 @@ export function PlantsPage() {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Add New Plant</h2>
           <div className="grid grid-cols-2 gap-4">
-            <button className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
+            <button 
+              onClick={() => setShowAddPlantModal(true)}
+              className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
+            >
               <Camera className="w-8 h-8 text-emerald-600 mb-2" />
               <span className="font-medium text-gray-800">Camera ID</span>
               <span className="text-sm text-gray-600">AI-powered</span>
@@ -279,6 +284,20 @@ export function PlantsPage() {
           )}
         </div>
       </div>
+
+      {/* Add Plant Modal */}
+      <AddPlantModal
+        isOpen={showAddPlantModal}
+        onClose={() => setShowAddPlantModal(false)}
+        onManualEntry={() => {
+          setShowAddPlantModal(false);
+          navigate('/add-plant');
+        }}
+        onCameraID={() => {
+          setShowAddPlantModal(false);
+          navigate('/ai-identification');
+        }}
+      />
     </Layout>
   );
 }

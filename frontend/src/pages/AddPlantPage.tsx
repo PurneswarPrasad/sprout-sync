@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Plus, Check, X } from 'lucide-react';
+import { ConfidenceNotification } from '../components/ConfidenceNotification';
 
 interface TaskTemplate {
   id: string;
@@ -22,6 +23,7 @@ interface SelectedTask {
 
 export const AddPlantPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [taskTemplatesLoading, setTaskTemplatesLoading] = useState(true);
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
@@ -35,10 +37,23 @@ export const AddPlantPage: React.FC = () => {
     city: '',
   });
 
+  // AI identification state
+  const [aiConfidence, setAiConfidence] = useState<number | null>(null);
+  const [showConfidenceNotification, setShowConfidenceNotification] = useState(false);
+
   // Fetch task templates on component mount
   useEffect(() => {
     fetchTaskTemplates();
   }, []);
+
+  // Handle AI data from navigation state
+  useEffect(() => {
+    if (location.state?.aiData && location.state?.fromAI) {
+      handleAIIdentification(location.state.aiData);
+      // Clear the state to prevent re-processing
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   const fetchTaskTemplates = async () => {
     setTaskTemplatesLoading(true);
@@ -125,6 +140,33 @@ export const AddPlantPage: React.FC = () => {
 
   const removeTask = (taskKey: string) => {
     setSelectedTasks(selectedTasks.filter(task => task.key !== taskKey));
+  };
+
+  // Function to handle AI identification data
+  const handleAIIdentification = (aiData: any) => {
+    // Set plant name and type from AI identification
+    setFormData(prev => ({
+      ...prev,
+      name: aiData.speciesGuess || '',
+      type: aiData.plantType || '',
+    }));
+
+    // Convert AI suggested tasks to selected tasks
+    const aiTasks: SelectedTask[] = aiData.suggestedTasks.map((task: any) => {
+      const template = taskTemplates.find(t => t.key === task.name);
+      return {
+        key: task.name,
+        label: template?.label || task.name,
+        colorHex: template?.colorHex || '#3B82F6',
+        frequency: task.frequencyDays,
+      };
+    });
+
+    setSelectedTasks(aiTasks);
+
+    // Show confidence notification
+    setAiConfidence(aiData.confidence);
+    setShowConfidenceNotification(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -403,6 +445,13 @@ export const AddPlantPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* Confidence Notification */}
+      <ConfidenceNotification
+        confidence={aiConfidence || 0}
+        isVisible={showConfidenceNotification}
+        onClose={() => setShowConfidenceNotification(false)}
+      />
     </Layout>
   );
 };
