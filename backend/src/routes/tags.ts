@@ -112,7 +112,7 @@ router.get('/:id', isAuthenticated, async (req, res) => {
     
     const tag = await prisma.tag.findFirst({
       where: {
-        id: tagId,
+        id: tagId!,
         userId: userId,
       },
       include: {
@@ -164,7 +164,7 @@ router.put('/:id', isAuthenticated, validate(updateTagSchema), async (req, res) 
     
     const tag = await prisma.tag.findFirst({
       where: {
-        id: tagId,
+        id: tagId!,
         userId: userId,
       },
     });
@@ -181,7 +181,7 @@ router.put('/:id', isAuthenticated, validate(updateTagSchema), async (req, res) 
     if (validatedData.colorHex !== undefined) updateData.colorHex = validatedData.colorHex || null;
     
     const updatedTag = await prisma.tag.update({
-      where: { id: tagId },
+      where: { id: tagId! },
       data: updateData,
     });
     
@@ -215,7 +215,7 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
     
     const tag = await prisma.tag.findFirst({
       where: {
-        id: tagId,
+        id: tagId!,
         userId: userId,
       },
     });
@@ -229,7 +229,7 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
     
     // Delete the tag (cascading will handle related records)
     await prisma.tag.delete({
-      where: { id: tagId },
+      where: { id: tagId! },
     });
     
     res.json({

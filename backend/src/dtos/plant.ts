@@ -2,17 +2,20 @@ import { z } from 'zod';
 
 // Create Plant DTO
 export const createPlantSchema = z.object({
-  userId: z.string().uuid('Invalid user ID'),
   name: z.string().min(1, 'Plant name is required'),
   type: z.string().optional(),
-  acquisitionDate: z.string().datetime('Invalid acquisition date').optional(),
+  acquisitionDate: z.string().optional().refine((val) => {
+    if (!val) return true;
+    const date = new Date(val);
+    return !isNaN(date.getTime());
+  }, 'Invalid date format'),
   city: z.string().optional(),
 });
 
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
 
 // Update Plant DTO (partial)
-export const updatePlantSchema = createPlantSchema.partial().omit({ userId: true });
+export const updatePlantSchema = createPlantSchema.partial();
 
 export type UpdatePlantDTO = z.infer<typeof updatePlantSchema>;
 

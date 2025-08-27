@@ -177,7 +177,10 @@ router.delete('/', isAuthenticated, checkPlantOwnership, validate(unassignTagSch
     // Remove the tag from the plant
     await prisma.plantTag.delete({
       where: {
-        id: plantTag.id,
+        plantId_tagId: {
+          plantId: plantId!,
+          tagId: tagId!,
+        },
       },
     });
     
@@ -212,7 +215,7 @@ router.delete('/:tagId', isAuthenticated, checkPlantOwnership, async (req, res) 
     const plantTag = await prisma.plantTag.findFirst({
       where: {
         plantId: plantId!,
-        tagId: tagId,
+        tagId: tagId!,
       },
       include: {
         tag: true,
@@ -229,7 +232,10 @@ router.delete('/:tagId', isAuthenticated, checkPlantOwnership, async (req, res) 
     // Remove the tag from the plant
     await prisma.plantTag.delete({
       where: {
-        id: plantTag.id,
+        plantId_tagId: {
+          plantId: plantId!,
+          tagId: tagId!,
+        },
       },
     });
     

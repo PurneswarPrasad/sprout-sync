@@ -74,13 +74,15 @@ app.use(passport.session());
 
 // Routes
 app.use('/api/health', healthRouter);
-app.use('/api/plants', plantsRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/tags', tagsRouter);
 app.use('/api/test', testRouter);
 app.use('/auth', authRouter);
 
-// Plant-specific nested routes
+// Plants routes (must come before nested routes)
+app.use('/api/plants', plantsRouter);
+
+// Plant-specific nested routes (must come after main plants routes)
 app.use('/api/plants/:plantId/tasks', plantTasksRouter);
 app.use('/api/plants/:plantId/notes', plantNotesRouter);
 app.use('/api/plants/:plantId/photos', plantPhotosRouter);

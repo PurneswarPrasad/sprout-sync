@@ -133,6 +133,7 @@ npm run dev
 - `POST /api/plants` - Create new plant
 - `PUT /api/plants/:id` - Update plant
 - `DELETE /api/plants/:id` - Delete plant
+- `GET /api/plants/task-templates` - Get available task templates
 - `POST /api/plants/identify` - Identify plant from image
 
 ### Tasks

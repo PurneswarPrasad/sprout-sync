@@ -41,7 +41,7 @@ const checkPlantOwnership = async (req: any, res: any, next: any) => {
 // GET /api/plants/:plantId/notes - Get all notes for a specific plant
 router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
   try {
-    const plantId = req.params.plantId;
+    const plantId = req.params['plantId'];
     const { taskKey, preset, page = '1', limit = '20' } = req.query;
     
     const pageNum = parseInt(page.toString());
@@ -96,13 +96,13 @@ router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
 // POST /api/plants/:plantId/notes - Create new note for a specific plant
 router.post('/', isAuthenticated, checkPlantOwnership, validate(createNoteSchema), async (req, res) => {
   try {
-    const plantId = req.params.plantId;
+    const plantId = req.params['plantId'];
     const validatedData = createNoteSchema.parse(req.body);
     
     // Override plantId to ensure it matches the URL parameter
     const note = await prisma.note.create({
       data: {
-        plantId: plantId,
+        plantId: plantId!,
         taskKey: validatedData.taskKey || null,
         body: validatedData.body,
         preset: validatedData.preset || null,

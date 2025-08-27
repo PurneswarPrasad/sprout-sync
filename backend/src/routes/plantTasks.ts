@@ -41,7 +41,7 @@ const checkPlantOwnership = async (req: any, res: any, next: any) => {
 // GET /api/plants/:plantId/tasks - Get all tasks for a specific plant
 router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
   try {
-    const plantId = req.params.plantId;
+    const plantId = req.params['plantId'];
     const { taskKey, completed, page = '1', limit = '20' } = req.query;
     
     const pageNum = parseInt(page.toString());
@@ -106,13 +106,13 @@ router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
 // POST /api/plants/:plantId/tasks - Create new task for a specific plant
 router.post('/', isAuthenticated, checkPlantOwnership, validate(createPlantTaskSchema), async (req, res) => {
   try {
-    const plantId = req.params.plantId;
+    const plantId = req.params['plantId'];
     const validatedData = createPlantTaskSchema.parse(req.body);
     
     // Override plantId to ensure it matches the URL parameter
     const task = await prisma.plantTask.create({
       data: {
-        plantId: plantId,
+        plantId: plantId!,
         taskKey: validatedData.taskKey,
         frequencyDays: validatedData.frequencyDays,
         nextDueOn: new Date(validatedData.nextDueOn),
@@ -157,8 +157,8 @@ router.get('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res) =>
     
     const task = await prisma.plantTask.findFirst({
       where: {
-        id: taskId,
-        plantId: plantId,
+        id: taskId!,
+        plantId: plantId!,
       },
       include: {
         plant: {
@@ -199,8 +199,8 @@ router.put('/:taskId', isAuthenticated, checkPlantOwnership, validate(updatePlan
     
     const task = await prisma.plantTask.findFirst({
       where: {
-        id: taskId,
-        plantId: plantId,
+        id: taskId!,
+        plantId: plantId!,
       },
     });
     
@@ -220,7 +220,7 @@ router.put('/:taskId', isAuthenticated, checkPlantOwnership, validate(updatePlan
     if (validatedData.active !== undefined) updateData.active = validatedData.active;
     
     const updatedTask = await prisma.plantTask.update({
-      where: { id: taskId },
+      where: { id: taskId! },
       data: updateData,
       include: {
         plant: {
@@ -262,8 +262,8 @@ router.delete('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res)
     
     const task = await prisma.plantTask.findFirst({
       where: {
-        id: taskId,
-        plantId: plantId,
+        id: taskId!,
+        plantId: plantId!,
       },
       include: {
         plant: {
@@ -284,7 +284,7 @@ router.delete('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res)
     }
     
     await prisma.plantTask.delete({
-      where: { id: taskId },
+      where: { id: taskId! },
     });
     
     res.json({
@@ -308,8 +308,8 @@ router.post('/:taskId/complete', isAuthenticated, checkPlantOwnership, async (re
     
     const task = await prisma.plantTask.findFirst({
       where: {
-        id: taskId,
-        plantId: plantId,
+        id: taskId!,
+        plantId: plantId!,
       },
     });
     
@@ -325,7 +325,7 @@ router.post('/:taskId/complete', isAuthenticated, checkPlantOwnership, async (re
     nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
     
     const updatedTask = await prisma.plantTask.update({
-      where: { id: taskId },
+      where: { id: taskId! },
       data: {
         lastCompletedOn: new Date(),
         nextDueOn,
@@ -370,8 +370,8 @@ router.post('/:taskId/reschedule', isAuthenticated, checkPlantOwnership, async (
     
     const task = await prisma.plantTask.findFirst({
       where: {
-        id: taskId,
-        plantId: plantId,
+        id: taskId!,
+        plantId: plantId!,
       },
     });
     
@@ -383,7 +383,7 @@ router.post('/:taskId/reschedule', isAuthenticated, checkPlantOwnership, async (
     }
     
     const updatedTask = await prisma.plantTask.update({
-      where: { id: taskId },
+      where: { id: taskId! },
       data: {
         nextDueOn: new Date(nextDueOn),
       },

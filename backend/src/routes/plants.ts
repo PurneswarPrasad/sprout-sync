@@ -12,23 +12,43 @@ const createPlantWithTasksSchema = createPlantSchema.extend({
   careTasks: z.object({
     watering: z.object({
       frequency: z.number().positive(),
-      lastWatered: z.string().datetime().optional(),
+      lastWatered: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     fertilizing: z.object({
       frequency: z.number().positive(),
-      lastFertilized: z.string().datetime().optional(),
+      lastFertilized: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     pruning: z.object({
       frequency: z.number().positive(),
-      lastPruned: z.string().datetime().optional(),
+      lastPruned: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     spraying: z.object({
       frequency: z.number().positive(),
-      lastSprayed: z.string().datetime().optional(),
+      lastSprayed: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     sunlightRotation: z.object({
       frequency: z.number().positive(),
-      lastRotated: z.string().datetime().optional(),
+      lastRotated: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
   }).optional(),
 });
@@ -171,39 +191,50 @@ router.get('/:id', isAuthenticated, async (req, res) => {
 // POST /api/plants - Create new plant
 router.post('/', isAuthenticated, validate(createPlantWithTasksSchema), async (req, res) => {
   try {
-    const validatedData = createPlantWithTasksSchema.parse(req.body);
+    const validatedData = createPlantWithTasksSchema.parse(req.body) as any;
     const userId = (req.user as any).id;
+    
+    // Get task templates to validate task keys and get defaults
+    const taskTemplates = await prisma.taskTemplate.findMany();
+    const templateMap = new Map(taskTemplates.map(t => [t.key, t]));
     
     // Create the plant with tasks
     const plant = await prisma.plant.create({
       data: {
         userId: userId,
-        name: validatedData.name,
-        type: validatedData.type || null,
-        acquisitionDate: validatedData.acquisitionDate ? new Date(validatedData.acquisitionDate) : null,
-        city: validatedData.city || null,
+        name: validatedData.name as string,
+        type: (validatedData.type as string) || null,
+        acquisitionDate: (validatedData.acquisitionDate as string) ? new Date(validatedData.acquisitionDate as string) : null,
+        city: (validatedData.city as string) || null,
         tasks: {
           create: validatedData.careTasks ? Object.entries(validatedData.careTasks)
             .filter(([, taskData]) => taskData)
             .map(([taskKey, taskData]) => {
-              const task = taskData!;
-              let lastCompletedOn: Date | null = null;
-              if ('lastWatered' in task && task.lastWatered) {
-                lastCompletedOn = new Date(task.lastWatered);
-              } else if ('lastFertilized' in task && task.lastFertilized) {
-                lastCompletedOn = new Date(task.lastFertilized);
-              } else if ('lastPruned' in task && task.lastPruned) {
-                lastCompletedOn = new Date(task.lastPruned);
-              } else if ('lastSprayed' in task && task.lastSprayed) {
-                lastCompletedOn = new Date(task.lastSprayed);
-              } else if ('lastRotated' in task && task.lastRotated) {
-                lastCompletedOn = new Date(task.lastRotated);
+              const task = taskData as any;
+              const template = templateMap.get(taskKey);
+
+              console.log(taskKey, taskData, template);
+              
+              if (!template) {
+                throw new Error(`Invalid task key: ${taskKey}`);
               }
+              
+              // Extract last completed date based on task type
+              let lastCompletedOn: Date | null = null;
+              const lastCompletedKey = `last${taskKey.charAt(0).toUpperCase() + taskKey.slice(1)}`;
+              if (lastCompletedKey in task && task[lastCompletedKey]) {
+                lastCompletedOn = new Date(task[lastCompletedKey]);
+              }
+              
+              // Calculate nextDueOn: (lastCompletedOn ?? today) + frequencyDays
+              const baseDate = lastCompletedOn || new Date();
+              const nextDueOn = new Date(baseDate);
+              nextDueOn.setDate(nextDueOn.getDate() + task.frequency);
               
               return {
                 taskKey,
                 frequencyDays: task.frequency,
-                nextDueOn: new Date(),
+                nextDueOn,
                 lastCompletedOn,
               };
             }) : [],
@@ -215,7 +246,11 @@ router.post('/', isAuthenticated, validate(createPlantWithTasksSchema), async (r
             tag: true,
           },
         },
-        tasks: true,
+        tasks: {
+          orderBy: {
+            taskKey: 'asc',
+          },
+        },
       },
     });
     
@@ -253,7 +288,7 @@ router.put('/:id', isAuthenticated, validate(updatePlantSchema), async (req, res
     }
     
     const userId = (req.user as any).id;
-    const validatedData = updatePlantSchema.parse(req.body);
+    const validatedData = updatePlantSchema.parse(req.body) as any;
     
     const plant = await prisma.plant.findFirst({
       where: {
@@ -352,6 +387,29 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete plant',
+    });
+  }
+});
+
+// GET /api/plants/task-templates - Get available task templates
+router.get('/task-templates', isAuthenticated, async (req, res) => {
+  try {
+    const taskTemplates = await prisma.taskTemplate.findMany({
+      orderBy: {
+        key: 'asc',
+      },
+    });
+    
+    res.json({
+      success: true,
+      data: taskTemplates,
+      count: taskTemplates.length,
+    });
+  } catch (error) {
+    console.error('Error fetching task templates:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch task templates',
     });
   }
 });

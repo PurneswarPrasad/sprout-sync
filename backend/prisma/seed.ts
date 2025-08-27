@@ -15,25 +15,25 @@ async function main() {
     },
     {
       key: 'fertilizing',
-      label: 'Fertilize',
+      label: 'Fertilizing',
       colorHex: '#8B5CF6', // Purple
       defaultFrequencyDays: 14,
     },
     {
       key: 'pruning',
-      label: 'Prune',
+      label: 'Pruning',
       colorHex: '#10B981', // Green
       defaultFrequencyDays: 30,
     },
     {
       key: 'spraying',
-      label: 'Spray',
+      label: 'Spraying',
       colorHex: '#F59E0B', // Yellow
       defaultFrequencyDays: 7,
     },
     {
-      key: 'sunlight-rotation',
-      label: 'Rotate',
+      key: 'sunlightRotation',
+      label: 'Sunlight Rotation',
       colorHex: '#F97316', // Orange
       defaultFrequencyDays: 14,
     },

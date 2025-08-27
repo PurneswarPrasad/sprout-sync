@@ -1,0 +1,431 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tasksRouter = void 0;
+const express_1 = require("express");
+const zod_1 = require("zod");
+const prisma_1 = require("../lib/prisma");
+const validate_1 = require("../middleware/validate");
+const auth_1 = require("../middleware/auth");
+const dtos_1 = require("../dtos");
+const router = (0, express_1.Router)();
+exports.tasksRouter = router;
+router.get('/', auth_1.isAuthenticated, async (req, res) => {
+    try {
+        const { plantId, taskKey, completed, startDate, endDate } = req.query;
+        const userId = req.user.id;
+        let whereClause = {
+            plant: {
+                userId: userId,
+            },
+        };
+        if (plantId) {
+            whereClause.plantId = plantId.toString();
+        }
+        if (taskKey) {
+            whereClause.taskKey = taskKey.toString();
+        }
+        if (completed !== undefined) {
+            const isCompleted = completed === 'true';
+            whereClause.lastCompletedOn = isCompleted ? { not: null } : null;
+        }
+        if (startDate) {
+            const start = new Date(startDate.toString());
+            whereClause.nextDueOn = { ...whereClause.nextDueOn, gte: start };
+        }
+        if (endDate) {
+            const end = new Date(endDate.toString());
+            whereClause.nextDueOn = { ...whereClause.nextDueOn, lte: end };
+        }
+        const tasks = await prisma_1.prisma.plantTask.findMany({
+            where: whereClause,
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+            orderBy: {
+                nextDueOn: 'asc',
+            },
+        });
+        res.json({
+            success: true,
+            data: tasks,
+            count: tasks.length,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching tasks:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch tasks',
+        });
+    }
+});
+router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
+    try {
+        const taskId = req.params['id'];
+        if (!taskId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Task ID is required',
+            });
+        }
+        const userId = req.user.id;
+        const task = await prisma_1.prisma.plantTask.findFirst({
+            where: {
+                id: taskId,
+                plant: {
+                    userId: userId,
+                },
+            },
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+        });
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found',
+            });
+        }
+        res.json({
+            success: true,
+            data: task,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching task:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch task',
+        });
+    }
+});
+router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
+    try {
+        const validatedData = dtos_1.createPlantTaskSchema.parse(req.body);
+        const userId = req.user.id;
+        const plant = await prisma_1.prisma.plant.findFirst({
+            where: {
+                id: validatedData.plantId,
+                userId: userId,
+            },
+        });
+        if (!plant) {
+            return res.status(404).json({
+                success: false,
+                error: 'Plant not found',
+            });
+        }
+        const task = await prisma_1.prisma.plantTask.create({
+            data: {
+                plantId: validatedData.plantId,
+                taskKey: validatedData.taskKey,
+                frequencyDays: validatedData.frequencyDays,
+                nextDueOn: new Date(validatedData.nextDueOn),
+            },
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+        });
+        res.status(201).json({
+            success: true,
+            data: task,
+            message: 'Task created successfully',
+        });
+    }
+    catch (error) {
+        console.error('Error creating task:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error',
+                details: error.errors,
+            });
+        }
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create task',
+        });
+    }
+});
+router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.updatePlantTaskSchema), async (req, res) => {
+    try {
+        const taskId = req.params['id'];
+        if (!taskId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Task ID is required',
+            });
+        }
+        const userId = req.user.id;
+        const validatedData = dtos_1.updatePlantTaskSchema.parse(req.body);
+        const task = await prisma_1.prisma.plantTask.findFirst({
+            where: {
+                id: taskId,
+                plant: {
+                    userId: userId,
+                },
+            },
+        });
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found',
+            });
+        }
+        const updateData = {};
+        if (validatedData.frequencyDays !== undefined)
+            updateData.frequencyDays = validatedData.frequencyDays;
+        if (validatedData.nextDueOn !== undefined)
+            updateData.nextDueOn = new Date(validatedData.nextDueOn);
+        if (validatedData.lastCompletedOn !== undefined) {
+            updateData.lastCompletedOn = validatedData.lastCompletedOn ? new Date(validatedData.lastCompletedOn) : null;
+        }
+        if (validatedData.active !== undefined)
+            updateData.active = validatedData.active;
+        const updatedTask = await prisma_1.prisma.plantTask.update({
+            where: { id: taskId },
+            data: updateData,
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+        });
+        res.json({
+            success: true,
+            data: updatedTask,
+            message: 'Task updated successfully',
+        });
+    }
+    catch (error) {
+        console.error('Error updating task:', error);
+        if (error instanceof zod_1.z.ZodError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error',
+                details: error.errors,
+            });
+        }
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update task',
+        });
+    }
+});
+router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
+    try {
+        const taskId = req.params['id'];
+        if (!taskId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Task ID is required',
+            });
+        }
+        const userId = req.user.id;
+        const task = await prisma_1.prisma.plantTask.findFirst({
+            where: {
+                id: taskId,
+                plant: {
+                    userId: userId,
+                },
+            },
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+        });
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found',
+            });
+        }
+        await prisma_1.prisma.plantTask.delete({
+            where: { id: taskId },
+        });
+        res.json({
+            success: true,
+            data: task,
+            message: 'Task deleted successfully',
+        });
+    }
+    catch (error) {
+        console.error('Error deleting task:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete task',
+        });
+    }
+});
+router.post('/:id/complete', auth_1.isAuthenticated, async (req, res) => {
+    try {
+        const taskId = req.params['id'];
+        if (!taskId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Task ID is required',
+            });
+        }
+        const userId = req.user.id;
+        const task = await prisma_1.prisma.plantTask.findFirst({
+            where: {
+                id: taskId,
+                plant: {
+                    userId: userId,
+                },
+            },
+        });
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found',
+            });
+        }
+        const nextDueOn = new Date();
+        nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
+        const updatedTask = await prisma_1.prisma.plantTask.update({
+            where: { id: taskId },
+            data: {
+                lastCompletedOn: new Date(),
+                nextDueOn,
+            },
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+        });
+        res.json({
+            success: true,
+            data: updatedTask,
+            message: 'Task marked as completed',
+        });
+    }
+    catch (error) {
+        console.error('Error completing task:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to complete task',
+        });
+    }
+});
+router.get('/upcoming', auth_1.isAuthenticated, async (req, res) => {
+    try {
+        const { days = '7' } = req.query;
+        const daysAhead = parseInt(days.toString());
+        const userId = req.user.id;
+        const now = new Date();
+        const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+        const upcomingTasks = await prisma_1.prisma.plantTask.findMany({
+            where: {
+                plant: {
+                    userId: userId,
+                },
+                nextDueOn: {
+                    gte: now,
+                    lte: futureDate,
+                },
+                lastCompletedOn: null,
+                active: true,
+            },
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+            orderBy: {
+                nextDueOn: 'asc',
+            },
+        });
+        res.json({
+            success: true,
+            data: upcomingTasks,
+            count: upcomingTasks.length,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching upcoming tasks:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch upcoming tasks',
+        });
+    }
+});
+router.get('/overdue', auth_1.isAuthenticated, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const now = new Date();
+        const overdueTasks = await prisma_1.prisma.plantTask.findMany({
+            where: {
+                plant: {
+                    userId: userId,
+                },
+                nextDueOn: {
+                    lt: now,
+                },
+                lastCompletedOn: null,
+                active: true,
+            },
+            include: {
+                plant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    },
+                },
+            },
+            orderBy: {
+                nextDueOn: 'asc',
+            },
+        });
+        res.json({
+            success: true,
+            data: overdueTasks,
+            count: overdueTasks.length,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching overdue tasks:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch overdue tasks',
+        });
+    }
+});
+//# sourceMappingURL=tasks.js.map

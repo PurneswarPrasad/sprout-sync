@@ -1,49 +1,174 @@
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, Droplets, Sun, Scissors, Zap } from 'lucide-react';
-import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
-import { useState } from 'react';
+import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import axios from 'axios';
 import { Layout } from '../components/Layout';
+
+interface PlantTask {
+  id: string;
+  taskKey: string;
+  frequencyDays: number;
+  nextDueOn: string;
+  lastCompletedOn: string | null;
+  active: boolean;
+}
+
+interface Plant {
+  id: string;
+  name: string;
+  type: string | null;
+  acquisitionDate: string | null;
+  city: string | null;
+  createdAt: string;
+  updatedAt: string;
+  tasks: PlantTask[];
+  tags: any[];
+  _count: {
+    notes: number;
+    photos: number;
+  };
+}
+
+interface CalendarTask {
+  id: string;
+  plantName: string;
+  plantId: string;
+  taskKey: string;
+  scheduledDate: Date;
+  completed: boolean;
+  icon: any;
+  color: string;
+  taskId: string;
+}
 
 export function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<CalendarTask[]>([]);
 
-  const tasks = [
-    {
-      id: 1,
-      plantName: 'Monstera Deliciosa',
-      taskType: 'watering',
-      scheduledDate: new Date(),
-      completed: false,
-      icon: Droplets,
-      color: 'bg-blue-500',
-    },
-    {
-      id: 2,
-      plantName: 'Snake Plant',
-      taskType: 'sunlight-rotation',
-      scheduledDate: new Date(),
-      completed: false,
-      icon: Sun,
-      color: 'bg-yellow-500',
-    },
-    {
-      id: 3,
-      plantName: 'Pothos',
-      taskType: 'pruning',
-      scheduledDate: addDays(new Date(), 1),
-      completed: false,
-      icon: Scissors,
-      color: 'bg-green-500',
-    },
-    {
-      id: 4,
-      plantName: 'Aloe Vera',
-      taskType: 'fertilizing',
-      scheduledDate: addDays(new Date(), 2),
-      completed: false,
-      icon: Zap,
-      color: 'bg-purple-500',
-    },
-  ];
+  useEffect(() => {
+    fetchPlants();
+  }, []);
+
+  useEffect(() => {
+    if (plants.length > 0) {
+      generateCalendarTasks();
+    }
+  }, [plants, currentDate]);
+
+  const fetchPlants = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/plants', {
+        withCredentials: true,
+      });
+      setPlants(response.data.data);
+    } catch (error) {
+      console.error('Error fetching plants:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateCalendarTasks = () => {
+    const calendarTasks: CalendarTask[] = [];
+    
+    plants.forEach(plant => {
+      plant.tasks.forEach(task => {
+        if (task.active) {
+          // Generate tasks for the next 30 days
+          for (let i = 0; i < 30; i++) {
+            const taskDate = new Date(task.nextDueOn);
+            taskDate.setDate(taskDate.getDate() + (i * task.frequencyDays));
+            
+            // Only add tasks within the current week view
+            const weekStart = startOfWeek(currentDate);
+            const weekEnd = endOfWeek(currentDate);
+            
+            if (taskDate >= weekStart && taskDate <= weekEnd) {
+              calendarTasks.push({
+                id: `${task.id}-${i}`,
+                plantName: plant.name,
+                plantId: plant.id,
+                taskKey: task.taskKey,
+                scheduledDate: taskDate,
+                completed: task.lastCompletedOn ? 
+                  new Date(task.lastCompletedOn) >= taskDate : false,
+                icon: getTaskIcon(task.taskKey),
+                color: getTaskColor(task.taskKey),
+                taskId: task.id,
+              });
+            }
+          }
+        }
+      });
+    });
+    
+    setTasks(calendarTasks);
+  };
+
+  const getTaskIcon = (taskKey: string) => {
+    switch (taskKey) {
+      case 'watering':
+        return Droplets;
+      case 'fertilizing':
+        return Zap;
+      case 'pruning':
+        return Scissors;
+      case 'spraying':
+        return Zap;
+      case 'sunlightRotation':
+        return Sun;
+      default:
+        return Clock;
+    }
+  };
+
+  const getTaskColor = (taskKey: string) => {
+    switch (taskKey) {
+      case 'watering':
+        return 'bg-blue-500';
+      case 'fertilizing':
+        return 'bg-purple-500';
+      case 'pruning':
+        return 'bg-green-500';
+      case 'spraying':
+        return 'bg-yellow-500';
+      case 'sunlightRotation':
+        return 'bg-orange-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const getTaskTypeLabel = (type: string) => {
+    switch (type) {
+      case 'watering':
+        return 'Water';
+      case 'sunlightRotation':
+        return 'Rotate';
+      case 'pruning':
+        return 'Prune';
+      case 'fertilizing':
+        return 'Fertilize';
+      case 'spraying':
+        return 'Spray';
+      default:
+        return type;
+    }
+  };
+
+  const markTaskComplete = async (taskId: string, plantId: string) => {
+    try {
+      await axios.patch(`http://localhost:3001/api/plants/${plantId}/tasks/${taskId}/complete`, {}, {
+        withCredentials: true,
+      });
+      // Refresh plants data
+      fetchPlants();
+    } catch (error) {
+      console.error('Error marking task complete:', error);
+    }
+  };
 
   const weekDays = eachDayOfInterval({
     start: startOfWeek(currentDate),
@@ -51,25 +176,32 @@ export function CalendarPage() {
   });
 
   const getTasksForDate = (date: Date) => {
-    return tasks.filter(
-      (task) => format(task.scheduledDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-    );
+    return tasks.filter(task => isSameDay(task.scheduledDate, date));
   };
 
-  const getTaskTypeLabel = (type: string) => {
-    switch (type) {
-      case 'watering':
-        return 'Water';
-      case 'sunlight-rotation':
-        return 'Rotate';
-      case 'pruning':
-        return 'Prune';
-      case 'fertilizing':
-        return 'Fertilize';
-      default:
-        return type;
-    }
+  const getTodaysTasks = () => {
+    return tasks.filter(task => isSameDay(task.scheduledDate, new Date()));
   };
+
+  const getUpcomingTasks = () => {
+    return tasks
+      .filter(task => task.scheduledDate > new Date())
+      .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
+      .slice(0, 5);
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your calendar...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -112,7 +244,7 @@ export function CalendarPage() {
           <div className="grid grid-cols-7 gap-2">
             {weekDays.map((day) => {
               const dayTasks = getTasksForDate(day);
-              const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+              const isToday = isSameDay(day, new Date());
               
               return (
                 <div
@@ -135,14 +267,16 @@ export function CalendarPage() {
                       return (
                         <div
                           key={task.id}
-                          className={`flex items-center space-x-1 p-1 rounded text-xs ${
+                          className={`flex items-center space-x-1 p-1 rounded text-xs cursor-pointer ${
                             task.completed
                               ? 'bg-green-100 text-green-700'
-                              : 'bg-emerald-100 text-emerald-700'
+                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                           }`}
+                          onClick={() => !task.completed && markTaskComplete(task.taskId, task.plantId)}
+                          title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
                         >
                           <Icon className="w-3 h-3" />
-                          <span className="truncate">{getTaskTypeLabel(task.taskType)}</span>
+                          <span className="truncate">{getTaskTypeLabel(task.taskKey)}</span>
                         </div>
                       );
                     })}
@@ -157,10 +291,17 @@ export function CalendarPage() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-800">Today's Tasks</h2>
           
-          <div className="space-y-3">
-            {tasks
-              .filter((task) => format(task.scheduledDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'))
-              .map((task) => {
+          {getTodaysTasks().length === 0 ? (
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20 text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">📋</span>
+              </div>
+              <p className="text-gray-600 mb-2">No tasks for today</p>
+              <p className="text-sm text-gray-500">Enjoy your day off from plant care!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {getTodaysTasks().map((task) => {
                 const Icon = task.icon;
                 return (
                   <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
@@ -172,7 +313,7 @@ export function CalendarPage() {
                         <div>
                           <h3 className="font-medium text-gray-800">{task.plantName}</h3>
                           <p className="text-sm text-gray-600">
-                            {getTaskTypeLabel(task.taskType)} • {format(task.scheduledDate, 'h:mm a')}
+                            {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'h:mm a')}
                           </p>
                         </div>
                       </div>
@@ -184,28 +325,38 @@ export function CalendarPage() {
                             <span className="text-sm">Done</span>
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-1 text-yellow-600">
+                          <button
+                            onClick={() => markTaskComplete(task.taskId, task.plantId)}
+                            className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
+                          >
                             <Clock className="w-4 h-4" />
-                            <span className="text-sm">Pending</span>
-                          </div>
+                            <span className="text-sm">Mark Complete</span>
+                          </button>
                         )}
                       </div>
                     </div>
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Upcoming Tasks */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-800">Upcoming</h2>
           
-          <div className="space-y-3">
-            {tasks
-              .filter((task) => task.scheduledDate > new Date())
-              .slice(0, 3)
-              .map((task) => {
+          {getUpcomingTasks().length === 0 ? (
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">📅</span>
+              </div>
+              <p className="text-gray-600 mb-2">No upcoming tasks</p>
+              <p className="text-sm text-gray-500">All caught up with your plant care!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {getUpcomingTasks().map((task) => {
                 const Icon = task.icon;
                 return (
                   <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
@@ -216,17 +367,17 @@ export function CalendarPage() {
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-800">{task.plantName}</h3>
                         <p className="text-sm text-gray-600">
-                          {getTaskTypeLabel(task.taskType)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
+                          {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
                         </p>
                       </div>
                     </div>
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
   );
 }
-
