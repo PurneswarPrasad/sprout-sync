@@ -9,6 +9,7 @@ A beautiful, plant-themed application for tracking and managing your plant care 
 - **Care Scheduling** - Never miss watering, fertilizing, or pruning
 - **AI Plant Identification** - Powered by Google Gemini Vision API
 - **Smart Onboarding** - Camera capture or image URL upload
+- **City Autocomplete** - Smart city search with OpenStreetMap integration
 - **Beautiful UI** - Warm, plant-themed design with calming colors
 
 ## Tech Stack
@@ -235,6 +236,29 @@ The app uses a warm, plant-themed color palette:
   ]
 }
 ```
+
+## City Autocomplete Features
+
+### Smart City Search
+- **OpenStreetMap Integration** - Uses Nominatim API for accurate city data
+- **Debounced Search** - 300ms delay to prevent excessive API calls
+- **Keyboard Navigation** - Arrow keys, Enter, and Escape support
+- **Auto-complete Suggestions** - Real-time city suggestions as you type
+- **Fallback Support** - Mock data for development and API failures
+
+### Features
+- **City + Country Storage** - Stores clean "City, Country" format in database
+- **Full Display Names** - Shows "City, State, Country" in dropdown for clarity
+- **Loading States** - Visual feedback during API calls
+- **Error Handling** - Graceful fallback when API is unavailable
+- **Clear Functionality** - Easy way to clear selected city
+
+### Usage
+- Type at least 2 characters to trigger search
+- Use arrow keys to navigate suggestions
+- Press Enter to select highlighted city
+- Press Escape to close dropdown
+- Click outside to close dropdown
 
 ## API Features
 

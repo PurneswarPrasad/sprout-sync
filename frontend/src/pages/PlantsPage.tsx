@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle } from 'lucide-react';
+import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle, X } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
+import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
 
 interface Plant {
   id: string;
@@ -44,6 +45,19 @@ export function PlantsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  
+  // Delete confirmation state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    plantId: string | null;
+    plantName: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    plantId: null,
+    plantName: '',
+    isLoading: false,
+  });
 
   useEffect(() => {
     fetchPlants();
@@ -97,6 +111,47 @@ export function PlantsPage() {
     plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (plant.type && plant.type.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Delete plant functions
+  const openDeleteDialog = (plantId: string, plantName: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      plantId,
+      plantName,
+      isLoading: false,
+    });
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialog({
+      isOpen: false,
+      plantId: null,
+      plantName: '',
+      isLoading: false,
+    });
+  };
+
+  const handleDeletePlant = async () => {
+    if (!deleteDialog.plantId) return;
+
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await axios.delete(`http://localhost:3001/api/plants/${deleteDialog.plantId}`, {
+        withCredentials: true,
+      });
+
+      // Remove the plant from the local state
+      setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));
+      
+      closeDeleteDialog();
+    } catch (error) {
+      console.error('Error deleting plant:', error);
+      alert('Failed to delete plant. Please try again.');
+    } finally {
+      setDeleteDialog(prev => ({ ...prev, isLoading: false }));
+    }
+  };
 
   const getPlantHealth = (plant: Plant) => {
     const overdueTasks = plant.tasks.filter(task => {
@@ -222,6 +277,18 @@ export function PlantsPage() {
                         <Leaf className="w-8 h-8 text-emerald-400" />
                       </div>
                       <div className={`absolute top-2 right-2 w-3 h-3 ${health.color} rounded-full`}></div>
+                      
+                      {/* Delete Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteDialog(plant.id, plant.name);
+                        }}
+                        className="absolute top-2 left-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-red-50 hover:text-red-600 transition-colors text-gray-500"
+                        title="Delete plant"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                     
                     <div className="space-y-3">
@@ -297,6 +364,18 @@ export function PlantsPage() {
           setShowAddPlantModal(false);
           navigate('/ai-identification');
         }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={closeDeleteDialog}
+        onConfirm={handleDeletePlant}
+        title="Delete Plant"
+        message={`Are you sure you want to delete "${deleteDialog.plantName}"? It will be permanently deleted!`}
+        confirmText="Delete Plant"
+        cancelText="Cancel"
+        isLoading={deleteDialog.isLoading}
       />
     </Layout>
   );

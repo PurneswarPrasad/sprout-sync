@@ -372,10 +372,29 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
       });
     }
     
-    // Delete the plant (cascading will handle related records)
-    await prisma.plant.delete({
-      where: { id: plantId },
-    });
+    // Delete all related records first
+    await prisma.$transaction([
+      // Delete plant tasks
+      prisma.plantTask.deleteMany({
+        where: { plantId: plantId },
+      }),
+      // Delete plant tags
+      prisma.plantTag.deleteMany({
+        where: { plantId: plantId },
+      }),
+      // Delete notes
+      prisma.note.deleteMany({
+        where: { plantId: plantId },
+      }),
+      // Delete photos
+      prisma.photo.deleteMany({
+        where: { plantId: plantId },
+      }),
+      // Finally delete the plant
+      prisma.plant.delete({
+        where: { id: plantId },
+      }),
+    ]);
     
     res.json({
       success: true,

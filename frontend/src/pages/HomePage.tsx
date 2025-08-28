@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
+import { SwipeToDeleteCard, SwipeToDeleteCardRef } from '../components/SwipeToDeleteCard';
+import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
 
 interface User {
   id: string;
@@ -44,6 +46,22 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  
+  // Delete confirmation state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    plantId: string | null;
+    plantName: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    plantId: null,
+    plantName: '',
+    isLoading: false,
+  });
+
+  // Refs to track swipe cards for resetting when delete is cancelled
+  const swipeCardRefs = useRef<{ [key: string]: SwipeToDeleteCardRef | null }>({});
 
   useEffect(() => {
     fetchUserProfile();
@@ -130,6 +148,52 @@ const HomePage: React.FC = () => {
       return { status: 'needs-care', color: 'bg-yellow-500' };
     }
     return { status: 'healthy', color: 'bg-green-500' };
+  };
+
+  // Delete plant functions
+  const openDeleteDialog = (plantId: string, plantName: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      plantId,
+      plantName,
+      isLoading: false,
+    });
+  };
+
+  const closeDeleteDialog = () => {
+    // Reset the swipe card if delete was cancelled
+    if (deleteDialog.plantId && swipeCardRefs.current[deleteDialog.plantId]) {
+      swipeCardRefs.current[deleteDialog.plantId]?.reset();
+    }
+    
+    setDeleteDialog({
+      isOpen: false,
+      plantId: null,
+      plantName: '',
+      isLoading: false,
+    });
+  };
+
+  const handleDeletePlant = async () => {
+    if (!deleteDialog.plantId) return;
+
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await axios.delete(`http://localhost:3001/api/plants/${deleteDialog.plantId}`, {
+        withCredentials: true,
+      });
+
+      // Remove the plant from the local state
+      setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));
+      
+      closeDeleteDialog();
+    } catch (error) {
+      console.error('Error deleting plant:', error);
+      alert('Failed to delete plant. Please try again.');
+    } finally {
+      setDeleteDialog(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   // Calculate dashboard stats
@@ -267,47 +331,55 @@ const HomePage: React.FC = () => {
                   const health = getPlantHealth(plant);
                   const activeTasks = plant.tasks.filter(task => task.active);
                   
-                  return (
-                    <div 
-                      key={plant.id} 
-                      className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/plants/${plant.id}`)}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                              <span className="text-xl">🌿</span>
+                                     return (
+                     <SwipeToDeleteCard
+                       key={plant.id}
+                       ref={(el) => {
+                         swipeCardRefs.current[plant.id] = el;
+                       }}
+                       onDelete={() => openDeleteDialog(plant.id, plant.name)}
+                       threshold={100}
+                     >
+                      <div 
+                        className="p-4 cursor-pointer"
+                        onClick={() => navigate(`/plants/${plant.id}`)}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <span className="text-xl">🌿</span>
+                              </div>
+                              <div className={`absolute -top-1 -right-1 w-3 h-3 ${health.color} rounded-full`}></div>
                             </div>
-                            <div className={`absolute -top-1 -right-1 w-3 h-3 ${health.color} rounded-full`}></div>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-800">{plant.name}</h4>
-                            <p className="text-sm text-gray-600">{plant.type || 'Unknown type'}</p>
+                            <div>
+                              <h4 className="font-semibold text-gray-800">{plant.name}</h4>
+                              <p className="text-sm text-gray-600">{plant.type || 'Unknown type'}</p>
+                            </div>
                           </div>
                         </div>
+                        
+                        {activeTasks.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-gray-700">Active Tasks:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {activeTasks.slice(0, 3).map((task) => {
+                                const status = getTaskStatus(task);
+                                return (
+                                  <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
+                                    <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
+                                    <span className={`text-xs ${status.color}`}>{status.text}</span>
+                                  </div>
+                                );
+                              })}
+                              {activeTasks.length > 3 && (
+                                <span className="text-xs text-gray-500">+{activeTasks.length - 3} more</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      
-                      {activeTasks.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-gray-700">Active Tasks:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {activeTasks.slice(0, 3).map((task) => {
-                              const status = getTaskStatus(task);
-                              return (
-                                <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-                                  <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                                  <span className={`text-xs ${status.color}`}>{status.text}</span>
-                                </div>
-                              );
-                            })}
-                            {activeTasks.length > 3 && (
-                              <span className="text-xs text-gray-500">+{activeTasks.length - 3} more</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    </SwipeToDeleteCard>
                   );
                 })}
               </div>
@@ -377,6 +449,18 @@ const HomePage: React.FC = () => {
           setShowAddPlantModal(false);
           navigate('/ai-identification');
         }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={closeDeleteDialog}
+        onConfirm={handleDeletePlant}
+        title="Delete Plant"
+        message={`Are you sure you want to delete "${deleteDialog.plantName}"? It will be permanently deleted!`}
+        confirmText="Delete Plant"
+        cancelText="Cancel"
+        isLoading={deleteDialog.isLoading}
       />
     </Layout>
   );

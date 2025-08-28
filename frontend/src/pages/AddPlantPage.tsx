@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Plus, Check, X } from 'lucide-react';
 import { ConfidenceNotification } from '../components/ConfidenceNotification';
+import { CityAutocomplete } from '../components/CityAutocomplete';
 
 interface TaskTemplate {
   id: string;
@@ -275,17 +276,15 @@ export const AddPlantPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City/Location
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      placeholder="e.g., New York"
-                    />
-                  </div>
+                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                       City/Location
+                     </label>
+                     <CityAutocomplete
+                       value={formData.city}
+                       onChange={(city) => setFormData({ ...formData, city })}
+                       placeholder="e.g., New York"
+                     />
+                   </div>
                 </div>
               </div>
             </div>
