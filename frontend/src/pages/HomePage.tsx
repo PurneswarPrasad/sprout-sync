@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI, plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
 import { SwipeToDeleteCard, SwipeToDeleteCardRef } from '../components/SwipeToDeleteCard';
@@ -75,9 +75,7 @@ const HomePage: React.FC = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/auth/profile', {
-        withCredentials: true,
-      });
+      const response = await authAPI.profile();
       
       if (response.data.success) {
         setUser(response.data.data);
@@ -97,9 +95,7 @@ const HomePage: React.FC = () => {
 
   const fetchPlants = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/plants', {
-        withCredentials: true,
-      });
+      const response = await plantsAPI.getAll();
       setPlants(response.data.data);
     } catch (error) {
       console.error('Error fetching plants:', error);
@@ -180,9 +176,7 @@ const HomePage: React.FC = () => {
     setDeleteDialog(prev => ({ ...prev, isLoading: true }));
 
     try {
-      await axios.delete(`http://localhost:3001/api/plants/${deleteDialog.plantId}`, {
-        withCredentials: true,
-      });
+      await plantsAPI.delete(deleteDialog.plantId);
 
       // Remove the plant from the local state
       setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));

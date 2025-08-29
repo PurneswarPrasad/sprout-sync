@@ -13,23 +13,48 @@ const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
     careTasks: zod_1.z.object({
         watering: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
-            lastWatered: zod_1.z.string().datetime().optional(),
+            lastWatered: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
         fertilizing: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
-            lastFertilized: zod_1.z.string().datetime().optional(),
+            lastFertilized: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
         pruning: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
-            lastPruned: zod_1.z.string().datetime().optional(),
+            lastPruned: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
         spraying: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
-            lastSprayed: zod_1.z.string().datetime().optional(),
+            lastSprayed: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
         sunlightRotation: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
-            lastRotated: zod_1.z.string().datetime().optional(),
+            lastRotated: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
     }).optional(),
 });
@@ -176,6 +201,7 @@ router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(createPlantWit
                         .map(([taskKey, taskData]) => {
                         const task = taskData;
                         const template = templateMap.get(taskKey);
+                        console.log(taskKey, taskData, template);
                         if (!template) {
                             throw new Error(`Invalid task key: ${taskKey}`);
                         }
@@ -317,9 +343,23 @@ router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
                 error: 'Plant not found',
             });
         }
-        await prisma_1.prisma.plant.delete({
-            where: { id: plantId },
-        });
+        await prisma_1.prisma.$transaction([
+            prisma_1.prisma.plantTask.deleteMany({
+                where: { plantId: plantId },
+            }),
+            prisma_1.prisma.plantTag.deleteMany({
+                where: { plantId: plantId },
+            }),
+            prisma_1.prisma.note.deleteMany({
+                where: { plantId: plantId },
+            }),
+            prisma_1.prisma.photo.deleteMany({
+                where: { plantId: plantId },
+            }),
+            prisma_1.prisma.plant.delete({
+                where: { id: plantId },
+            }),
+        ]);
         res.json({
             success: true,
             data: plant,

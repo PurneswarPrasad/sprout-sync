@@ -1,31 +1,27 @@
 import { z } from 'zod';
 export declare const createPlantSchema: z.ZodObject<{
-    userId: z.ZodString;
     name: z.ZodString;
     type: z.ZodOptional<z.ZodString>;
-    acquisitionDate: z.ZodOptional<z.ZodString>;
+    acquisitionDate: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>;
     city: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     name: string;
-    userId: string;
     type?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
 }, {
     name: string;
-    userId: string;
     type?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
 }>;
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
-export declare const updatePlantSchema: z.ZodObject<Omit<{
-    userId: z.ZodOptional<z.ZodString>;
+export declare const updatePlantSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     type: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    acquisitionDate: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    acquisitionDate: z.ZodOptional<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>>;
     city: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-}, "userId">, "strip", z.ZodTypeAny, {
+}, "strip", z.ZodTypeAny, {
     name?: string | undefined;
     type?: string | undefined;
     acquisitionDate?: string | undefined;
@@ -61,9 +57,9 @@ export declare const plantResponseSchema: z.ZodObject<{
     name: string;
     createdAt: Date;
     type: string | null;
-    userId: string;
     acquisitionDate: Date | null;
     city: string | null;
+    userId: string;
     updatedAt: Date;
     _count?: {
         notes: number;
@@ -74,9 +70,9 @@ export declare const plantResponseSchema: z.ZodObject<{
     name: string;
     createdAt: Date;
     type: string | null;
-    userId: string;
     acquisitionDate: Date | null;
     city: string | null;
+    userId: string;
     updatedAt: Date;
     _count?: {
         notes: number;

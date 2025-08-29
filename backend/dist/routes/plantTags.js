@@ -151,7 +151,10 @@ router.delete('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.v
         }
         await prisma_1.prisma.plantTag.delete({
             where: {
-                id: plantTag.id,
+                plantId_tagId: {
+                    plantId: plantId,
+                    tagId: tagId,
+                },
             },
         });
         res.json({
@@ -195,7 +198,10 @@ router.delete('/:tagId', auth_1.isAuthenticated, checkPlantOwnership, async (req
         }
         await prisma_1.prisma.plantTag.delete({
             where: {
-                id: plantTag.id,
+                plantId_tagId: {
+                    plantId: plantId,
+                    tagId: tagId,
+                },
             },
         });
         res.json({

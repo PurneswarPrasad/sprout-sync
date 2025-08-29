@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Plus, Check, X } from 'lucide-react';
 import { ConfidenceNotification } from '../components/ConfidenceNotification';
@@ -59,9 +59,7 @@ export const AddPlantPage: React.FC = () => {
   const fetchTaskTemplates = async () => {
     setTaskTemplatesLoading(true);
     try {
-      const response = await axios.get('http://localhost:3001/api/plants/task-templates', {
-        withCredentials: true,
-      });
+      const response = await plantsAPI.getTaskTemplates();
       setTaskTemplates(response.data.data);
     } catch (error) {
       console.error('Error fetching task templates:', error);
@@ -200,9 +198,7 @@ export const AddPlantPage: React.FC = () => {
         careTasks: Object.keys(careTasks).length > 0 ? careTasks : undefined,
       };
 
-      const response = await axios.post('http://localhost:3001/api/plants', plantData, {
-        withCredentials: true,
-      });
+      const response = await plantsAPI.create(plantData);
 
       console.log('Plant created successfully:', response.data);
       navigate('/plants');

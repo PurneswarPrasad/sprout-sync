@@ -10,6 +10,7 @@ const morgan_1 = __importDefault(require("morgan"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const express_session_1 = __importDefault(require("express-session"));
+const compression_1 = __importDefault(require("compression"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const passport_1 = __importDefault(require("./config/passport"));
 const plants_1 = require("./routes/plants");
@@ -22,10 +23,12 @@ const plantTasks_1 = require("./routes/plantTasks");
 const plantNotes_1 = require("./routes/plantNotes");
 const plantPhotos_1 = require("./routes/plantPhotos");
 const plantTags_1 = require("./routes/plantTags");
+const ai_1 = require("./routes/ai");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env['PORT'] || 3001;
 app.use((0, helmet_1.default)());
+app.use((0, compression_1.default)());
 app.use((0, cors_1.default)({
     origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
     credentials: true,
@@ -56,16 +59,17 @@ app.use((0, express_session_1.default)({
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 app.use('/api/health', health_1.healthRouter);
-app.use('/api/plants', plants_1.plantsRouter);
 app.use('/api/tasks', tasks_1.tasksRouter);
 app.use('/api/tags', tags_1.tagsRouter);
 app.use('/api/test', test_1.testRouter);
 app.use('/auth', auth_1.authRouter);
+app.use('/api/ai', ai_1.aiRouter);
+app.use('/api/plants', plants_1.plantsRouter);
 app.use('/api/plants/:plantId/tasks', plantTasks_1.plantTasksRouter);
 app.use('/api/plants/:plantId/notes', plantNotes_1.plantNotesRouter);
 app.use('/api/plants/:plantId/photos', plantPhotos_1.plantPhotosRouter);
 app.use('/api/plants/:plantId/tags', plantTags_1.plantTagsRouter);
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
     res.json({
         message: '🌱 Plant Care API is running!',
         version: '1.0.0',
@@ -79,7 +83,7 @@ app.use('*', (req, res) => {
         path: req.originalUrl,
     });
 });
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
     console.error('Global error handler:', err);
     res.status(500).json({
         error: 'Internal server error',

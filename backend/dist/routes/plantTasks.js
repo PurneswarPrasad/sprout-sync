@@ -38,7 +38,7 @@ const checkPlantOwnership = async (req, res, next) => {
 };
 router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
     try {
-        const plantId = req.params.plantId;
+        const plantId = req.params['plantId'];
         const { taskKey, completed, page = '1', limit = '20' } = req.query;
         const pageNum = parseInt(page.toString());
         const limitNum = parseInt(limit.toString());
@@ -96,7 +96,7 @@ router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) =>
 });
 router.post('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
     try {
-        const plantId = req.params.plantId;
+        const plantId = req.params['plantId'];
         const validatedData = dtos_1.createPlantTaskSchema.parse(req.body);
         const task = await prisma_1.prisma.plantTask.create({
             data: {

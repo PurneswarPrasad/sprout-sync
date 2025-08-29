@@ -9,7 +9,7 @@ passport.use(
       clientSecret: process.env['GOOGLE_CLIENT_SECRET']!,
       callbackURL: process.env['OAUTH_CALLBACK_URL'] || 'http://localhost:3001/auth/google/callback',
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (_accessToken, _refreshToken, profile, done) => {
       try {
         const { id, displayName, emails } = profile;
         

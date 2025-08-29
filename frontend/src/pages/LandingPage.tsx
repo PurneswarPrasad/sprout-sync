@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -10,9 +10,7 @@ const LandingPage: React.FC = () => {
     // Check if user is already authenticated
     const checkAuthStatus = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/auth/status', {
-          withCredentials: true,
-        });
+        const response = await authAPI.status();
         
         if (response.data.success && response.data.authenticated) {
           // User is already authenticated, redirect to home page
@@ -31,7 +29,7 @@ const LandingPage: React.FC = () => {
 
   const handleGoogleSignIn = () => {
     // Redirect to backend OAuth endpoint
-    window.location.href = 'http://localhost:3001/auth/google';
+    authAPI.googleAuth();
   };
 
   if (loading) {

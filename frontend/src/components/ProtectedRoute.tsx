@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,9 +14,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/auth/status', {
-          withCredentials: true,
-        });
+        const response = await authAPI.status();
         
         if (response.data.success && response.data.authenticated) {
           setAuthenticated(true);

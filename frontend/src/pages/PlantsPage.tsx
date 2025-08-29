@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { plantsAPI } from '../services/api';
 import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle, X } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
@@ -65,9 +65,7 @@ export function PlantsPage() {
 
   const fetchPlants = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/plants', {
-        withCredentials: true,
-      });
+      const response = await plantsAPI.getAll();
       setPlants(response.data.data);
     } catch (error) {
       console.error('Error fetching plants:', error);
@@ -137,9 +135,7 @@ export function PlantsPage() {
     setDeleteDialog(prev => ({ ...prev, isLoading: true }));
 
     try {
-      await axios.delete(`http://localhost:3001/api/plants/${deleteDialog.plantId}`, {
-        withCredentials: true,
-      });
+      await plantsAPI.delete(deleteDialog.plantId);
 
       // Remove the plant from the local state
       setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));

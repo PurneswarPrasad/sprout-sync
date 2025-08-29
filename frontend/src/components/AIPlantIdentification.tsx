@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, ArrowLeft, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { aiAPI } from '../services/api';
 
 interface AIPlantIdentificationProps {
   onBack: () => void;
@@ -89,11 +89,9 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/ai/identify', {
-        imageUrl: imageData
-      }, {
-        withCredentials: true,
-      });
+      const formData = new FormData();
+      formData.append('imageUrl', imageData);
+      const response = await aiAPI.identify(formData);
 
       if (response.data.success) {
         onIdentificationComplete(response.data.data);

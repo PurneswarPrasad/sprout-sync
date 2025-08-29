@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Leaf, Calendar, User, LogOut, Plus } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
 interface User {
   id: string;
@@ -24,9 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/auth/profile', {
-          withCredentials: true,
-        });
+        const response = await authAPI.profile();
         if (response.data.success) {
           setUser(response.data.data);
         }
@@ -40,9 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3001/auth/logout', {}, {
-        withCredentials: true,
-      });
+      await authAPI.logout();
       navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);

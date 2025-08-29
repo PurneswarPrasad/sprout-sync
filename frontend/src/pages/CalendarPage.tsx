@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, Droplets, Sun, Scissors, Zap } from 'lucide-react';
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
-import axios from 'axios';
+import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 
 interface PlantTask {
@@ -59,9 +59,7 @@ export function CalendarPage() {
 
   const fetchPlants = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/plants', {
-        withCredentials: true,
-      });
+      const response = await plantsAPI.getAll();
       setPlants(response.data.data);
     } catch (error) {
       console.error('Error fetching plants:', error);
@@ -160,9 +158,7 @@ export function CalendarPage() {
 
   const markTaskComplete = async (taskId: string, plantId: string) => {
     try {
-      await axios.patch(`http://localhost:3001/api/plants/${plantId}/tasks/${taskId}/complete`, {}, {
-        withCredentials: true,
-      });
+      await plantsAPI.completeTask(plantId, taskId);
       // Refresh plants data
       fetchPlants();
     } catch (error) {

@@ -10,7 +10,7 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
     clientID: process.env['GOOGLE_CLIENT_ID'],
     clientSecret: process.env['GOOGLE_CLIENT_SECRET'],
     callbackURL: process.env['OAUTH_CALLBACK_URL'] || 'http://localhost:3001/auth/google/callback',
-}, async (accessToken, refreshToken, profile, done) => {
+}, async (_accessToken, _refreshToken, profile, done) => {
     try {
         const { id, displayName, emails } = profile;
         if (!emails || emails.length === 0) {

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import passport from './config/passport';
 import { plantsRouter } from './routes/plants';
@@ -27,6 +28,9 @@ const PORT = process.env['PORT'] || 3001;
 
 // Security middleware
 app.use(helmet());
+
+// Compression middleware
+app.use(compression());
 
 // CORS configuration
 app.use(
@@ -91,7 +95,7 @@ app.use('/api/plants/:plantId/photos', plantPhotosRouter);
 app.use('/api/plants/:plantId/tags', plantTagsRouter);
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({
     message: '🌱 Plant Care API is running!',
     version: '1.0.0',
@@ -109,7 +113,7 @@ app.use('*', (req, res) => {
 });
 
 // Global error handler
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Global error handler:', err);
   
   res.status(500).json({
