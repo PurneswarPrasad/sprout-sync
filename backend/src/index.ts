@@ -68,13 +68,15 @@ app.use(session({
   secret: process.env['SESSION_SECRET'] || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  name: 'sessionId', // Custom session name
   cookie: {
     secure: process.env['NODE_ENV'] === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    domain: undefined,
-    sameSite: process.env['NODE_ENV'] === 'production' ? 'none' : 'lax',
+    sameSite: process.env['NODE_ENV'] === 'production' ? 'none' : 'lax', // CRITICAL for cross-domain
+    path: '/',
   },
+  rolling: true, // Extend session on activity
 }));
 
 // Initialize Passport
@@ -125,15 +127,6 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
     message: process.env['NODE_ENV'] === 'development' ? err.message : 'Something went wrong',
   });
 });
-
-app.use(
-  cors({
-    origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
 
 // Start server
 app.listen(PORT, () => {
