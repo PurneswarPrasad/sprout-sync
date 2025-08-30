@@ -33,8 +33,13 @@ router.get('/google/callback',
   (req, res) => {
     console.log('✅ OAuth successful, user:', req.user);
     const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:5173';
-    console.log('Redirecting to:', `${frontendUrl}/home`);
-    res.redirect(`${frontendUrl}/home`);
+    // Add a small delay to ensure session is saved before redirect
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+      }
+      res.redirect(`${frontendUrl}/home`);
+    });
   }
 );
 
