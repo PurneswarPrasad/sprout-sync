@@ -56,7 +56,7 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 OAUTH_CALLBACK_URL="http://localhost:3001/auth/google/callback"
 
 # AI Services
-GOOGLE_CLOUD_VISION_API_KEY="your-gemini-api-key"
+GEMINI_API_KEY="your-gemini-api-key"
 
 # Frontend URL
 FRONTEND_URL="http://localhost:5173"

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env['GOOGLE_CLOUD_VISION_API_KEY']!);
+const genAI = new GoogleGenerativeAI(process.env['GEMINI_API_KEY']!);
 
 export interface AIPlantIdentification {
   speciesGuess: string;
@@ -23,10 +23,10 @@ export class AIService {
   private model: any;
 
   constructor() {
-    const apiKey = process.env['GOOGLE_CLOUD_VISION_API_KEY'];
+    const apiKey = process.env['GEMINI_API_KEY'];
     if (!apiKey) {
-      console.error('GOOGLE_CLOUD_VISION_API_KEY environment variable is not set');
-      throw new Error('GOOGLE_CLOUD_VISION_API_KEY environment variable is required');
+      console.error('GEMINI_API_KEY environment variable is not set');
+      throw new Error('GEMINI_API_KEY environment variable is required');
     }
     this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   }

@@ -11,11 +11,11 @@ const router = Router();
 router.get('/health', authenticateJWT, async (req, res) => {
   try {
     // Check if API key is available
-    const apiKey = process.env['GOOGLE_CLOUD_VISION_API_KEY'];
+    const apiKey = process.env['GEMINI_API_KEY'];
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        error: 'GOOGLE_CLOUD_VISION_API_KEY not configured',
+        error: 'GEMINI_API_KEY not configured',
       });
     }
 
@@ -103,7 +103,7 @@ router.post('/identify/url', authenticateJWT, validate(identifyByUrlSchema), asy
          errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
        } else if (error.message.includes('Invalid content type')) {
          errorMessage = 'The URL does not point to a valid image file. Please use a direct image URL (ending in .jpg, .png, etc.) instead of a search engine page.';
-       } else if (error.message.includes('GOOGLE_CLOUD_VISION_API_KEY')) {
+       } else if (error.message.includes('GEMINI_API_KEY')) {
          errorMessage = 'AI service is not properly configured.';
        } else {
          errorMessage = error.message;
