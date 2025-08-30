@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Leaf, Calendar, User, LogOut, Plus } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
 import { authAPI } from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 
 interface User {
   id: string;
@@ -18,6 +19,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout: logoutFromStore } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
 
@@ -37,12 +39,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   const handleLogout = async () => {
+    console.log('🔄 Logout initiated');
     try {
+      // Call backend logout (optional, for server-side cleanup)
       await authAPI.logout();
-      navigate('/');
+      console.log('✅ Backend logout successful');
     } catch (error) {
-      console.error('Error logging out:', error);
-      navigate('/');
+      console.error('❌ Error calling backend logout:', error);
+    } finally {
+      // Always clear the frontend auth state
+      console.log('🧹 Clearing frontend auth state');
+      logoutFromStore();
+      console.log('🚀 Redirecting to landing page');
+      // Force a hard redirect to ensure we leave the protected route
+      window.location.href = '/';
     }
   };
 

@@ -9,7 +9,6 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
-const express_session_1 = __importDefault(require("express-session"));
 const compression_1 = __importDefault(require("compression"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const passport_1 = __importDefault(require("./config/passport"));
@@ -45,19 +44,7 @@ app.use((0, morgan_1.default)('combined'));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
-app.use((0, express_session_1.default)({
-    secret: process.env['SESSION_SECRET'] || 'your-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env['NODE_ENV'] === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
-        sameSite: process.env['NODE_ENV'] === 'production' ? 'strict' : 'lax',
-    },
-}));
 app.use(passport_1.default.initialize());
-app.use(passport_1.default.session());
 app.use('/api/health', health_1.healthRouter);
 app.use('/api/tasks', tasks_1.tasksRouter);
 app.use('/api/tags', tags_1.tagsRouter);

@@ -6,15 +6,24 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 // Create axios instance with default configuration
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: false, // Changed to false since we're using JWT
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor for logging (development only)
+// Request interceptor for JWT token and logging
 api.interceptors.request.use(
   (config) => {
+    // Add JWT token to requests if available
+    const token = localStorage.getItem('auth-storage') 
+      ? JSON.parse(localStorage.getItem('auth-storage')!).state.token 
+      : null;
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     if (import.meta.env.DEV) {
       console.log('API Request:', config.method?.toUpperCase(), config.url);
     }
@@ -40,7 +49,7 @@ api.interceptors.response.use(
 
 // Helper functions for common API calls
 export const authAPI = {
-  status: () => api.get('/auth/status'),
+  status: () => api.get('/auth/status/public'),
   profile: () => api.get('/auth/profile'),
   logout: () => api.post('/auth/logout'),
   googleAuth: () => window.location.href = `${API_BASE_URL}/auth/google`,

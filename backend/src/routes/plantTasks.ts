@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
-import { isAuthenticated } from '../middleware/auth';
+import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantTaskSchema, updatePlantTaskSchema } from '../dtos';
 
 const router = Router();
@@ -11,7 +11,7 @@ const router = Router();
 const checkPlantOwnership = async (req: any, res: any, next: any) => {
   try {
     const plantId = req.params.plantId;
-    const userId = (req.user as any).id;
+    const userId = req.user!.userId;
     
     const plant = await prisma.plant.findFirst({
       where: {
@@ -39,7 +39,7 @@ const checkPlantOwnership = async (req: any, res: any, next: any) => {
 };
 
 // GET /api/plants/:plantId/tasks - Get all tasks for a specific plant
-router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const plantId = req.params['plantId'];
     const { taskKey, completed, page = '1', limit = '20' } = req.query;
@@ -104,7 +104,7 @@ router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
 });
 
 // POST /api/plants/:plantId/tasks - Create new task for a specific plant
-router.post('/', isAuthenticated, checkPlantOwnership, validate(createPlantTaskSchema), async (req, res) => {
+router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskSchema), async (req, res) => {
   try {
     const plantId = req.params['plantId'];
     const validatedData = createPlantTaskSchema.parse(req.body);
@@ -151,7 +151,7 @@ router.post('/', isAuthenticated, checkPlantOwnership, validate(createPlantTaskS
 });
 
 // GET /api/plants/:plantId/tasks/:taskId - Get specific task for a plant
-router.get('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/:taskId', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const { plantId, taskId } = req.params;
     
@@ -192,7 +192,7 @@ router.get('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res) =>
 });
 
 // PUT /api/plants/:plantId/tasks/:taskId - Update specific task for a plant
-router.put('/:taskId', isAuthenticated, checkPlantOwnership, validate(updatePlantTaskSchema), async (req, res) => {
+router.put('/:taskId', authenticateJWT, checkPlantOwnership, validate(updatePlantTaskSchema), async (req, res) => {
   try {
     const { plantId, taskId } = req.params;
     const validatedData = updatePlantTaskSchema.parse(req.body);
@@ -256,7 +256,7 @@ router.put('/:taskId', isAuthenticated, checkPlantOwnership, validate(updatePlan
 });
 
 // DELETE /api/plants/:plantId/tasks/:taskId - Delete specific task for a plant
-router.delete('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.delete('/:taskId', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const { plantId, taskId } = req.params;
     
@@ -302,7 +302,7 @@ router.delete('/:taskId', isAuthenticated, checkPlantOwnership, async (req, res)
 });
 
 // POST /api/plants/:plantId/tasks/:taskId/complete - Mark task as completed
-router.post('/:taskId/complete', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.post('/:taskId/complete', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const { plantId, taskId } = req.params;
     
@@ -356,7 +356,7 @@ router.post('/:taskId/complete', isAuthenticated, checkPlantOwnership, async (re
 });
 
 // POST /api/plants/:plantId/tasks/:taskId/reschedule - Reschedule task
-router.post('/:taskId/reschedule', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.post('/:taskId/reschedule', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const { plantId, taskId } = req.params;
     const { nextDueOn } = req.body;

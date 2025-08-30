@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
-import { isAuthenticated } from '../middleware/auth';
+import { authenticateJWT } from '../middleware/jwtAuth';
 
 const router = Router();
 
@@ -10,7 +10,7 @@ const router = Router();
 const checkPlantOwnership = async (req: any, res: any, next: any) => {
   try {
     const plantId = req.params['plantId'];
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     const plant = await prisma.plant.findFirst({
       where: {
@@ -48,7 +48,7 @@ const unassignTagSchema = z.object({
 });
 
 // GET /api/plants/:plantId/tags - Get all tags assigned to a plant
-router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const plantId = req.params['plantId'];
     
@@ -81,10 +81,10 @@ router.get('/', isAuthenticated, checkPlantOwnership, async (req, res) => {
 });
 
 // POST /api/plants/:plantId/tags - Assign a tag to a plant
-router.post('/', isAuthenticated, checkPlantOwnership, validate(assignTagSchema), async (req, res) => {
+router.post('/', authenticateJWT, checkPlantOwnership, validate(assignTagSchema), async (req, res) => {
   try {
     const plantId = req.params['plantId'];
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     const { tagId } = req.body;
     
     // Verify the tag belongs to the user
@@ -151,7 +151,7 @@ router.post('/', isAuthenticated, checkPlantOwnership, validate(assignTagSchema)
 });
 
 // DELETE /api/plants/:plantId/tags - Unassign a tag from a plant
-router.delete('/', isAuthenticated, checkPlantOwnership, validate(unassignTagSchema), async (req, res) => {
+router.delete('/', authenticateJWT, checkPlantOwnership, validate(unassignTagSchema), async (req, res) => {
   try {
     const plantId = req.params['plantId'];
     const { tagId } = req.body;
@@ -207,7 +207,7 @@ router.delete('/', isAuthenticated, checkPlantOwnership, validate(unassignTagSch
 });
 
 // DELETE /api/plants/:plantId/tags/:tagId - Unassign a specific tag from a plant
-router.delete('/:tagId', isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.delete('/:tagId', authenticateJWT, checkPlantOwnership, async (req, res) => {
   try {
     const { plantId, tagId } = req.params;
     

@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import session from 'express-session';
+
 import compression from 'compression';
 import dotenv from 'dotenv';
 import passport from './config/passport';
@@ -60,25 +60,8 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parser
 app.use(cookieParser());
 
-// Session configuration
-app.use(session({
-  secret: process.env['SESSION_SECRET'] || 'your-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  name: 'sessionId', // Custom session name
-  cookie: {
-    secure: process.env['NODE_ENV'] === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env['NODE_ENV'] === 'production' ? 'none' : 'lax', // CRITICAL for cross-domain
-    path: '/',
-  },
-  rolling: true, // Extend session on activity
-}));
-
-// Initialize Passport
+// Initialize Passport (for OAuth only, no sessions)
 app.use(passport.initialize());
-app.use(passport.session());
 
 // Routes
 app.use('/api/health', healthRouter);

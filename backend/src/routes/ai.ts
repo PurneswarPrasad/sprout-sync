@@ -2,10 +2,36 @@ import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { aiService } from '../services/aiService';
-import { isAuthenticated } from '../middleware/auth';
+import { authenticateJWT } from '../middleware/jwtAuth';
 import { validate } from '../middleware/validate';
 
 const router = Router();
+
+// GET /ai/health - Health check for AI service
+router.get('/health', authenticateJWT, async (req, res) => {
+  try {
+    // Check if API key is available
+    const apiKey = process.env['GOOGLE_CLOUD_VISION_API_KEY'];
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'GOOGLE_CLOUD_VISION_API_KEY not configured',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'AI service is healthy',
+      apiKeyConfigured: !!apiKey,
+    });
+  } catch (error) {
+    console.error('AI health check error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'AI service health check failed',
+    });
+  }
+});
 
 // Configure multer for file uploads
 const upload = multer({
@@ -28,7 +54,7 @@ const identifyByUrlSchema = z.object({
 });
 
 // POST /ai/identify - Identify plant from image file
-router.post('/identify/file', isAuthenticated, upload.single('image'), async (req, res) => {
+router.post('/identify/file', authenticateJWT, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -54,9 +80,11 @@ router.post('/identify/file', isAuthenticated, upload.single('image'), async (re
 });
 
 // POST /ai/identify - Identify plant from image URL
-router.post('/identify/url', isAuthenticated, validate(identifyByUrlSchema), async (req, res) => {
+router.post('/identify/url', authenticateJWT, validate(identifyByUrlSchema), async (req, res) => {
   try {
     const { imageUrl } = req.body;
+    
+    console.log(`Received URL identification request for: ${imageUrl}`);
 
     const identification = await aiService.identifyPlantFromImage(imageUrl);
 
@@ -67,15 +95,30 @@ router.post('/identify/url', isAuthenticated, validate(identifyByUrlSchema), asy
     });
   } catch (error) {
     console.error('AI identification error:', error);
+    
+         // Provide more specific error messages
+     let errorMessage = 'Failed to identify plant';
+     if (error instanceof Error) {
+       if (error.message.includes('fetch')) {
+         errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
+       } else if (error.message.includes('Invalid content type')) {
+         errorMessage = 'The URL does not point to a valid image file. Please use a direct image URL (ending in .jpg, .png, etc.) instead of a search engine page.';
+       } else if (error.message.includes('GOOGLE_CLOUD_VISION_API_KEY')) {
+         errorMessage = 'AI service is not properly configured.';
+       } else {
+         errorMessage = error.message;
+       }
+     }
+    
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to identify plant',
+      error: errorMessage,
     });
   }
 });
 
 // POST /ai/identify - Unified endpoint (accepts both file and URL)
-router.post('/identify', isAuthenticated, upload.single('image'), async (req, res) => {
+router.post('/identify', authenticateJWT, upload.single('image'), async (req, res) => {
   try {
     let imageData: Buffer | string;
 

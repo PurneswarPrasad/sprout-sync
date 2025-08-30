@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 import { authAPI } from '../services/api';
 
 interface ProtectedRouteProps {
@@ -8,31 +9,43 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
+  const { token, isAuthenticated, logout } = useAuthStore();
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
+      console.log('🔍 Checking auth status, token:', token ? 'exists' : 'missing');
+      if (!token) {
+        // No token, redirect to landing page
+        console.log('❌ No token found, redirecting to landing page');
+        navigate('/');
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await authAPI.status();
         
         if (response.data.success && response.data.authenticated) {
-          setAuthenticated(true);
+          // Token is valid, allow access
+          setLoading(false);
         } else {
-          // Not authenticated, redirect to landing page
+          // Token is invalid, clear auth and redirect
+          logout();
           navigate('/');
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
-        // Error occurred, redirect to landing page
+        // Error occurred, clear auth and redirect
+        logout();
         navigate('/');
-      } finally {
         setLoading(false);
       }
     };
 
     checkAuthStatus();
-  }, [navigate]);
+  }, [navigate, token, logout, isAuthenticated]);
 
   if (loading) {
     return (
@@ -45,9 +58,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  if (!authenticated) {
-    return null; // Will redirect to landing page
-  }
+
 
   return <>{children}</>;
 };

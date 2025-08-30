@@ -249,6 +249,9 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
                   placeholder="https://example.com/plant-image.jpg"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use direct image URLs (ending in .jpg, .png, etc.) - not search engine pages
+                </p>
               </div>
               <button
                 onClick={handleUrlSubmit}

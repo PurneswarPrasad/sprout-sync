@@ -6,53 +6,113 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authRouter = void 0;
 const express_1 = require("express");
 const passport_1 = __importDefault(require("passport"));
-const auth_1 = require("../middleware/auth");
+const jwt_1 = require("../utils/jwt");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const router = (0, express_1.Router)();
 exports.authRouter = router;
-router.get('/google', auth_1.isNotAuthenticated, passport_1.default.authenticate('google', {
-    scope: ['profile', 'email'],
-}));
-router.get('/google/callback', passport_1.default.authenticate('google', {
-    failureRedirect: process.env['FRONTEND_URL'] || 'http://localhost:5173',
-    failureMessage: true,
-}), (req, res) => {
-    const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/home`);
+router.get('/google', (req, res, next) => {
+    console.log('🔐 Initiating Google OAuth...');
+    console.log('Environment:', process.env['NODE_ENV']);
+    console.log('Google Client ID:', process.env['GOOGLE_CLIENT_ID'] ? 'Set' : 'Missing');
+    console.log('Google Client Secret:', process.env['GOOGLE_CLIENT_SECRET'] ? 'Set' : 'Missing');
+    console.log('Callback URL:', process.env['OAUTH_CALLBACK_URL']);
+    passport_1.default.authenticate('google', {
+        scope: ['profile', 'email'],
+        accessType: 'offline',
+        prompt: 'consent',
+        session: false
+    })(req, res, next);
 });
-router.get('/profile', auth_1.isAuthenticated, (req, res) => {
+router.get('/google/callback', (req, res, next) => {
+    console.log('🔄 Google OAuth callback received');
+    console.log('Query params:', req.query);
+    passport_1.default.authenticate('google', {
+        failureRedirect: process.env['FRONTEND_URL'] || 'http://localhost:5173',
+        failureMessage: true,
+        session: false,
+    })(req, res, next);
+}, (req, res) => {
+    console.log('✅ OAuth successful');
+    console.log('User:', req.user);
+    if (!req.user) {
+        console.log('❌ No user found after OAuth');
+        return res.redirect(`${process.env['FRONTEND_URL'] || 'http://localhost:5173'}/auth-error`);
+    }
     const user = req.user;
+    const token = (0, jwt_1.generateToken)({
+        userId: user.id,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl || undefined,
+    });
+    console.log('🎫 JWT token generated');
+    const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:5173';
+    const redirectUrl = `${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}`;
+    console.log('Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
+});
+router.get('/profile', jwtAuth_1.authenticateJWT, (req, res) => {
     res.json({
         success: true,
         data: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            avatarUrl: user.avatarUrl,
-            createdAt: user.createdAt,
-        },
-    });
-});
-router.post('/logout', auth_1.isAuthenticated, (req, res, next) => {
-    req.logout((err) => {
-        if (err) {
-            return next(err);
-        }
-        res.json({
-            success: true,
-            message: 'Logged out successfully',
-        });
-    });
-});
-router.get('/status', (req, res) => {
-    res.json({
-        success: true,
-        authenticated: req.isAuthenticated(),
-        user: req.isAuthenticated() ? {
             id: req.user.id,
             email: req.user.email,
             name: req.user.name,
             avatarUrl: req.user.avatarUrl,
-        } : null,
+        },
     });
+});
+router.post('/logout', jwtAuth_1.authenticateJWT, (req, res) => {
+    res.json({
+        success: true,
+        message: 'Logged out successfully',
+    });
+});
+router.get('/status', jwtAuth_1.authenticateJWT, (req, res) => {
+    res.json({
+        success: true,
+        authenticated: true,
+        user: {
+            id: req.user.id,
+            email: req.user.email,
+            name: req.user.name,
+            avatarUrl: req.user.avatarUrl,
+        },
+    });
+});
+router.get('/status/public', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.json({
+            success: true,
+            authenticated: false,
+            user: null,
+        });
+    }
+    const token = authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : authHeader;
+    try {
+        const { verifyToken } = require('../utils/jwt');
+        const decoded = verifyToken(token);
+        res.json({
+            success: true,
+            authenticated: true,
+            user: {
+                id: decoded.userId,
+                email: decoded.email,
+                name: decoded.name,
+                avatarUrl: decoded.avatarUrl,
+            },
+        });
+    }
+    catch (error) {
+        res.json({
+            success: true,
+            authenticated: false,
+            user: null,
+        });
+    }
 });
 //# sourceMappingURL=auth.js.map

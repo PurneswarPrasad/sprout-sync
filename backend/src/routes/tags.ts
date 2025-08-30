@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
-import { isAuthenticated } from '../middleware/auth';
+import { authenticateJWT } from '../middleware/jwtAuth';
 import { createTagSchema } from '../dtos';
 
 const router = Router();
@@ -14,9 +14,9 @@ const updateTagSchema = z.object({
 });
 
 // GET /api/tags - Get all tags for the authenticated user
-router.get('/', isAuthenticated, async (req, res) => {
+router.get('/', authenticateJWT, async (req, res) => {
   try {
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     const { page = '1', limit = '50' } = req.query;
     
     const pageNum = parseInt(page.toString());
@@ -68,9 +68,9 @@ router.get('/', isAuthenticated, async (req, res) => {
 });
 
 // POST /api/tags - Create new tag
-router.post('/', isAuthenticated, validate(createTagSchema), async (req, res) => {
+router.post('/', authenticateJWT, validate(createTagSchema), async (req, res) => {
   try {
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     const validatedData = createTagSchema.parse(req.body);
     
     // Override userId to ensure it matches the authenticated user
@@ -105,10 +105,10 @@ router.post('/', isAuthenticated, validate(createTagSchema), async (req, res) =>
 });
 
 // GET /api/tags/:id - Get specific tag
-router.get('/:id', isAuthenticated, async (req, res) => {
+router.get('/:id', authenticateJWT, async (req, res) => {
   try {
     const tagId = req.params['id'];
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     const tag = await prisma.tag.findFirst({
       where: {
@@ -156,10 +156,10 @@ router.get('/:id', isAuthenticated, async (req, res) => {
 });
 
 // PUT /api/tags/:id - Update tag
-router.put('/:id', isAuthenticated, validate(updateTagSchema), async (req, res) => {
+router.put('/:id', authenticateJWT, validate(updateTagSchema), async (req, res) => {
   try {
     const tagId = req.params['id'];
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     const validatedData = updateTagSchema.parse(req.body);
     
     const tag = await prisma.tag.findFirst({
@@ -208,10 +208,10 @@ router.put('/:id', isAuthenticated, validate(updateTagSchema), async (req, res) 
 });
 
 // DELETE /api/tags/:id - Delete tag
-router.delete('/:id', isAuthenticated, async (req, res) => {
+router.delete('/:id', authenticateJWT, async (req, res) => {
   try {
     const tagId = req.params['id'];
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     const tag = await prisma.tag.findFirst({
       where: {

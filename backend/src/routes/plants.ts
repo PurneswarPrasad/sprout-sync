@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
-import { isAuthenticated } from '../middleware/auth';
+import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantSchema, updatePlantSchema } from '../dtos';
 
 const router = Router();
@@ -54,10 +54,10 @@ const createPlantWithTasksSchema = createPlantSchema.extend({
 });
 
 // GET /api/plants - Get all plants
-router.get('/', isAuthenticated, async (req, res) => {
+router.get('/', authenticateJWT, async (req, res) => {
   try {
     const { search, health, tag } = req.query;
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     let whereClause: any = {
       userId: userId,
@@ -121,7 +121,7 @@ router.get('/', isAuthenticated, async (req, res) => {
 });
 
 // GET /api/plants/:id - Get plant by ID
-router.get('/:id', isAuthenticated, async (req, res) => {
+router.get('/:id', authenticateJWT, async (req, res) => {
   try {
     const plantId = req.params['id'];
     if (!plantId) {
@@ -131,7 +131,7 @@ router.get('/:id', isAuthenticated, async (req, res) => {
       });
     }
     
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     const plant = await prisma.plant.findFirst({
       where: {
@@ -189,13 +189,39 @@ router.get('/:id', isAuthenticated, async (req, res) => {
 });
 
 // POST /api/plants - Create new plant
-router.post('/', isAuthenticated, validate(createPlantWithTasksSchema), async (req, res) => {
+router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (req, res) => {
   try {
+    console.log('Received plant creation request:', JSON.stringify(req.body, null, 2));
     const validatedData = createPlantWithTasksSchema.parse(req.body) as any;
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     // Get task templates to validate task keys and get defaults
-    const taskTemplates = await prisma.taskTemplate.findMany();
+    let taskTemplates = await prisma.taskTemplate.findMany();
+    console.log('Available task templates:', taskTemplates.map(t => t.key));
+    
+    // If no task templates exist, create default ones
+    if (taskTemplates.length === 0) {
+      console.log('No task templates found, creating defaults...');
+      const defaultTemplates = [
+        { key: 'watering', label: 'Water', colorHex: '#3B82F6', defaultFrequencyDays: 3 },
+        { key: 'fertilizing', label: 'Fertilizing', colorHex: '#8B5CF6', defaultFrequencyDays: 14 },
+        { key: 'pruning', label: 'Pruning', colorHex: '#10B981', defaultFrequencyDays: 30 },
+        { key: 'spraying', label: 'Spraying', colorHex: '#F59E0B', defaultFrequencyDays: 7 },
+        { key: 'sunlightRotation', label: 'Sunlight Rotation', colorHex: '#F97316', defaultFrequencyDays: 14 },
+      ];
+      
+      for (const template of defaultTemplates) {
+        await prisma.taskTemplate.upsert({
+          where: { key: template.key },
+          update: template,
+          create: template,
+        });
+      }
+      
+      taskTemplates = await prisma.taskTemplate.findMany();
+      console.log('Created default task templates:', taskTemplates.map(t => t.key));
+    }
+    
     const templateMap = new Map(taskTemplates.map(t => [t.key, t]));
     
     // Create the plant with tasks
@@ -213,10 +239,15 @@ router.post('/', isAuthenticated, validate(createPlantWithTasksSchema), async (r
               const task = taskData as any;
               const template = templateMap.get(taskKey);
 
-              console.log(taskKey, taskData, template);
+              console.log('Processing task key:', taskKey);
+              console.log('Task data:', taskData);
+              console.log('Found template:', template);
+              console.log('Available keys in templateMap:', Array.from(templateMap.keys()));
               
               if (!template) {
-                throw new Error(`Invalid task key: ${taskKey}`);
+                console.error(`Task template not found for key: ${taskKey}`);
+                console.error('Available templates:', Array.from(templateMap.keys()));
+                throw new Error(`Invalid task key: ${taskKey}. Available keys: ${Array.from(templateMap.keys()).join(', ')}`);
               }
               
               // Extract last completed date based on task type
@@ -277,7 +308,7 @@ router.post('/', isAuthenticated, validate(createPlantWithTasksSchema), async (r
 });
 
 // PUT /api/plants/:id - Update plant
-router.put('/:id', isAuthenticated, validate(updatePlantSchema), async (req, res) => {
+router.put('/:id', authenticateJWT, validate(updatePlantSchema), async (req, res) => {
   try {
     const plantId = req.params['id'];
     if (!plantId) {
@@ -287,7 +318,7 @@ router.put('/:id', isAuthenticated, validate(updatePlantSchema), async (req, res
       });
     }
     
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     const validatedData = updatePlantSchema.parse(req.body) as any;
     
     const plant = await prisma.plant.findFirst({
@@ -346,7 +377,7 @@ router.put('/:id', isAuthenticated, validate(updatePlantSchema), async (req, res
 });
 
 // DELETE /api/plants/:id - Delete plant
-router.delete('/:id', isAuthenticated, async (req, res) => {
+router.delete('/:id', authenticateJWT, async (req, res) => {
   try {
     const plantId = req.params['id'];
     if (!plantId) {
@@ -356,7 +387,7 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
       });
     }
     
-    const userId = (req.user as any).id;
+    const userId = (req.user as any).userId;
     
     const plant = await prisma.plant.findFirst({
       where: {
@@ -411,13 +442,41 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
 });
 
 // GET /api/plants/task-templates - Get available task templates
-router.get('/task-templates', isAuthenticated, async (req, res) => {
+router.get('/task-templates', authenticateJWT, async (req, res) => {
   try {
-    const taskTemplates = await prisma.taskTemplate.findMany({
+    let taskTemplates = await prisma.taskTemplate.findMany({
       orderBy: {
         key: 'asc',
       },
     });
+    
+    // If no task templates exist, create default ones
+    if (taskTemplates.length === 0) {
+      console.log('No task templates found in /task-templates endpoint, creating defaults...');
+      const defaultTemplates = [
+        { key: 'watering', label: 'Water', colorHex: '#3B82F6', defaultFrequencyDays: 3 },
+        { key: 'fertilizing', label: 'Fertilizing', colorHex: '#8B5CF6', defaultFrequencyDays: 14 },
+        { key: 'pruning', label: 'Pruning', colorHex: '#10B981', defaultFrequencyDays: 30 },
+        { key: 'spraying', label: 'Spraying', colorHex: '#F59E0B', defaultFrequencyDays: 7 },
+        { key: 'sunlightRotation', label: 'Sunlight Rotation', colorHex: '#F97316', defaultFrequencyDays: 14 },
+      ];
+      
+      for (const template of defaultTemplates) {
+        await prisma.taskTemplate.upsert({
+          where: { key: template.key },
+          update: template,
+          create: template,
+        });
+      }
+      
+      taskTemplates = await prisma.taskTemplate.findMany({
+        orderBy: {
+          key: 'asc',
+        },
+      });
+    }
+    
+    console.log('Task templates in database:', taskTemplates.map(t => ({ key: t.key, label: t.label })));
     
     res.json({
       success: true,
@@ -434,7 +493,7 @@ router.get('/task-templates', isAuthenticated, async (req, res) => {
 });
 
 // POST /api/plants/identify - Identify plant from image
-router.post('/identify', isAuthenticated, async (req, res) => {
+router.post('/identify', authenticateJWT, async (req, res) => {
   try {
     const { image } = req.body;
     

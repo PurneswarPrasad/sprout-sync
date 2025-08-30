@@ -5,7 +5,7 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
-const auth_1 = require("../middleware/auth");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const router = (0, express_1.Router)();
 exports.plantsRouter = router;
@@ -58,7 +58,7 @@ const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
         }).optional(),
     }).optional(),
 });
-router.get('/', auth_1.isAuthenticated, async (req, res) => {
+router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const { search, health, tag } = req.query;
         const userId = req.user.id;
@@ -119,7 +119,7 @@ router.get('/', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
+router.get('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const plantId = req.params['id'];
         if (!plantId) {
@@ -182,7 +182,7 @@ router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(createPlantWithTasksSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlantWithTasksSchema), async (req, res) => {
     try {
         const validatedData = createPlantWithTasksSchema.parse(req.body);
         const userId = req.user.id;
@@ -256,7 +256,7 @@ router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(createPlantWit
         });
     }
 });
-router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.updatePlantSchema), async (req, res) => {
+router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.updatePlantSchema), async (req, res) => {
     try {
         const plantId = req.params['id'];
         if (!plantId) {
@@ -321,7 +321,7 @@ router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.updat
         });
     }
 });
-router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
+router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const plantId = req.params['id'];
         if (!plantId) {
@@ -374,7 +374,7 @@ router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.get('/task-templates', auth_1.isAuthenticated, async (req, res) => {
+router.get('/task-templates', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const taskTemplates = await prisma_1.prisma.taskTemplate.findMany({
             orderBy: {
@@ -395,7 +395,7 @@ router.get('/task-templates', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.post('/identify', auth_1.isAuthenticated, async (req, res) => {
+router.post('/identify', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const { image } = req.body;
         if (!image) {

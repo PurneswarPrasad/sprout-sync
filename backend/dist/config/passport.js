@@ -46,19 +46,5 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
         return done(error, false);
     }
 }));
-passport_1.default.serializeUser((user, done) => {
-    done(null, user.id);
-});
-passport_1.default.deserializeUser(async (id, done) => {
-    try {
-        const user = await prisma_1.prisma.user.findUnique({
-            where: { id },
-        });
-        done(null, user);
-    }
-    catch (error) {
-        done(error, null);
-    }
-});
 exports.default = passport_1.default;
 //# sourceMappingURL=passport.js.map

@@ -5,14 +5,14 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
-const auth_1 = require("../middleware/auth");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const router = (0, express_1.Router)();
 exports.plantTasksRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
     try {
         const plantId = req.params.plantId;
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const plant = await prisma_1.prisma.plant.findFirst({
             where: {
                 id: plantId,
@@ -36,7 +36,7 @@ const checkPlantOwnership = async (req, res, next) => {
         });
     }
 };
-router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const plantId = req.params['plantId'];
         const { taskKey, completed, page = '1', limit = '20' } = req.query;
@@ -94,7 +94,7 @@ router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) =>
         });
     }
 });
-router.post('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
     try {
         const plantId = req.params['plantId'];
         const validatedData = dtos_1.createPlantTaskSchema.parse(req.body);
@@ -136,7 +136,7 @@ router.post('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.val
         });
     }
 });
-router.get('/:taskId', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const { plantId, taskId } = req.params;
         const task = await prisma_1.prisma.plantTask.findFirst({
@@ -173,7 +173,7 @@ router.get('/:taskId', auth_1.isAuthenticated, checkPlantOwnership, async (req, 
         });
     }
 });
-router.put('/:taskId', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.validate)(dtos_1.updatePlantTaskSchema), async (req, res) => {
+router.put('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(dtos_1.updatePlantTaskSchema), async (req, res) => {
     try {
         const { plantId, taskId } = req.params;
         const validatedData = dtos_1.updatePlantTaskSchema.parse(req.body);
@@ -233,7 +233,7 @@ router.put('/:taskId', auth_1.isAuthenticated, checkPlantOwnership, (0, validate
         });
     }
 });
-router.delete('/:taskId', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.delete('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const { plantId, taskId } = req.params;
         const task = await prisma_1.prisma.plantTask.findFirst({
@@ -274,7 +274,7 @@ router.delete('/:taskId', auth_1.isAuthenticated, checkPlantOwnership, async (re
         });
     }
 });
-router.post('/:taskId/complete', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.post('/:taskId/complete', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const { plantId, taskId } = req.params;
         const task = await prisma_1.prisma.plantTask.findFirst({
@@ -321,7 +321,7 @@ router.post('/:taskId/complete', auth_1.isAuthenticated, checkPlantOwnership, as
         });
     }
 });
-router.post('/:taskId/reschedule', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.post('/:taskId/reschedule', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const { plantId, taskId } = req.params;
         const { nextDueOn } = req.body;
