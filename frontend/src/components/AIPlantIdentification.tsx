@@ -87,12 +87,29 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   const identifyPlant = async (imageData: string) => {
     setLoading(true);
     setError(null);
-
+  
     try {
-      const formData = new FormData();
-      formData.append('imageUrl', imageData);
-      const response = await aiAPI.identify(formData);
-
+      let response;
+      
+      if (imageData.startsWith('data:image/')) {
+        // Camera capture - convert base64 to file and upload
+        const formData = new FormData();
+        
+        // Convert base64 data URL to blob
+        const base64Response = await fetch(imageData);
+        const blob = await base64Response.blob();
+        
+        // Create file from blob
+        const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
+        formData.append('image', file);
+        
+        // Use file upload endpoint
+        response = await aiAPI.identifyFile(formData);
+      } else {
+        // Image URL - use URL endpoint
+        response = await aiAPI.identifyByUrl(imageData);
+      }
+  
       if (response.data.success) {
         onIdentificationComplete(response.data.data);
       } else {

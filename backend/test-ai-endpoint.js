@@ -7,7 +7,7 @@ async function testAIEndpoint() {
     // Test with a sample image URL (a common plant image)
     const testImageUrl = 'https://images.unsplash.com/photo-1466781783364-36c955e42a7f?w=400&h=400&fit=crop';
     
-    const response = await axios.post('http://localhost:3001/api/ai/identify', {
+    const response = await axios.post('http://localhost:3001/api/ai/identify/url', {
       imageUrl: testImageUrl
     }, {
       withCredentials: true,

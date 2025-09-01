@@ -67,11 +67,23 @@ export const plantsAPI = {
 };
 
 export const aiAPI = {
-  identify: (data: FormData) => api.post('/api/ai/identify', data, {
+  // For camera captures (base64 data)
+  identifyFromBase64: async (base64Data: string) => {
+    // Convert base64 data URL to blob
+    const base64Response = fetch(base64Data);
+    const res = await base64Response;
+    return await res.blob();
+  },
+  
+  // For file uploads (camera capture converted to file)
+  identifyFile: (data: FormData) => api.post('/api/ai/identify/file', data, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   }),
+  
+  // For URL-based identification
+  identifyByUrl: (imageUrl: string) => api.post('/api/ai/identify/url', { imageUrl }),
 };
 
 export default api;

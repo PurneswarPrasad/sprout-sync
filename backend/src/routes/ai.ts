@@ -117,38 +117,4 @@ router.post('/identify/url', authenticateJWT, validate(identifyByUrlSchema), asy
   }
 });
 
-// POST /ai/identify - Unified endpoint (accepts both file and URL)
-router.post('/identify', authenticateJWT, upload.single('image'), async (req, res) => {
-  try {
-    let imageData: Buffer | string;
-
-    if (req.file) {
-      // File upload
-      imageData = req.file.buffer;
-    } else if (req.body.imageUrl) {
-      // URL provided
-      imageData = req.body.imageUrl;
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: 'Either image file or imageUrl must be provided',
-      });
-    }
-
-    const identification = await aiService.identifyPlantFromImage(imageData);
-
-    res.json({
-      success: true,
-      data: identification,
-      message: 'Plant identified successfully',
-    });
-  } catch (error) {
-    console.error('AI identification error:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to identify plant',
-    });
-  }
-});
-
 export { router as aiRouter };

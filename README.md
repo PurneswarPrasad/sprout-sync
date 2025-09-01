@@ -182,7 +182,6 @@ npm run dev
 - `DELETE /api/plants/:plantId/tags/:tagId` - Unassign a specific tag from a plant
 
 ### AI Plant Identification
-- `POST /api/ai/identify` - Identify plant from image (file upload or URL)
 - `POST /api/ai/identify/file` - Identify plant from uploaded image file
 - `POST /api/ai/identify/url` - Identify plant from image URL
 
