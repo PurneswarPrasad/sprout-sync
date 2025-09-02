@@ -113,22 +113,34 @@ export const AddPlantPage: React.FC = () => {
     if (isSelected) {
       setSelectedTasks(selectedTasks.filter(task => task.key !== template.key));
     } else {
-      setSelectedTasks([
-        ...selectedTasks,
-        {
-          key: template.key,
-          label: template.label,
-          colorHex: template.colorHex,
-          frequency: template.defaultFrequencyDays,
-        }
-      ]);
+      const newTask: SelectedTask = {
+        key: template.key,
+        label: template.label,
+        colorHex: template.colorHex,
+        frequency: template.defaultFrequencyDays,
+        ...(template.defaultFrequencyDays === 1 && { lastCompleted: new Date().toISOString().split('T')[0] })
+      };
+      
+      setSelectedTasks([...selectedTasks, newTask]);
     }
   };
 
   const updateTaskFrequency = (taskKey: string, frequency: number) => {
-    setSelectedTasks(selectedTasks.map(task => 
-      task.key === taskKey ? { ...task, frequency } : task
-    ));
+    setSelectedTasks(selectedTasks.map(task => {
+      if (task.key === taskKey) {
+        // If frequency is set to 1, automatically set lastCompleted to today
+        if (frequency === 1) {
+          return { ...task, frequency, lastCompleted: new Date().toISOString().split('T')[0] };
+        }
+        // If frequency was 1 and is now changed to something else, clear lastCompleted
+        else if (task.frequency === 1) {
+          return { ...task, frequency, lastCompleted: undefined };
+        }
+        // Otherwise, just update frequency
+        return { ...task, frequency };
+      }
+      return task;
+    }));
   };
 
   const updateTaskLastCompleted = (taskKey: string, lastCompleted: string) => {
@@ -158,6 +170,7 @@ export const AddPlantPage: React.FC = () => {
         label: template?.label || task.name,
         colorHex: template?.colorHex || '#3B82F6',
         frequency: task.frequencyDays,
+        ...(task.frequencyDays === 1 && { lastCompleted: new Date().toISOString().split('T')[0] })
       };
     });
 
@@ -181,11 +194,18 @@ export const AddPlantPage: React.FC = () => {
     try {
       // Prepare care tasks object
       const careTasks: any = {};
+      const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+      
       selectedTasks.forEach(task => {
         const taskData: any = { frequency: task.frequency };
         
-        // Add last completed date if provided
-        if (task.lastCompleted) {
+        // If frequency is 1, automatically set last completed to today
+        if (task.frequency === 1) {
+          const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
+          taskData[lastCompletedKey] = today;
+        }
+        // Otherwise, use the manually provided last completed date if available
+        else if (task.lastCompleted) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
           taskData[lastCompletedKey] = task.lastCompleted;
         }
@@ -380,6 +400,7 @@ export const AddPlantPage: React.FC = () => {
                             onChange={(e) => updateTaskFrequency(task.key, parseInt(e.target.value))}
                             className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                           />
+
                         </div>
 
                         <div>
@@ -388,10 +409,18 @@ export const AddPlantPage: React.FC = () => {
                           </label>
                           <input
                             type="date"
-                            value={task.lastCompleted || ''}
+                            value={task.frequency === 1 ? new Date().toISOString().split('T')[0] : (task.lastCompleted || '')}
                             onChange={(e) => updateTaskLastCompleted(task.key, e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
+                              task.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
+                            }`}
+                            disabled={task.frequency === 1}
                           />
+                          {task.frequency === 1 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Auto-set to today for daily tasks
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

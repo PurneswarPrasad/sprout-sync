@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle } from 'lucide-react';
 import { authAPI, plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
 import { SwipeToDeleteCard, SwipeToDeleteCardRef } from '../components/SwipeToDeleteCard';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
+import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
 
 interface User {
   id: string;
@@ -58,6 +60,17 @@ const HomePage: React.FC = () => {
     plantId: null,
     plantName: '',
     isLoading: false,
+  });
+
+  // Task completion confirmation state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    task: { plantName: string; taskId: string; plantId: string } | null;
+    message: string;
+  }>({
+    isOpen: false,
+    task: null,
+    message: '',
   });
 
   // Refs to track swipe cards for resetting when delete is cancelled
@@ -124,8 +137,17 @@ const HomePage: React.FC = () => {
     const nextDue = new Date(task.nextDueOn);
     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
+    // For daily tasks (frequency=1), always show "Due today"
+    if (task.frequencyDays === 1) {
+      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
+    }
+    
     if (daysUntilDue < 0) {
       return { status: 'overdue', text: 'Overdue', color: 'text-red-600' };
+    } else if (daysUntilDue === 0) {
+      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
+    } else if (daysUntilDue === 1) {
+      return { status: 'due-tomorrow', text: 'Due tomorrow', color: 'text-yellow-600' };
     } else if (daysUntilDue <= 2) {
       return { status: 'due-soon', text: `Due in ${daysUntilDue} days`, color: 'text-yellow-600' };
     } else {
@@ -188,6 +210,78 @@ const HomePage: React.FC = () => {
     } finally {
       setDeleteDialog(prev => ({ ...prev, isLoading: false }));
     }
+  };
+
+  // Task completion functions
+  const openConfirmDialog = (task: PlantTask, plant: Plant) => {
+    const messages = [
+      "Great job! Mark this as complete? 🌱",
+      "Excellent work! Ready to mark this task as done? ✨",
+      "You're doing amazing! Complete this task? 🌿",
+      "Fantastic progress! Mark this as finished? 🌟",
+      "Keep up the great work! Ready to complete this? 💚"
+    ];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    
+    setConfirmDialog({
+      isOpen: true,
+      task: {
+        plantName: plant.name,
+        taskId: task.id,
+        plantId: plant.id,
+      },
+      message: randomMessage,
+    });
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      isOpen: false,
+      task: null,
+      message: '',
+    });
+  };
+
+  const markTaskComplete = async (taskId: string, plantId: string) => {
+    try {
+      await plantsAPI.completeTask(plantId, taskId);
+      
+      // Close dialog
+      closeConfirmDialog();
+      
+      // Refresh plants data to ensure consistency
+      fetchPlants();
+    } catch (error) {
+      console.error('Error marking task complete:', error);
+    }
+  };
+
+  // Get today's tasks (same logic as CalendarPage)
+  const getTodaysTasks = (): Array<{ task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean }> => {
+    return plants.flatMap(plant => 
+      plant.tasks
+        .filter(task => task.active)
+        .map(task => {
+          const now = new Date();
+          const nextDue = new Date(task.nextDueOn);
+          const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Only include tasks due today (daysUntilDue === 0) or daily tasks (frequency=1)
+          if (task.frequencyDays === 1 || daysUntilDue === 0) {
+            const status = getTaskStatus(task);
+            const isCompleted = task.lastCompletedOn !== null;
+            
+            return {
+              task,
+              plant,
+              status,
+              isCompleted
+            };
+          }
+          return null;
+        })
+        .filter((item): item is { task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean } => item !== null)
+    );
   };
 
   // Calculate dashboard stats
@@ -261,8 +355,8 @@ const HomePage: React.FC = () => {
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Tasks</p>
-                <p className="text-3xl font-bold text-blue-600">{activeTasks}</p>
+                <p className="text-sm font-medium text-gray-600">Today's Tasks</p>
+                                 <p className="text-3xl font-bold text-blue-600">{getTodaysTasks().filter(({ isCompleted }) => !isCompleted).length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <span className="text-2xl">📋</span>
@@ -353,25 +447,61 @@ const HomePage: React.FC = () => {
                           </div>
                         </div>
                         
-                        {activeTasks.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-gray-700">Active Tasks:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {activeTasks.slice(0, 3).map((task) => {
-                                const status = getTaskStatus(task);
-                                return (
-                                  <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-                                    <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                                    <span className={`text-xs ${status.color}`}>{status.text}</span>
-                                  </div>
-                                );
-                              })}
-                              {activeTasks.length > 3 && (
-                                <span className="text-xs text-gray-500">+{activeTasks.length - 3} more</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                                                 {activeTasks.length > 0 && (
+                           <div className="space-y-2">
+                             <p className="text-xs font-medium text-gray-700">Active Tasks:</p>
+                             <div className="flex flex-wrap gap-2">
+                               {(() => {
+                                 // Sort tasks by priority: completed first, then by due date (most urgent first)
+                                 const sortedTasks = [...activeTasks].sort((a, b) => {
+                                   const aCompleted = a.lastCompletedOn !== null;
+                                   const bCompleted = b.lastCompletedOn !== null;
+                                   
+                                   // Completed tasks appear first
+                                   if (aCompleted && !bCompleted) return -1;
+                                   if (!aCompleted && bCompleted) return 1;
+                                   
+                                   // If both are completed or both are pending, sort by due date
+                                   if (aCompleted === bCompleted) {
+                                     const now = new Date();
+                                     const aDue = new Date(a.nextDueOn);
+                                     const bDue = new Date(b.nextDueOn);
+                                     const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                     const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                     
+                                     // Most urgent (smaller days until due) appears first
+                                     return aDaysUntilDue - bDaysUntilDue;
+                                   }
+                                   
+                                   return 0;
+                                 });
+                                 
+                                 return sortedTasks.slice(0, 3).map((task) => {
+                                   const isCompleted = task.lastCompletedOn !== null;
+                                   if (isCompleted) {
+                                     return (
+                                       <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
+                                         <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
+                                         <span className="text-xs text-green-600">Done</span>
+                                       </div>
+                                     );
+                                   } else {
+                                     const status = getTaskStatus(task);
+                                     return (
+                                       <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
+                                         <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
+                                         <span className={`text-xs ${status.color}`}>{status.text}</span>
+                                       </div>
+                                     );
+                                   }
+                                 });
+                               })()}
+                               {activeTasks.length > 3 && (
+                                 <span className="text-xs text-gray-500">+{activeTasks.length - 3} more</span>
+                               )}
+                             </div>
+                           </div>
+                         )}
                       </div>
                     </SwipeToDeleteCard>
                   );
@@ -392,41 +522,67 @@ const HomePage: React.FC = () => {
               </button>
             </div>
             
-            {activeTasks === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">📋</span>
-                </div>
-                <p className="text-gray-600 mb-4">No tasks for today</p>
-                <p className="text-sm text-gray-500">
-                  Add plants to start receiving care reminders
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {plants.flatMap(plant => 
-                  plant.tasks
-                    .filter(task => task.active)
-                    .map(task => {
-                      const status = getTaskStatus(task);
-                      return (
-                        <div key={task.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg">{getTaskIcon(task.taskKey)}</span>
-                            <div>
-                              <p className="font-medium text-gray-800">{task.taskKey}</p>
-                              <p className="text-sm text-gray-600">{plant.name}</p>
-                            </div>
-                          </div>
-                          <span className={`text-sm font-medium ${status.color}`}>
-                            {status.text}
-                          </span>
-                        </div>
-                      );
-                    })
-                ).slice(0, 5)}
-              </div>
-            )}
+            {(() => {
+              const todaysTasks = getTodaysTasks();
+              
+              if (todaysTasks.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl">📋</span>
+                    </div>
+                    <p className="text-gray-600 mb-4">No tasks for today</p>
+                    <p className="text-sm text-gray-500">
+                      Add plants to start receiving care reminders
+                    </p>
+                  </div>
+                );
+              }
+              
+              return (
+                                 <div className="space-y-3 max-h-96 overflow-y-auto">
+                   {todaysTasks.slice(0, 5).map(({ task, plant, status, isCompleted }) => (
+                     <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg border ${
+                       isCompleted 
+                         ? 'bg-green-50 border-green-200' 
+                         : 'bg-white border-gray-200'
+                     }`}>
+                       <div className="flex items-center gap-3">
+                         <span className={`text-lg ${isCompleted ? 'opacity-50' : ''}`}>{getTaskIcon(task.taskKey)}</span>
+                         <div>
+                           <p className={`font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                             {task.taskKey}
+                           </p>
+                           <p className={`text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                             {plant.name}
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-3">
+                         {isCompleted ? (
+                           <div className="flex items-center space-x-1 text-green-600">
+                             <CheckCircle className="w-4 h-4" />
+                             <span className="text-sm">Done</span>
+                           </div>
+                         ) : (
+                           <>
+                             <span className={`text-sm font-medium ${status.color}`}>
+                               {status.text}
+                             </span>
+                             <button
+                               onClick={() => openConfirmDialog(task, plant)}
+                               className="px-3 py-1 bg-emerald-500 text-white text-xs rounded-lg hover:bg-emerald-600 transition-colors"
+                             >
+                               Mark Complete
+                             </button>
+                           </>
+                         )}
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -455,6 +611,15 @@ const HomePage: React.FC = () => {
         confirmText="Delete Plant"
         cancelText="Cancel"
         isLoading={deleteDialog.isLoading}
+      />
+
+      {/* Task Completion Dialog */}
+      <TaskCompletionDialog
+        isOpen={confirmDialog.isOpen}
+        task={confirmDialog.task}
+        message={confirmDialog.message}
+        onClose={closeConfirmDialog}
+        onConfirm={markTaskComplete}
       />
     </Layout>
   );

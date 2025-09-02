@@ -75,12 +75,26 @@ export function PlantsPage() {
   };
 
   const getTaskStatus = (task: PlantTask) => {
+    // Check if task is completed first
+    if (task.lastCompletedOn !== null) {
+      return { status: 'completed', text: 'Done', color: 'text-green-600' };
+    }
+    
     const now = new Date();
     const nextDue = new Date(task.nextDueOn);
     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
+    // For daily tasks (frequency=1), always show "Due today"
+    if (task.frequencyDays === 1) {
+      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
+    }
+    
     if (daysUntilDue < 0) {
       return { status: 'overdue', text: 'Overdue', color: 'text-red-600' };
+    } else if (daysUntilDue === 0) {
+      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
+    } else if (daysUntilDue === 1) {
+      return { status: 'due-tomorrow', text: 'Due tomorrow', color: 'text-yellow-600' };
     } else if (daysUntilDue <= 2) {
       return { status: 'due-soon', text: `Due in ${daysUntilDue} days`, color: 'text-yellow-600' };
     } else {
@@ -311,18 +325,53 @@ export function PlantsPage() {
                       {activeTasks.length > 0 && (
                         <div className="space-y-2">
                           <h4 className="text-sm font-medium text-gray-700">Active Tasks</h4>
-                          {activeTasks.slice(0, 3).map((task) => {
-                            const status = getTaskStatus(task);
-                            return (
-                              <div key={task.id} className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span>{getTaskIcon(task.taskKey)}</span>
-                                  <span className="text-gray-600">{task.taskKey}</span>
+                          {(() => {
+                            // Sort tasks by priority: completed first, then by due date (most urgent first)
+                            const sortedTasks = [...activeTasks].sort((a, b) => {
+                              const aCompleted = a.lastCompletedOn !== null;
+                              const bCompleted = b.lastCompletedOn !== null;
+                              
+                              // Completed tasks appear first
+                              if (aCompleted && !bCompleted) return -1;
+                              if (!aCompleted && bCompleted) return 1;
+                              
+                              // If both are completed or both are pending, sort by due date
+                              if (aCompleted === bCompleted) {
+                                const now = new Date();
+                                const aDue = new Date(a.nextDueOn);
+                                const bDue = new Date(b.nextDueOn);
+                                const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                
+                                // Most urgent (smaller days until due) appears first
+                                return aDaysUntilDue - bDaysUntilDue;
+                              }
+                              
+                              return 0;
+                            });
+                            
+                            return sortedTasks.slice(0, 3).map((task) => {
+                              const status = getTaskStatus(task);
+                              const isCompleted = task.lastCompletedOn !== null;
+                              
+                              return (
+                                <div key={task.id} className={`flex items-center justify-between text-xs ${
+                                  isCompleted ? 'opacity-75' : ''
+                                }`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className={isCompleted ? 'opacity-50' : ''}>{getTaskIcon(task.taskKey)}</span>
+                                    <span className={`${isCompleted ? 'text-gray-500 line-through' : 'text-gray-600'}`}>
+                                      {task.taskKey}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className={status.color}>{status.text}</span>
+                                    {isCompleted && <CheckCircle className="w-3 h-3 text-green-600" />}
+                                  </div>
                                 </div>
-                                <span className={status.color}>{status.text}</span>
-                              </div>
-                            );
-                          })}
+                              );
+                            });
+                          })()}
                           {activeTasks.length > 3 && (
                             <p className="text-xs text-gray-500">+{activeTasks.length - 3} more tasks</p>
                           )}

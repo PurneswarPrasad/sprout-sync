@@ -63,7 +63,7 @@ export const plantsAPI = {
   delete: (id: string) => api.delete(`/api/plants/${id}`),
   getTaskTemplates: () => api.get('/api/plants/task-templates'),
   completeTask: (plantId: string, taskId: string) => 
-    api.patch(`/api/plants/${plantId}/tasks/${taskId}/complete`, {}),
+    api.post(`/api/plants/${plantId}/tasks/${taskId}/complete`, {}),
 };
 
 export const aiAPI = {

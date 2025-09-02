@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, CheckCircle, Clock, Droplets, Sun, Scissors,
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
+import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
 
 interface PlantTask {
   id: string;
@@ -46,6 +47,19 @@ export function CalendarPage() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
+  
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    task: CalendarTask | null;
+    message: string;
+  }>({
+    isOpen: false,
+    task: null,
+    message: '',
+  });
+  
+
 
   useEffect(() => {
     fetchPlants();
@@ -70,14 +84,36 @@ export function CalendarPage() {
 
   const generateCalendarTasks = () => {
     const calendarTasks: CalendarTask[] = [];
+    const today = new Date();
     
     plants.forEach(plant => {
       plant.tasks.forEach(task => {
         if (task.active) {
-          // Generate tasks for the next 30 days
+          // For frequency=1 tasks, always add to today's tasks
+          if (task.frequencyDays === 1) {
+            calendarTasks.push({
+              id: `${task.id}-daily`,
+              plantName: plant.name,
+              plantId: plant.id,
+              taskKey: task.taskKey,
+              scheduledDate: today,
+              completed: task.lastCompletedOn ? 
+                isSameDay(new Date(task.lastCompletedOn), today) : false,
+              icon: getTaskIcon(task.taskKey),
+              color: getTaskColor(task.taskKey),
+              taskId: task.id,
+            });
+          }
+          
+          // Generate tasks for the next 30 days (for all frequencies)
           for (let i = 0; i < 30; i++) {
             const taskDate = new Date(task.nextDueOn);
             taskDate.setDate(taskDate.getDate() + (i * task.frequencyDays));
+            
+            // Skip today for daily tasks since we already added them above
+            if (task.frequencyDays === 1 && isSameDay(taskDate, today)) {
+              continue;
+            }
             
             // Only add tasks within the current week view
             const weekStart = startOfWeek(currentDate);
@@ -91,7 +127,7 @@ export function CalendarPage() {
                 taskKey: task.taskKey,
                 scheduledDate: taskDate,
                 completed: task.lastCompletedOn ? 
-                  new Date(task.lastCompletedOn) >= taskDate : false,
+                  isSameDay(new Date(task.lastCompletedOn), taskDate) : false,
                 icon: getTaskIcon(task.taskKey),
                 color: getTaskColor(task.taskKey),
                 taskId: task.id,
@@ -156,10 +192,44 @@ export function CalendarPage() {
     }
   };
 
+  const openConfirmDialog = (task: CalendarTask) => {
+    const messages = [
+      "Great job! Mark this as complete? 🌱",
+      "Excellent work! Ready to mark this task as done? ✨",
+      "You're doing amazing! Complete this task? 🌿",
+      "Fantastic progress! Mark this as finished? 🌟",
+      "Keep up the great work! Ready to complete this? 💚"
+    ];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    
+    setConfirmDialog({
+      isOpen: true,
+      task,
+      message: randomMessage,
+    });
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      isOpen: false,
+      task: null,
+      message: '',
+    });
+  };
+
   const markTaskComplete = async (taskId: string, plantId: string) => {
     try {
       await plantsAPI.completeTask(plantId, taskId);
-      // Refresh plants data
+      
+      // Remove the completed task from today's tasks immediately
+      setTasks(prevTasks => 
+        prevTasks.filter(task => !(task.taskId === taskId && isSameDay(task.scheduledDate, new Date())))
+      );
+      
+      // Close dialog
+      closeConfirmDialog();
+      
+      // Refresh plants data to ensure consistency
       fetchPlants();
     } catch (error) {
       console.error('Error marking task complete:', error);
@@ -263,15 +333,15 @@ export function CalendarPage() {
                       return (
                         <div
                           key={task.id}
-                          className={`flex items-center space-x-1 p-1 rounded text-xs cursor-pointer ${
-                            task.completed
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          }`}
-                          onClick={() => !task.completed && markTaskComplete(task.taskId, task.plantId)}
+                                                     className={`flex items-center space-x-1 p-1 rounded text-xs ${
+                             task.completed
+                               ? 'bg-green-100 text-green-700'
+                               : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer'
+                           }`}
+                           onClick={() => !task.completed && openConfirmDialog(task)}
                           title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
                         >
-                          <Icon className="w-3 h-3" />
+                                                     <Icon className="w-3 h-3" />
                           <span className="truncate">{getTaskTypeLabel(task.taskKey)}</span>
                         </div>
                       );
@@ -321,13 +391,13 @@ export function CalendarPage() {
                             <span className="text-sm">Done</span>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => markTaskComplete(task.taskId, task.plantId)}
-                            className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
-                          >
-                            <Clock className="w-4 h-4" />
-                            <span className="text-sm">Mark Complete</span>
-                          </button>
+                                                     <button
+                             onClick={() => openConfirmDialog(task)}
+                             className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
+                           >
+                             <Clock className="w-4 h-4" />
+                             <span className="text-sm">Mark Complete</span>
+                           </button>
                         )}
                       </div>
                     </div>
@@ -374,6 +444,19 @@ export function CalendarPage() {
           )}
         </div>
       </div>
+
+            {/* Task Completion Dialog */}
+      <TaskCompletionDialog
+        isOpen={confirmDialog.isOpen}
+        task={confirmDialog.task ? {
+          plantName: confirmDialog.task.plantName,
+          taskId: confirmDialog.task.taskId,
+          plantId: confirmDialog.task.plantId,
+        } : null}
+        message={confirmDialog.message}
+        onClose={closeConfirmDialog}
+        onConfirm={markTaskComplete}
+      />
     </Layout>
   );
 }
