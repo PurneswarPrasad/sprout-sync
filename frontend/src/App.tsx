@@ -6,6 +6,7 @@ import { PlantsPage } from './pages/PlantsPage';
 import { AddPlantPage } from './pages/AddPlantPage';
 import { AIIdentificationPage } from './pages/AIIdentificationPage';
 import { CalendarPage } from './pages/CalendarPage';
+import { PlantDetailPage } from './pages/PlantDetailPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
@@ -22,6 +23,7 @@ function App() {
           <Route path="/add-plant" element={<ProtectedRoute><AddPlantPage /></ProtectedRoute>} />
           <Route path="/ai-identification" element={<ProtectedRoute><AIIdentificationPage /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+          <Route path="/plants/:plantId" element={<ProtectedRoute><PlantDetailPage /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

@@ -281,7 +281,11 @@ export function PlantsPage() {
                 const activeTasks = plant.tasks.filter(task => task.active);
                 
                 return (
-                  <div key={plant.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 hover:scale-105 transition-transform duration-200">
+                  <div 
+                    key={plant.id} 
+                    className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 hover:scale-105 transition-transform duration-200 cursor-pointer"
+                    onClick={() => navigate(`/plants/${plant.id}`)}
+                  >
                     <div className="relative mb-3">
                       <div className="w-full h-32 bg-emerald-100 rounded-lg flex items-center justify-center">
                         <Leaf className="w-8 h-8 text-emerald-400" />
@@ -384,7 +388,10 @@ export function PlantsPage() {
                           <span>{plant._count.notes} notes</span>
                           <span>{plant._count.photos} photos</span>
                         </div>
-                        <button className="text-emerald-600 hover:text-emerald-700 font-medium">
+                        <button 
+                          onClick={() => navigate(`/plants/${plant.id}`)}
+                          className="text-emerald-600 hover:text-emerald-700 font-medium"
+                        >
                           View Details
                         </button>
                       </div>
