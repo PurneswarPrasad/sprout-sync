@@ -328,24 +328,39 @@ export function CalendarPage() {
                   </div>
                   
                   <div className="space-y-1">
-                    {dayTasks.map((task) => {
-                      const Icon = task.icon;
+                    {(() => {
+                      const dayTasks = getTasksForDate(day);
+                      const visibleTasks = dayTasks.slice(0, 3);
+                      const remainingCount = dayTasks.length - 3;
+                      
                       return (
-                        <div
-                          key={task.id}
-                                                     className={`flex items-center space-x-1 p-1 rounded text-xs ${
-                             task.completed
-                               ? 'bg-green-100 text-green-700'
-                               : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer'
-                           }`}
-                           onClick={() => !task.completed && openConfirmDialog(task)}
-                          title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
-                        >
-                                                     <Icon className="w-3 h-3" />
-                          <span className="truncate">{getTaskTypeLabel(task.taskKey)}</span>
-                        </div>
+                        <>
+                          {visibleTasks.map((task) => {
+                            const Icon = task.icon;
+                            return (
+                              <div
+                                key={task.id}
+                                className={`flex items-center space-x-1 p-1 rounded text-xs ${
+                                  task.completed
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}
+                                title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
+                              >
+                                <Icon className="w-3 h-3" />
+                                <span className="truncate">{getTaskTypeLabel(task.taskKey)}</span>
+                              </div>
+                            );
+                          })}
+                          
+                          {remainingCount > 0 && (
+                            <div className="text-xs text-gray-500 text-center py-1">
+                              +{remainingCount}
+                            </div>
+                          )}
+                        </>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
               );

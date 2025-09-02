@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Droplets, Scissors, Sun, Leaf, Edit, CheckCircle } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { plantsAPI } from '../services/api';
+import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
+import { differenceInDays } from 'date-fns';
 
 interface PlantTask {
   id: string;
@@ -35,6 +37,8 @@ export function PlantDetailPage() {
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'care' | 'health' | 'about'>('care');
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<PlantTask | null>(null);
 
   useEffect(() => {
     if (plantId) {
@@ -80,6 +84,115 @@ export function PlantDetailPage() {
     if (frequencyDays === 365) return 'Every year';
     if (frequencyDays === 540) return 'Every 18 months';
     return `Every ${frequencyDays} days`;
+  };
+
+  const getTaskIcon = (taskKey: string) => {
+    switch (taskKey) {
+      case 'watering':
+        return <Droplets className="w-4 h-4 text-blue-600" />;
+      case 'fertilizing':
+        return <Leaf className="w-4 h-4 text-green-600" />;
+      case 'pruning':
+        return <Scissors className="w-4 h-4 text-pink-600" />;
+      case 'spraying':
+        return <Droplets className="w-4 h-4 text-orange-600" />;
+      case 'sunlightRotation':
+        return <Sun className="w-4 h-4 text-purple-600" />;
+      default:
+        return <Leaf className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const getTaskName = (taskKey: string) => {
+    switch (taskKey) {
+      case 'watering':
+        return 'Water';
+      case 'fertilizing':
+        return 'Fertilize';
+      case 'pruning':
+        return 'Prune';
+      case 'spraying':
+        return 'Spray';
+      case 'sunlightRotation':
+        return 'Rotate';
+      default:
+        return 'Task';
+    }
+  };
+
+  const getTodayTasks = () => {
+    if (!plant) return [];
+    
+    return plant.tasks.filter(task => {
+      if (task.lastCompletedOn) return false; // Skip completed tasks
+      
+      const nextDue = new Date(task.nextDueOn);
+      const daysUntilDue = differenceInDays(nextDue, new Date());
+      return daysUntilDue === 0; // Only tasks due today (0 days)
+    });
+  };
+
+  const getUpcomingTasks = () => {
+    if (!plant) return [];
+    
+    return plant.tasks
+      .filter(task => {
+        if (task.lastCompletedOn) return false; // Skip completed tasks
+        
+        const nextDue = new Date(task.nextDueOn);
+        const daysUntilDue = differenceInDays(nextDue, new Date());
+        return daysUntilDue > 0; // Only tasks due in the future (more than 0 days)
+      })
+      .sort((a, b) => {
+        const daysA = differenceInDays(new Date(a.nextDueOn), new Date());
+        const daysB = differenceInDays(new Date(b.nextDueOn), new Date());
+        return daysA - daysB;
+      })
+      .slice(0, 5); // Limit to 5 tasks
+  };
+
+  const getHistoryTasks = () => {
+    if (!plant) return [];
+    
+    const today = new Date();
+    
+    return plant.tasks
+      .filter(task => task.lastCompletedOn)
+      .map(task => {
+        const completedDate = new Date(task.lastCompletedOn!);
+        const daysSinceCompleted = differenceInDays(today, completedDate);
+        
+        let timeText = '';
+        if (daysSinceCompleted === 0) {
+          timeText = 'Completed today';
+        } else if (daysSinceCompleted === 1) {
+          timeText = 'Completed yesterday';
+        } else {
+          timeText = `Completed ${daysSinceCompleted} days back`;
+        }
+        
+        return { ...task, timeText, daysSinceCompleted };
+      })
+      .sort((a, b) => b.daysSinceCompleted - a.daysSinceCompleted) // Most recent first
+      .slice(0, 3); // Limit to 3 tasks
+  };
+
+  const handleMarkComplete = (task: PlantTask) => {
+    setSelectedTask(task);
+    setShowTaskDialog(true);
+  };
+
+  const handleTaskComplete = async () => {
+    if (!selectedTask || !plant) return;
+
+    try {
+      await plantsAPI.completeTask(plant.id, selectedTask.id);
+      fetchPlant(); // Refresh plant data to update task status
+      setShowTaskDialog(false);
+      setSelectedTask(null);
+    } catch (error) {
+      console.error('Error marking task complete:', error);
+    }
   };
 
   if (loading) {
@@ -388,7 +501,28 @@ export function PlantDetailPage() {
                   <h2 className="text-xl font-semibold text-gray-800">Today</h2>
                   <p className="text-sm text-gray-500">Tap on each task for instructions</p>
                 </div>
-                {/* Empty for now - will be populated later */}
+                {getTodayTasks().length === 0 ? (
+                   <div className="text-center py-8">
+                     <p className="text-gray-500">No tasks due today</p>
+                   </div>
+                 ) : (
+                   <div className="space-y-3">
+                     {getTodayTasks().map((task) => (
+                       <div key={task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           {getTaskIcon(task.taskKey)}
+                           <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
+                         </div>
+                         <button
+                           onClick={() => handleMarkComplete(task)}
+                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                         >
+                           Mark Complete
+                         </button>
+                       </div>
+                     ))}
+                   </div>
+                 )}
               </div>
 
               {/* Upcoming Section */}
@@ -399,7 +533,37 @@ export function PlantDetailPage() {
                     View all
                   </button>
                 </div>
-                {/* Empty for now - will be populated later */}
+                {getUpcomingTasks().length === 0 ? (
+                   <div className="text-center py-8">
+                     <p className="text-gray-500">No upcoming tasks</p>
+                   </div>
+                 ) : (
+                   <div className="space-y-3">
+                     {getUpcomingTasks().map((task) => {
+                       const nextDue = new Date(task.nextDueOn);
+                       const daysUntilDue = differenceInDays(nextDue, new Date());
+                       
+                       let dueText = '';
+                       if (daysUntilDue === 1) {
+                         dueText = 'Due tomorrow';
+                       } else {
+                         dueText = `Due in ${daysUntilDue} days`;
+                       }
+                       
+                       return (
+                         <div key={task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                             {getTaskIcon(task.taskKey)}
+                             <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
+                           </div>
+                           <span className="text-sm text-gray-600">
+                             {dueText}
+                           </span>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 )}
               </div>
 
               {/* History Section */}
@@ -410,7 +574,25 @@ export function PlantDetailPage() {
                     History
                   </button>
                 </div>
-                {/* Empty for now - will be populated later */}
+                {getHistoryTasks().length === 0 ? (
+                   <div className="text-center py-8">
+                     <p className="text-gray-500">No completed tasks yet</p>
+                   </div>
+                 ) : (
+                   <div className="space-y-3">
+                     {getHistoryTasks().map((task) => (
+                       <div key={task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           {getTaskIcon(task.taskKey)}
+                           <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
+                         </div>
+                         <span className="text-sm text-gray-600">
+                           {task.timeText}
+                         </span>
+                       </div>
+                     ))}
+                   </div>
+                 )}
               </div>
             </div>
           </div>
@@ -430,6 +612,20 @@ export function PlantDetailPage() {
           </div>
         )}
       </div>
+      <TaskCompletionDialog
+          isOpen={showTaskDialog}
+          task={{
+            plantName: plant?.name || '',
+            taskId: selectedTask?.id || '',
+            plantId: plant?.id || ''
+          }}
+          message="Great job! Mark this as complete? 🌱"
+          onClose={() => setShowTaskDialog(false)}
+          onConfirm={(taskId, plantId) => handleTaskComplete()}
+          confirmText="Yes, Complete!"
+          cancelText="No, Cancel"
+          icon="🌿"
+        />
     </Layout>
   );
 }
