@@ -132,12 +132,22 @@ const HomePage: React.FC = () => {
     }
   };
 
+  // Fix the getTaskStatus function
   const getTaskStatus = (task: PlantTask) => {
     const now = new Date();
     const nextDue = new Date(task.nextDueOn);
     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
-    // For daily tasks (frequency=1), always show "Due today"
+    // Check if task was completed today
+    const isCompletedToday = task.lastCompletedOn ? 
+      Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+    
+    // If task is due today and was completed today, show "Done"
+    if ((daysUntilDue === 0 || task.frequencyDays === 1) && isCompletedToday) {
+      return { status: 'completed', text: 'Done', color: 'text-green-600' };
+    }
+    
+    // For daily tasks (frequency=1), always show "Due today" if not completed today
     if (task.frequencyDays === 1) {
       return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
     }
@@ -256,7 +266,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Get today's tasks (same logic as CalendarPage)
+  // Fix the getTodaysTasks function
   const getTodaysTasks = (): Array<{ task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean }> => {
     return plants.flatMap(plant => 
       plant.tasks
@@ -269,7 +279,9 @@ const HomePage: React.FC = () => {
           // Only include tasks due today (daysUntilDue === 0) or daily tasks (frequency=1)
           if (task.frequencyDays === 1 || daysUntilDue === 0) {
             const status = getTaskStatus(task);
-            const isCompleted = task.lastCompletedOn !== null;
+            // A task is completed if it was completed today, not just if it has ever been completed
+            const isCompleted = task.lastCompletedOn ? 
+              Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
             
             return {
               task,
@@ -284,7 +296,7 @@ const HomePage: React.FC = () => {
     );
   };
 
-  // Calculate dashboard stats
+  // Fix the dashboard stats calculation
   const totalPlants = plants.length;
   const activeTasks = plants.reduce((total, plant) => total + plant.tasks.filter(task => task.active).length, 0);
   const overdueTasks = plants.reduce((total, plant) => {
@@ -296,7 +308,15 @@ const HomePage: React.FC = () => {
     return total + overdue.length;
   }, 0);
   const completedTasks = plants.reduce((total, plant) => {
-    const completed = plant.tasks.filter(task => task.lastCompletedOn !== null);
+    const completed = plant.tasks.filter(task => {
+      if (!task.active) return false;
+      if (!task.lastCompletedOn) return false;
+      
+      // A task is considered completed only if it was completed today
+      const now = new Date();
+      const lastCompleted = new Date(task.lastCompletedOn);
+      return Math.abs(lastCompleted.getTime() - now.getTime()) < 24 * 60 * 60 * 1000;
+    });
     return total + completed.length;
   }, 0);
 
@@ -477,7 +497,11 @@ const HomePage: React.FC = () => {
                                  });
                                  
                                  return sortedTasks.slice(0, 3).map((task) => {
-                                   const isCompleted = task.lastCompletedOn !== null;
+                                   // Check if task was completed today, not just if it has ever been completed
+                                   const now = new Date();
+                                   const isCompleted = task.lastCompletedOn ? 
+                                     Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+                                   
                                    if (isCompleted) {
                                      return (
                                        <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">

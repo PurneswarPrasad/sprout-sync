@@ -74,17 +74,22 @@ export function PlantsPage() {
     }
   };
 
+  // Fix the getTaskStatus function
   const getTaskStatus = (task: PlantTask) => {
-    // Check if task is completed first
-    if (task.lastCompletedOn !== null) {
-      return { status: 'completed', text: 'Done', color: 'text-green-600' };
-    }
-    
     const now = new Date();
     const nextDue = new Date(task.nextDueOn);
     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
-    // For daily tasks (frequency=1), always show "Due today"
+    // Check if task was completed today
+    const isCompletedToday = task.lastCompletedOn ? 
+      Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+    
+    // If task is due today and was completed today, show "Done"
+    if ((daysUntilDue === 0 || task.frequencyDays === 1) && isCompletedToday) {
+      return { status: 'completed', text: 'Done', color: 'text-green-600' };
+    }
+    
+    // For daily tasks (frequency=1), always show "Due today" if not completed today
     if (task.frequencyDays === 1) {
       return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
     }
@@ -355,25 +360,27 @@ export function PlantsPage() {
                             });
                             
                             return sortedTasks.slice(0, 3).map((task) => {
-                              const status = getTaskStatus(task);
-                              const isCompleted = task.lastCompletedOn !== null;
+                              // Check if task was completed today, not just if it has ever been completed
+                              const now = new Date();
+                              const isCompleted = task.lastCompletedOn ? 
+                                Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
                               
-                              return (
-                                <div key={task.id} className={`flex items-center justify-between text-xs ${
-                                  isCompleted ? 'opacity-75' : ''
-                                }`}>
-                                  <div className="flex items-center gap-2">
-                                    <span className={isCompleted ? 'opacity-50' : ''}>{getTaskIcon(task.taskKey)}</span>
-                                    <span className={`${isCompleted ? 'text-gray-500 line-through' : 'text-gray-600'}`}>
-                                      {task.taskKey}
-                                    </span>
+                              if (isCompleted) {
+                                return (
+                                  <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
+                                    <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
+                                    <span className="text-xs text-green-600">Done</span>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className={status.color}>{status.text}</span>
-                                    {isCompleted && <CheckCircle className="w-3 h-3 text-green-600" />}
+                                );
+                              } else {
+                                const status = getTaskStatus(task);
+                                return (
+                                  <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
+                                    <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
+                                    <span className={`text-xs ${status.color}`}>{status.text}</span>
                                   </div>
-                                </div>
-                              );
+                                );
+                              }
                             });
                           })()}
                           {activeTasks.length > 3 && (

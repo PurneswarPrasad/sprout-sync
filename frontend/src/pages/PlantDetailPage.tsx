@@ -135,20 +135,51 @@ export function PlantDetailPage() {
   const getUpcomingTasks = () => {
     if (!plant) return [];
     
-    return plant.tasks
-      .filter(task => {
-        if (task.lastCompletedOn) return false; // Skip completed tasks
+    const upcomingTasks: Array<{ task: PlantTask; dueDate: Date; daysUntilDue: number }> = [];
+    
+    plant.tasks.forEach(task => {
+      if (task.frequencyDays === 1) {
+        // For daily tasks, generate future occurrences starting from tomorrow
+        const today = new Date();
+        for (let i = 1; i <= 5; i++) { // Show next 5 days
+          const dueDate = new Date(today);
+          dueDate.setDate(today.getDate() + i);
+          
+          upcomingTasks.push({
+            task,
+            dueDate,
+            daysUntilDue: i
+          });
+        }
+      } else {
+        // For non-daily tasks, generate future occurrences based on frequency
+        const today = new Date();
+        const baseDate = new Date(task.nextDueOn);
         
-        const nextDue = new Date(task.nextDueOn);
-        const daysUntilDue = differenceInDays(nextDue, new Date());
-        return daysUntilDue > 0; // Only tasks due in the future (more than 0 days)
-      })
-      .sort((a, b) => {
-        const daysA = differenceInDays(new Date(a.nextDueOn), new Date());
-        const daysB = differenceInDays(new Date(b.nextDueOn), new Date());
-        return daysA - daysB;
-      })
-      .slice(0, 5); // Limit to 5 tasks
+        // Generate next 5 occurrences based on frequency
+        for (let i = 0; i < 5; i++) {
+          const dueDate = new Date(baseDate);
+          dueDate.setDate(baseDate.getDate() + (i * task.frequencyDays));
+          
+          // Only include future dates
+          if (dueDate > today) {
+            const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            upcomingTasks.push({
+              task,
+              dueDate,
+              daysUntilDue
+            });
+          }
+        }
+      }
+    });
+    
+    // Sort by days until due (most urgent first)
+    upcomingTasks.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    
+    // Limit to 5 tasks
+    return upcomingTasks.slice(0, 5);
   };
 
   const getHistoryTasks = () => {
@@ -288,210 +319,198 @@ export function PlantDetailPage() {
         {/* Tab Content */}
         {activeTab === 'care' && (
           <div className="space-y-6">
-                         {/* Care Tasks Grid */}
-             {/* Care Tasks Grid */}
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-               {/* Water */}
-               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                 <div className="flex items-center justify-between mb-3">
-                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                     <Droplets className="w-5 h-5 text-blue-600" />
-                   </div>
-                   <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                     <Edit className="w-4 h-4 text-gray-600" />
-                   </button>
-                 </div>
-                 <h3 className="font-semibold text-gray-800 mb-1">Water</h3>
-                 <p className="text-sm text-gray-600 mb-2">
-                   {plant.tasks.find(t => t.taskKey === 'watering') ? 
-                     getFrequencyText(plant.tasks.find(t => t.taskKey === 'watering')!.frequencyDays) : 
-                     'Not configured'
-                   }
-                 </p>
-                 <p className="text-sm text-gray-600">
-                   {(() => {
-                     const waterTask = plant.tasks.find(t => t.taskKey === 'watering');
-                     if (!waterTask) return 'Not configured';
-                     if (waterTask.lastCompletedOn !== null) return (
-                         <div className="flex items-center gap-2">
-                           <CheckCircle className="w-4 h-4 text-green-600" />
-                           <span className="text-sm text-green-600 font-medium">Done</span>
-                         </div>
-                       );
-                     
-                     const now = new Date();
-                     const nextDue = new Date(waterTask.nextDueOn);
-                     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                     
-                     if (daysUntilDue < 0) return 'Overdue';
-                     if (daysUntilDue === 0) return 'Today';
-                     if (daysUntilDue === 1) return 'Tomorrow';
-                     return `In ${daysUntilDue} days`;
-                   })()}
-                 </p>
-               </div>
+            {/* Care Tasks Grid */}
+            <div className="flex flex-wrap justify-center gap-4">
+              {/* Water */}
+              {plant.tasks.find(t => t.taskKey === 'watering') && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Droplets className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">Water</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(plant.tasks.find(t => t.taskKey === 'watering')!.frequencyDays)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {(() => {
+                      const waterTask = plant.tasks.find(t => t.taskKey === 'watering');
+                      if (waterTask!.lastCompletedOn !== null) return (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm text-green-600 font-medium">Done for today</span>
+                        </div>
+                      );
+                      
+                      const now = new Date();
+                      const nextDue = new Date(waterTask!.nextDueOn);
+                      const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      if (daysUntilDue < 0) return 'Overdue';
+                      if (daysUntilDue === 0) return 'Today';
+                      if (daysUntilDue === 1) return 'Tomorrow';
+                      return `In ${daysUntilDue} days`;
+                    })()}
+                  </p>
+                </div>
+              )}
 
-               {/* Fertilize */}
-               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                 <div className="flex items-center justify-between mb-3">
-                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                     <Leaf className="w-5 h-5 text-green-600" />
-                   </div>
-                   <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                     <Edit className="w-4 h-4 text-gray-600" />
-                   </button>
-                 </div>
-                 <h3 className="font-semibold text-gray-800 mb-1">Fertilize</h3>
-                 <p className="text-sm text-gray-600 mb-2">
-                   {plant.tasks.find(t => t.taskKey === 'fertilizing') ? 
-                     getFrequencyText(plant.tasks.find(t => t.taskKey === 'fertilizing')!.frequencyDays) : 
-                     'Not configured'
-                   }
-                 </p>
-                 <p className="text-sm text-gray-600">
-                   {(() => {
-                     const fertilizeTask = plant.tasks.find(t => t.taskKey === 'fertilizing');
-                     if (!fertilizeTask) return 'Not configured';
-                     if (fertilizeTask.lastCompletedOn !== null) return (
-                         <div className="flex items-center gap-2">
-                           <CheckCircle className="w-4 h-4 text-green-600" />
-                           <span className="text-sm text-green-600 font-medium">Done</span>
-                         </div>
-                       );
-                     
-                     const now = new Date();
-                     const nextDue = new Date(fertilizeTask.nextDueOn);
-                     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                     
-                     if (daysUntilDue < 0) return 'Overdue';
-                     if (daysUntilDue === 0) return 'Today';
-                     if (daysUntilDue === 1) return 'Tomorrow';
-                     return `In ${daysUntilDue} days`;
-                   })()}
-                 </p>
-               </div>
+              {/* Fertilize */}
+              {plant.tasks.find(t => t.taskKey === 'fertilizing') && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Leaf className="w-5 h-5 text-green-600" />
+                    </div>
+                    <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">Fertilize</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(plant.tasks.find(t => t.taskKey === 'fertilizing')!.frequencyDays)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {(() => {
+                      const fertilizeTask = plant.tasks.find(t => t.taskKey === 'fertilizing');
+                      if (fertilizeTask!.lastCompletedOn !== null) return (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm text-green-600 font-medium">Done for today</span>
+                        </div>
+                      );
+                      
+                      const now = new Date();
+                      const nextDue = new Date(fertilizeTask!.nextDueOn);
+                      const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      if (daysUntilDue < 0) return 'Overdue';
+                      if (daysUntilDue === 0) return 'Today';
+                      if (daysUntilDue === 1) return 'Tomorrow';
+                      return `In ${daysUntilDue} days`;
+                    })()}
+                  </p>
+                </div>
+              )}
 
-               {/* Prune */}
-               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                 <div className="flex items-center justify-between mb-3">
-                   <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                     <Scissors className="w-5 h-5 text-pink-600" />
-                   </div>
-                   <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                     <Edit className="w-4 h-4 text-gray-600" />
-                   </button>
-                 </div>
-                 <h3 className="font-semibold text-gray-800 mb-1">Prune</h3>
-                 <p className="text-sm text-gray-600 mb-2">
-                   {plant.tasks.find(t => t.taskKey === 'pruning') ? 
-                     getFrequencyText(plant.tasks.find(t => t.taskKey === 'pruning')!.frequencyDays) : 
-                     'Not configured'
-                   }
-                 </p>
-                 <p className="text-sm text-gray-600">
-                   {(() => {
-                     const pruneTask = plant.tasks.find(t => t.taskKey === 'pruning');
-                     if (!pruneTask) return 'Not configured';
-                     if (pruneTask.lastCompletedOn !== null) return (
-                         <div className="flex items-center gap-2">
-                           <CheckCircle className="w-4 h-4 text-green-600" />
-                           <span className="text-sm text-green-600 font-medium">Done</span>
-                         </div>
-                       );
-                     
-                     const now = new Date();
-                     const nextDue = new Date(pruneTask.nextDueOn);
-                     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                     
-                     if (daysUntilDue < 0) return 'Overdue';
-                     if (daysUntilDue === 0) return 'Today';
-                     if (daysUntilDue === 1) return 'Tomorrow';
-                     return `In ${daysUntilDue} days`;
-                   })()}
-                 </p>
-               </div>
+              {/* Prune */}
+              {plant.tasks.find(t => t.taskKey === 'pruning') && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                      <Scissors className="w-5 h-5 text-pink-600" />
+                    </div>
+                    <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">Prune</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(plant.tasks.find(t => t.taskKey === 'pruning')!.frequencyDays)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {(() => {
+                      const pruneTask = plant.tasks.find(t => t.taskKey === 'pruning');
+                      if (pruneTask!.lastCompletedOn !== null) return (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm text-green-600 font-medium">Done for today</span>
+                        </div>
+                      );
+                      
+                      const now = new Date();
+                      const nextDue = new Date(pruneTask!.nextDueOn);
+                      const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      if (daysUntilDue < 0) return 'Overdue';
+                      if (daysUntilDue === 0) return 'Today';
+                      if (daysUntilDue === 1) return 'Tomorrow';
+                      return `In ${daysUntilDue} days`;
+                    })()}
+                  </p>
+                </div>
+              )}
 
-               {/* Spray */}
-               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                 <div className="flex items-center justify-between mb-3">
-                   <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                     <Droplets className="w-5 h-5 text-orange-600" />
-                   </div>
-                   <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                     <Edit className="w-4 h-4 text-gray-600" />
-                   </button>
-                 </div>
-                 <h3 className="font-semibold text-gray-800 mb-1">Spray</h3>
-                 <p className="text-sm text-gray-600 mb-2">
-                   {plant.tasks.find(t => t.taskKey === 'spraying') ? 
-                     getFrequencyText(plant.tasks.find(t => t.taskKey === 'spraying')!.frequencyDays) : 
-                     'Not configured'
-                   }
-                 </p>
-                 <p className="text-sm text-gray-600">
-                   {(() => {
-                     const sprayTask = plant.tasks.find(t => t.taskKey === 'spraying');
-                     if (!sprayTask) return 'Not configured';
-                     if (sprayTask.lastCompletedOn !== null) return (
-                         <div className="flex items-center gap-2">
-                           <CheckCircle className="w-4 h-4 text-green-600" />
-                           <span className="text-sm text-green-600 font-medium">Done</span>
-                         </div>
-                       );
-                     
-                     const now = new Date();
-                     const nextDue = new Date(sprayTask.nextDueOn);
-                     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                     
-                     if (daysUntilDue < 0) return 'Overdue';
-                     if (daysUntilDue === 0) return 'Today';
-                     if (daysUntilDue === 1) return 'Tomorrow';
-                     return `In ${daysUntilDue} days`;
-                   })()}
-                 </p>
-               </div>
+              {/* Spray */}
+              {plant.tasks.find(t => t.taskKey === 'spraying') && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Droplets className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">Spray</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(plant.tasks.find(t => t.taskKey === 'spraying')!.frequencyDays)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {(() => {
+                      const sprayTask = plant.tasks.find(t => t.taskKey === 'spraying');
+                      if (sprayTask!.lastCompletedOn !== null) return (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm text-green-600 font-medium">Done for today</span>
+                        </div>
+                      );
+                      
+                      const now = new Date();
+                      const nextDue = new Date(sprayTask!.nextDueOn);
+                      const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      if (daysUntilDue < 0) return 'Overdue';
+                      if (daysUntilDue === 0) return 'Today';
+                      if (daysUntilDue === 1) return 'Tomorrow';
+                      return `In ${daysUntilDue} days`;
+                    })()}
+                  </p>
+                </div>
+              )}
 
-               {/* Rotate */}
-               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                 <div className="flex items-center justify-between mb-3">
-                   <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                     <Sun className="w-5 h-5 text-purple-600" />
-                   </div>
-                   <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                     <Edit className="w-4 h-4 text-gray-600" />
-                   </button>
-                 </div>
-                 <h3 className="font-semibold text-gray-800 mb-1">Rotate</h3>
-                 <p className="text-sm text-gray-600 mb-2">
-                   {plant.tasks.find(t => t.taskKey === 'sunlightRotation') ? 
-                     getFrequencyText(plant.tasks.find(t => t.taskKey === 'sunlightRotation')!.frequencyDays) : 
-                     'Not configured'
-                   }
-                 </p>
-                 <p className="text-sm text-gray-600">
-                   {(() => {
-                     const rotateTask = plant.tasks.find(t => t.taskKey === 'sunlightRotation');
-                     if (!rotateTask) return 'Not configured';
-                     if (rotateTask.lastCompletedOn !== null) return (
-                         <div className="flex items-center gap-2">
-                           <CheckCircle className="w-4 h-4 text-green-600" />
-                           <span className="text-sm text-green-600 font-medium">Done</span>
-                         </div>
-                       );
-                     
-                     const now = new Date();
-                     const nextDue = new Date(rotateTask.nextDueOn);
-                     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                     
-                     if (daysUntilDue < 0) return 'Overdue';
-                     if (daysUntilDue === 0) return 'Today';
-                     if (daysUntilDue === 1) return 'Tomorrow';
-                     return `In ${daysUntilDue} days`;
-                     
-                   })()}
-                 </p>
-               </div>
-             </div>
+              {/* Rotate */}
+              {plant.tasks.find(t => t.taskKey === 'sunlightRotation') && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Sun className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-1">Rotate</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(plant.tasks.find(t => t.taskKey === 'sunlightRotation')!.frequencyDays)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {(() => {
+                      const rotateTask = plant.tasks.find(t => t.taskKey === 'sunlightRotation');
+                      if (rotateTask!.lastCompletedOn !== null) return (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm text-green-600 font-medium">Done for today</span>
+                        </div>
+                      );
+                      
+                      const now = new Date();
+                      const nextDue = new Date(rotateTask!.nextDueOn);
+                      const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      if (daysUntilDue < 0) return 'Overdue';
+                      if (daysUntilDue === 0) return 'Today';
+                      if (daysUntilDue === 1) return 'Tomorrow';
+                      return `In ${daysUntilDue} days`;
+                    })()}
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Three Sections */}
             <div className="space-y-6">
@@ -526,44 +545,35 @@ export function PlantDetailPage() {
               </div>
 
               {/* Upcoming Section */}
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">Upcoming</h2>
-                  <button className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
+                  <h3 className="text-lg font-semibold text-gray-800">Upcoming</h3>
+                  <button className="px-3 py-1 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 transition-colors">
                     View all
                   </button>
                 </div>
+                
                 {getUpcomingTasks().length === 0 ? (
-                   <div className="text-center py-8">
-                     <p className="text-gray-500">No upcoming tasks</p>
-                   </div>
-                 ) : (
-                   <div className="space-y-3">
-                     {getUpcomingTasks().map((task) => {
-                       const nextDue = new Date(task.nextDueOn);
-                       const daysUntilDue = differenceInDays(nextDue, new Date());
-                       
-                       let dueText = '';
-                       if (daysUntilDue === 1) {
-                         dueText = 'Due tomorrow';
-                       } else {
-                         dueText = `Due in ${daysUntilDue} days`;
-                       }
-                       
-                       return (
-                         <div key={task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
-                           <div className="flex items-center gap-3">
-                             {getTaskIcon(task.taskKey)}
-                             <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
-                           </div>
-                           <span className="text-sm text-gray-600">
-                             {dueText}
-                           </span>
-                         </div>
-                       );
-                     })}
-                   </div>
-                 )}
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No upcoming tasks</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {getUpcomingTasks().map((item, index) => (
+                      <div key={`${item.task.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{getTaskIcon(item.task.taskKey)}</span>
+                          <div>
+                            <p className="font-medium text-gray-800">{getTaskName(item.task.taskKey)}</p>
+                            <p className="text-sm text-gray-600">
+                              {item.daysUntilDue === 1 ? 'Due tomorrow' : `Due in ${item.daysUntilDue} days`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* History Section */}
