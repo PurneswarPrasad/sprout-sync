@@ -4,6 +4,7 @@ import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, is
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
+import { DayDetailsModal } from '../components/DayDetailsModal';
 
 interface PlantTask {
   id: string;
@@ -57,6 +58,17 @@ export function CalendarPage() {
     isOpen: false,
     task: null,
     message: '',
+  });
+
+  // Day details modal state
+  const [dayDetailsModal, setDayDetailsModal] = useState<{
+    isOpen: boolean;
+    selectedDate: Date | null;
+    dayTasks: CalendarTask[];
+  }>({
+    isOpen: false,
+    selectedDate: null,
+    dayTasks: [],
   });
   
 
@@ -236,6 +248,37 @@ export function CalendarPage() {
     }
   };
 
+  const handleDayClick = (day: Date) => {
+    const dayTasks = getTasksForDate(day);
+    setDayDetailsModal({
+      isOpen: true,
+      selectedDate: day,
+      dayTasks,
+    });
+  };
+
+  const closeDayDetailsModal = () => {
+    setDayDetailsModal({
+      isOpen: false,
+      selectedDate: null,
+      dayTasks: [],
+    });
+  };
+
+  const handleTaskCompleteFromModal = async (taskId: string, plantId: string) => {
+    try {
+      await plantsAPI.completeTask(plantId, taskId);
+      
+      // Refresh plants data to get updated task status
+      await fetchPlants();
+      
+      // Close the modal
+      closeDayDetailsModal();
+    } catch (error) {
+      console.error('Error marking task complete:', error);
+    }
+  };
+
   const weekDays = eachDayOfInterval({
     start: startOfWeek(currentDate),
     end: endOfWeek(currentDate),
@@ -315,11 +358,12 @@ export function CalendarPage() {
               return (
                 <div
                   key={day.toString()}
-                  className={`min-h-24 p-2 rounded-lg border ${
+                  className={`min-h-24 p-2 rounded-lg border cursor-pointer transition-colors ${
                     isToday
-                      ? 'bg-emerald-50 border-emerald-300'
-                      : 'bg-white border-gray-200'
+                      ? 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100'
+                      : 'bg-white border-gray-200 hover:bg-gray-50'
                   }`}
+                  onClick={() => handleDayClick(day)}
                 >
                   <div className={`text-sm font-medium mb-2 ${
                     isToday ? 'text-gray-800' : 'text-gray-600'
@@ -471,6 +515,18 @@ export function CalendarPage() {
         message={confirmDialog.message}
         onClose={closeConfirmDialog}
         onConfirm={markTaskComplete}
+        confirmText="Yes, Complete!"
+        cancelText="Not yet"
+        icon="🌿"
+      />
+
+      {/* Day Details Modal */}
+      <DayDetailsModal
+        isOpen={dayDetailsModal.isOpen}
+        onClose={closeDayDetailsModal}
+        selectedDate={dayDetailsModal.selectedDate}
+        dayTasks={dayDetailsModal.dayTasks}
+        onTaskComplete={handleTaskCompleteFromModal}
       />
     </Layout>
   );
