@@ -25,7 +25,8 @@ interface PlantTrackingUpdate {
   plantId: string;
   date: string;
   note: string;
-  photoUrl: string | null;
+  photoUrl: string | null; // Optimized URL for display
+  originalPhotoUrl: string | null; // Original URL for AI processing
   cloudinaryPublicId: string | null;
   createdAt: string;
 }

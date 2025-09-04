@@ -5,6 +5,7 @@ const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
+const cloudinaryService_1 = require("../services/cloudinaryService");
 const router = (0, express_1.Router)({ mergeParams: true });
 const checkPlantOwnership = async (req, res, next) => {
     try {
@@ -102,6 +103,7 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
                 date: validatedData.date,
                 note: validatedData.note,
                 photoUrl: validatedData.photoUrl || null,
+                originalPhotoUrl: validatedData.originalPhotoUrl || null,
                 cloudinaryPublicId: validatedData.cloudinaryPublicId || null,
             },
         });
@@ -140,6 +142,15 @@ router.delete('/:trackingId', jwtAuth_1.authenticateJWT, checkPlantOwnership, as
                 success: false,
                 error: 'Tracking update not found',
             });
+        }
+        if (existingTracking.cloudinaryPublicId) {
+            try {
+                await cloudinaryService_1.CloudinaryService.deleteImage(existingTracking.cloudinaryPublicId);
+                console.log(`Deleted image from Cloudinary: ${existingTracking.cloudinaryPublicId}`);
+            }
+            catch (error) {
+                console.error('Error deleting image from Cloudinary:', error);
+            }
         }
         await prisma_1.prisma.plantTracking.delete({
             where: {

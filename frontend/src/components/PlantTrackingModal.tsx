@@ -15,7 +15,8 @@ export interface PlantTrackingData {
   plantId: string; // Add plantId to the interface
   date: string;
   note: string;
-  photoUrl?: string;
+  photoUrl?: string; // Optimized URL for display
+  originalPhotoUrl?: string; // Original URL for AI processing
   cloudinaryPublicId?: string;
 }
 
@@ -29,6 +30,7 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
   const [date, setDate] = useState(format(new Date(), 'EEEE, MMM dd, yy'));
   const [note, setNote] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [originalPhotoUrl, setOriginalPhotoUrl] = useState<string | null>(null);
   const [cloudinaryPublicId, setCloudinaryPublicId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,7 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
       CloudinaryService.revokePreviewUrl(photoUrl);
     }
     setPhotoUrl(null);
+    setOriginalPhotoUrl(null);
     setCloudinaryPublicId(null);
   };
 
@@ -56,13 +59,16 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
 
     setIsUploading(true);
     try {
-      // Upload to Cloudinary service
+      // Upload to Cloudinary service via backend
       const result = await CloudinaryService.uploadImage(file);
-      setPhotoUrl(result.secure_url);
+      // Use optimized URL for display, store original URL for AI processing
+      setPhotoUrl(result.optimized_url);
+      setOriginalPhotoUrl(result.original_url);
       setCloudinaryPublicId(result.public_id);
       setIsUploading(false);
     } catch (error) {
       console.error('Error uploading photo:', error);
+      alert(error instanceof Error ? error.message : 'Upload failed');
       setIsUploading(false);
     }
   };
@@ -75,6 +81,7 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
       date,
       note: note.trim(),
       ...(photoUrl && { photoUrl }),
+      ...(originalPhotoUrl && { originalPhotoUrl }),
       ...(cloudinaryPublicId && { cloudinaryPublicId }),
     };
 

@@ -6,9 +6,11 @@ interface PlantTrackingViewModalProps {
   onClose: () => void;
   tracking: {
     id: string;
+    plantId: string;
     date: string;
     note: string;
     photoUrl?: string | null;
+    cloudinaryPublicId?: string | null;
     createdAt: string;
   };
 }

@@ -20,6 +20,7 @@ import { plantPhotosRouter } from './routes/plantPhotos';
 import { plantTagsRouter } from './routes/plantTags';
 import { aiRouter } from './routes/ai';
 import plantTrackingRouter from './routes/plantTracking';
+import uploadRouter from './routes/upload';
 
 // Load environment variables
 dotenv.config();
@@ -71,6 +72,7 @@ app.use('/api/tags', tagsRouter);
 app.use('/api/test', testRouter);
 app.use('/auth', authRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/upload', uploadRouter);
 
 // Plants routes (must come before nested routes)
 app.use('/api/plants', plantsRouter);

@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantTrackingSchema } from '../dtos';
+import { CloudinaryService } from '../services/cloudinaryService';
 
 const router = Router({ mergeParams: true });
 
@@ -116,6 +117,7 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTrack
         date: validatedData.date,
         note: validatedData.note,
         photoUrl: validatedData.photoUrl || null,
+        originalPhotoUrl: validatedData.originalPhotoUrl || null,
         cloudinaryPublicId: validatedData.cloudinaryPublicId || null,
       },
     });
@@ -162,7 +164,18 @@ router.delete('/:trackingId', authenticateJWT, checkPlantOwnership, async (req, 
       });
     }
 
-    // Delete the tracking update
+    // Delete photo from Cloudinary if it exists
+    if (existingTracking.cloudinaryPublicId) {
+      try {
+        await CloudinaryService.deleteImage(existingTracking.cloudinaryPublicId);
+        console.log(`Deleted image from Cloudinary: ${existingTracking.cloudinaryPublicId}`);
+      } catch (error) {
+        console.error('Error deleting image from Cloudinary:', error);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete the tracking update from database
     await prisma.plantTracking.delete({
       where: {
         id: trackingId,

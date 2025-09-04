@@ -114,7 +114,8 @@ model PlantTracking {
   plant               Plant    @relation(fields: [plantId], references: [id])
   date                String
   note                String
-  photoUrl            String?
+  photoUrl            String?  // Optimized URL for display
+  originalPhotoUrl    String?  // Original URL for AI processing
   cloudinaryPublicId  String?
   createdAt           DateTime @default(now())
 }
