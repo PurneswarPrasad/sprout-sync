@@ -35,9 +35,21 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const resetModalState = () => {
+  const resetModalState = async () => {
     setDate(format(new Date(), 'EEEE, MMM dd, yy'));
     setNote('');
+    
+    // Clean up Cloudinary image if it was uploaded
+    if (cloudinaryPublicId) {
+      try {
+        await CloudinaryService.deleteImage(cloudinaryPublicId);
+        console.log('Deleted image from Cloudinary:', cloudinaryPublicId);
+      } catch (error) {
+        console.error('Error deleting image from Cloudinary:', error);
+        // Continue with cleanup even if deletion fails
+      }
+    }
+    
     if (photoUrl) {
       CloudinaryService.revokePreviewUrl(photoUrl);
     }
@@ -73,7 +85,7 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!note.trim()) return;
 
     const trackingData: PlantTrackingData = {
@@ -86,13 +98,38 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
     };
 
     onSubmit(trackingData);
-    resetModalState();
+    // Don't delete the image on successful submit - it's being used
+    setDate(format(new Date(), 'EEEE, MMM dd, yy'));
+    setNote('');
+    setPhotoUrl(null);
+    setOriginalPhotoUrl(null);
+    setCloudinaryPublicId(null);
     onClose();
   };
 
-  const handleClose = () => {
-    resetModalState();
+  const handleClose = async () => {
+    await resetModalState();
     onClose();
+  };
+
+  const handleDeleteImage = async () => {
+    if (cloudinaryPublicId) {
+      try {
+        await CloudinaryService.deleteImage(cloudinaryPublicId);
+        console.log('Deleted image from Cloudinary:', cloudinaryPublicId);
+      } catch (error) {
+        console.error('Error deleting image from Cloudinary:', error);
+        // Continue with frontend cleanup even if Cloudinary deletion fails
+      }
+    }
+    
+    // Clean up frontend state
+    if (photoUrl) {
+      CloudinaryService.revokePreviewUrl(photoUrl);
+    }
+    setPhotoUrl(null);
+    setOriginalPhotoUrl(null);
+    setCloudinaryPublicId(null);
   };
 
   if (!isOpen) return null;
@@ -164,45 +201,45 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
               onChange={handlePhotoUpload}
               className="hidden"
             />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-            >
-              {isUploading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
-                  <span className="ml-2 text-gray-600">Uploading...</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-gray-400 mr-2" />
-                  <span className="text-gray-600">Click to upload photo</span>
-                </div>
-              )}
-            </button>
-          </div>
-
-          {/* Photo Preview */}
-          {photoUrl && (
-            <div className="relative">
-              <img
-                src={photoUrl}
-                alt="Plant photo"
-                className="w-full h-32 object-cover rounded-lg"
-              />
+            
+            {/* Show upload button only when no photo is uploaded */}
+            {!photoUrl && (
               <button
-                onClick={() => {
-                  CloudinaryService.revokePreviewUrl(photoUrl);
-                  setPhotoUrl(null);
-                  setCloudinaryPublicId(null);
-                }}
-                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors disabled:opacity-50"
               >
-                <X className="w-3 h-3" />
+                {isUploading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
+                    <span className="ml-2 text-gray-600">Uploading...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                    <span className="text-gray-600">Click to upload photo</span>
+                  </div>
+                )}
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Photo Preview */}
+            {photoUrl && (
+              <div className="relative">
+                <img
+                  src={photoUrl}
+                  alt="Plant photo"
+                  className="w-full h-32 object-cover rounded-lg"
+                />
+                <button
+                  onClick={handleDeleteImage}
+                  className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Submit Button */}
           <button

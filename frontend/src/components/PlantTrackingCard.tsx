@@ -35,7 +35,9 @@ export const PlantTrackingCard: React.FC<PlantTrackingCardProps> = ({
         <div className="mb-3">
           <div className="flex items-start gap-2">
             <FileText className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-            <p className="text-gray-800 leading-relaxed">{tracking.note}</p>
+            <p className="text-gray-800 leading-relaxed line-clamp-4 overflow-hidden">
+              {tracking.note}
+            </p>
           </div>
         </div>
         

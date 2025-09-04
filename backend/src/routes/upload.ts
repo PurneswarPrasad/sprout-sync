@@ -83,5 +83,38 @@ router.post('/image', authenticateJWT, upload.single('image'), async (req, res) 
   }
 });
 
+// DELETE /api/upload/image/* - Delete image from Cloudinary
+// Using wildcard to capture full publicId including folder path
+router.delete('/image/*', authenticateJWT, async (req, res) => {
+  try {
+    // Get the full path after /api/upload/image/
+    const publicId = req.params[0];
+    
+    if (!publicId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Public ID is required',
+      });
+    }
+
+    console.log('Deleting image with publicId:', publicId);
+
+    // Delete from Cloudinary using the existing service
+    await CloudinaryService.deleteImage(publicId);
+
+    res.json({
+      success: true,
+      message: 'Image deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete image',
+    });
+  }
+});
+
 export default router;
 

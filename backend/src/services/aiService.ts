@@ -19,6 +19,18 @@ export interface AIPlantIdentification {
   }>;
 }
 
+export interface AIPlantHealthAnalysis {
+  speciesGuess: string;
+  confidence: number;
+  disease: {
+    issue: string | null;
+    description: string | null;
+    affected: string | null;
+    steps: string | null;
+    issueConfidence: number | null;
+  };
+}
+
 export class AIService {
   private model: any;
 
@@ -402,6 +414,41 @@ Important guidelines:
     }
   }
 
+  private getMimeTypeFromBuffer(buffer: Buffer): string {
+    // Check file signature (magic bytes) to determine MIME type
+    const bytes = buffer.slice(0, 12);
+    
+    // JPEG
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      return 'image/jpeg';
+    }
+    
+    // PNG
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      return 'image/png';
+    }
+    
+    // GIF
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+      return 'image/gif';
+    }
+    
+    // WebP
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && 
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+      return 'image/webp';
+    }
+    
+    // HEIC/HEIF
+    if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+      return 'image/heic';
+    }
+    
+    // Default to JPEG if we can't determine
+    console.log('Could not determine MIME type from buffer, defaulting to image/jpeg');
+    return 'image/jpeg';
+  }
+
   private sanitizeAIResponse(response: any): AIPlantIdentification {
     // Ensure all required fields exist
     const sanitized: AIPlantIdentification = {
@@ -448,6 +495,129 @@ Important guidelines:
         });
       });
     }
+
+    return sanitized;
+  }
+
+  async analyzePlantHealth(imageData: Buffer | string): Promise<AIPlantHealthAnalysis> {
+    try {
+      console.log(`Starting AI plant health analysis. Input type: ${typeof imageData}`);
+      
+      if (typeof imageData === 'string') {
+        console.log(`Processing string input. Is URL: ${imageData.startsWith('http')}`);
+      } else {
+        console.log(`Processing buffer input. Size: ${imageData.length} bytes`);
+      }
+
+      const prompt = `You are a plant health assistant. Analyze the provided plant image and return results strictly in JSON format. 
+Do not include explanations or extra text outside the JSON.
+
+The JSON schema must look like this:
+
+{
+  "speciesGuess": string,             // Most likely species name
+  "confidence": number,               // 0–1, model confidence
+  "disease": {
+    "issue": string | null,           // Name of the detected issue (e.g., "Powdery mildew") or null if none
+    "description": string | null,     // Short summary of the issue
+    "affected": string | null,        // What kinds of plants are typically affected
+    "steps": string | null,           // Actionable care/prevention steps
+    "issueConfidence": number | null       // 0–1 confidence for disease detection, null if healthy
+  }
+}
+
+Rules:
+- If the plant looks healthy, set "disease.issue" to null and provide no disease details.
+- Keep text concise and user-friendly.
+- Do not invent diseases; respond "null" if unsure.`;
+
+      let imagePart: any;
+      
+      if (typeof imageData === 'string') {
+        // Handle URL input
+        if (!imageData.startsWith('http')) {
+          throw new Error('Invalid URL format');
+        }
+        
+        try {
+          const response = await fetch(imageData);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.startsWith('image/')) {
+            throw new Error('Invalid content type. URL must point to an image file.');
+          }
+          
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const mimeType = this.getMimeTypeFromBuffer(buffer);
+          
+          imagePart = {
+            inlineData: {
+              data: buffer.toString('base64'),
+              mimeType: mimeType
+            }
+          };
+        } catch (fetchError) {
+          console.error('Error fetching image from URL:', fetchError);
+          throw new Error(`Failed to fetch image from URL: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+        }
+      } else {
+        // Handle Buffer input
+        const mimeType = this.getMimeTypeFromBuffer(imageData);
+        imagePart = {
+          inlineData: {
+            data: imageData.toString('base64'),
+            mimeType: mimeType
+          }
+        };
+      }
+
+      const result = await this.model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const text = response.text();
+      
+      console.log('Raw AI response:', text);
+
+      // Try to extract JSON from the response
+      let jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in AI response');
+      }
+
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Raw response:', text);
+        throw new Error('Failed to parse AI response as JSON');
+      }
+
+      console.log('Parsed AI response:', parsedResponse);
+
+      return this.sanitizeHealthAnalysisResponse(parsedResponse);
+    } catch (error) {
+      console.error('AI plant health analysis error:', error);
+      throw error;
+    }
+  }
+
+  private sanitizeHealthAnalysisResponse(response: any): AIPlantHealthAnalysis {
+    // Ensure all required fields exist
+    const sanitized: AIPlantHealthAnalysis = {
+      speciesGuess: response.speciesGuess || 'Unknown Plant',
+      confidence: Math.min(Math.max(response.confidence || 0.5, 0), 1),
+      disease: {
+        issue: response.disease?.issue || null,
+        description: response.disease?.description || null,
+        affected: response.disease?.affected || null,
+        steps: response.disease?.steps || null,
+        issueConfidence: response.disease?.issueConfidence ? Math.min(Math.max(response.disease.issueConfidence, 0), 1) : null
+      }
+    };
 
     return sanitized;
   }

@@ -91,6 +91,9 @@ export const aiAPI = {
   
   // For URL-based identification
   identifyByUrl: (imageUrl: string) => api.post('/api/ai/identify/url', { imageUrl }),
+  
+  // For plant health analysis by URL
+  analyzeHealthByUrl: (imageUrl: string) => api.post('/api/ai/identify/issue/url', { imageUrl }),
 };
 
 export default api;

@@ -5,6 +5,7 @@ import { Layout } from '../components/Layout';
 import { plantsAPI } from '../services/api';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
 import { PlantTrackingModal, PlantTrackingData } from '../components/PlantTrackingModal';
+import PlantHealthModal, { PlantHealthData } from '../components/PlantHealthModal';
 import { PlantActionButtons } from '../components/PlantActionButtons';
 import { PlantTrackingCard } from '../components/PlantTrackingCard';
 import { PlantTrackingViewModal } from '../components/PlantTrackingViewModal';
@@ -275,9 +276,26 @@ export function PlantDetailPage() {
   };
 
   const handleMonitorHealth = () => {
-    // For now, show an alert since this is a future feature
-    alert('Monitor plant health feature coming soon! This will include disease identification and health analysis.');
+    setShowMonitorHealthModal(true);
   };
+
+  // const handleHealthSubmit = async (data: PlantHealthData) => {
+  //   try {
+  //     await plantsAPI.createTrackingUpdate(data.plantId, {
+  //       date: data.date,
+  //       note: data.note,
+  //       photoUrl: data.photoUrl,
+  //       originalPhotoUrl: data.originalPhotoUrl,
+  //       cloudinaryPublicId: data.cloudinaryPublicId,
+  //     });
+
+  //     setShowMonitorHealthModal(false);  
+  //     // Refresh tracking updates
+  //     fetchTrackingUpdates();
+  //   } catch (error) {
+  //     console.error('Error creating health update:', error);
+  //   }
+  // };
 
   const handleOpenTracking = (tracking: PlantTrackingUpdate) => {
     setSelectedTracking(tracking);
@@ -756,6 +774,23 @@ export function PlantDetailPage() {
           try {
             await plantsAPI.createTrackingUpdate(plant.id, data);
             setShowTrackingModal(false);
+            // Refresh tracking updates to show the new one
+            fetchTrackingUpdates();
+          } catch (error) {
+            console.error('Error creating tracking update:', error);
+          }
+        }}
+      />
+      <PlantHealthModal
+        isOpen={showMonitorHealthModal}
+        plantName={plant?.name || ''}
+        plantId={plant?.id || ''}
+        onClose={() => setShowMonitorHealthModal(false)}
+        onSubmit={async (data: PlantTrackingData) => {
+          if (!plant?.id) return;
+          try {
+            await plantsAPI.createTrackingUpdate(plant.id, data);
+            setShowMonitorHealthModal(false); 
             // Refresh tracking updates to show the new one
             fetchTrackingUpdates();
           } catch (error) {

@@ -61,5 +61,18 @@ export class CloudinaryService {
   static revokePreviewUrl(url: string): void {
     URL.revokeObjectURL(url);
   }
+
+  /**
+   * Delete an image from Cloudinary via backend
+   * @param publicId - Cloudinary public ID of the image to delete
+   */
+  static async deleteImage(publicId: string): Promise<void> {
+    try {
+      await api.delete(`/api/upload/image/${publicId}`);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      throw error;
+    }
+  }
 }
 

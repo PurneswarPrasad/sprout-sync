@@ -23,9 +23,10 @@ export const PlantTrackingViewModal: React.FC<PlantTrackingViewModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div></div> {/* Empty div for spacing */}
           <button
             onClick={onClose}
@@ -35,7 +36,9 @@ export const PlantTrackingViewModal: React.FC<PlantTrackingViewModalProps> = ({
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-4">
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -53,7 +56,7 @@ export const PlantTrackingViewModal: React.FC<PlantTrackingViewModalProps> = ({
               <FileText className="w-4 h-4 inline mr-2" />
               Note
             </label>
-            <div className="bg-gray-50 px-3 py-2 rounded-lg text-gray-600 min-h-[100px] whitespace-pre-wrap">
+            <div className="bg-gray-50 px-3 py-2 rounded-lg text-gray-600 max-h-[200px] overflow-y-auto whitespace-pre-wrap">
               {tracking.note}
             </div>
           </div>
@@ -74,6 +77,7 @@ export const PlantTrackingViewModal: React.FC<PlantTrackingViewModalProps> = ({
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
