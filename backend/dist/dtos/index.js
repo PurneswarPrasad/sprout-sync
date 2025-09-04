@@ -21,6 +21,7 @@ __exportStar(require("./plantTask"), exports);
 __exportStar(require("./tag"), exports);
 __exportStar(require("./note"), exports);
 __exportStar(require("./photo"), exports);
+__exportStar(require("./plantTracking"), exports);
 __exportStar(require("./notificationLog"), exports);
 __exportStar(require("./userSettings"), exports);
 //# sourceMappingURL=index.js.map

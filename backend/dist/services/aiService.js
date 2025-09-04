@@ -5,10 +5,22 @@ const generative_ai_1 = require("@google/generative-ai");
 const genAI = new generative_ai_1.GoogleGenerativeAI(process.env['GEMINI_API_KEY']);
 class AIService {
     constructor() {
-        this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const apiKey = process.env['GEMINI_API_KEY'];
+        if (!apiKey) {
+            console.error('GEMINI_API_KEY environment variable is not set');
+            throw new Error('GEMINI_API_KEY environment variable is required');
+        }
+        this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
     }
     async identifyPlantFromImage(imageData) {
         try {
+            console.log(`Starting AI plant identification. Input type: ${typeof imageData}`);
+            if (typeof imageData === 'string') {
+                console.log(`Processing string input. Is URL: ${imageData.startsWith('http')}`);
+            }
+            else {
+                console.log(`Processing buffer input. Size: ${imageData.length} bytes`);
+            }
             const prompt = `
 You are a plant identification expert. Analyze the provided image and return a JSON response with the following structure:
 
@@ -43,15 +55,19 @@ Important guidelines:
             let imagePart;
             if (typeof imageData === 'string') {
                 if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+                    console.log('Processing URL input...');
                     const imageBuffer = await this.fetchImageFromUrl(imageData);
+                    const mimeType = this.getMimeTypeFromUrl(imageData);
+                    console.log(`Preparing image part with MIME type: ${mimeType}`);
                     imagePart = {
                         inlineData: {
                             data: imageBuffer.toString('base64'),
-                            mimeType: this.getMimeTypeFromUrl(imageData)
+                            mimeType: mimeType
                         }
                     };
                 }
                 else {
+                    console.log('Processing Base64 input...');
                     const base64Data = imageData.startsWith('data:')
                         ? imageData.split(',')[1]
                         : imageData;
@@ -64,6 +80,7 @@ Important guidelines:
                 }
             }
             else {
+                console.log('Processing Buffer input...');
                 imagePart = {
                     inlineData: {
                         data: imageData.toString('base64'),
@@ -71,37 +88,215 @@ Important guidelines:
                     }
                 };
             }
+            console.log('Sending request to Gemini AI...');
             const result = await this.model.generateContent([prompt, imagePart]);
             const response = await result.response;
             const text = response.text();
+            console.log('Received AI response:', text.substring(0, 200) + '...');
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) {
-                throw new Error('Invalid response format from AI');
+                console.error('No JSON found in AI response:', text);
+                throw new Error('Invalid response format from AI - no JSON found');
             }
-            const aiResponse = JSON.parse(jsonMatch[0]);
-            return this.sanitizeAIResponse(aiResponse);
+            let aiResponse;
+            try {
+                aiResponse = JSON.parse(jsonMatch[0]);
+                console.log('Successfully parsed AI response JSON');
+            }
+            catch (parseError) {
+                console.error('Failed to parse AI response JSON:', parseError);
+                console.error('JSON string:', jsonMatch[0]);
+                throw new Error('Invalid JSON format in AI response');
+            }
+            const sanitizedResponse = this.sanitizeAIResponse(aiResponse);
+            console.log('AI identification completed successfully');
+            return sanitizedResponse;
         }
         catch (error) {
             console.error('AI identification error:', error);
             throw new Error('Failed to identify plant. Please try again.');
         }
     }
-    async fetchImageFromUrl(url) {
+    async fetchImageFromUrl(url, maxRedirects = 3) {
         try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch image: ${response.statusText}`);
-            }
-            const arrayBuffer = await response.arrayBuffer();
-            return Buffer.from(arrayBuffer);
+            console.log(`Fetching image from URL: ${url}`);
+            const actualImageUrl = this.extractImageUrlFromSearchEngine(url);
+            console.log(`Extracted image URL: ${actualImageUrl}`);
+            return await this.attemptImageFetch(actualImageUrl, url, maxRedirects);
         }
         catch (error) {
             console.error('Error fetching image from URL:', error);
-            throw new Error('Failed to fetch image from URL');
+            if (error instanceof Error) {
+                throw new Error(`Failed to fetch image from URL: ${error.message}`);
+            }
+            throw new Error('Failed to fetch image from URL: Unknown error');
         }
     }
+    async attemptImageFetch(primaryUrl, fallbackUrl, maxRedirects) {
+        const urlsToTry = [primaryUrl];
+        if (primaryUrl !== fallbackUrl) {
+            urlsToTry.push(fallbackUrl);
+        }
+        for (const currentUrl of urlsToTry) {
+            try {
+                console.log(`Attempting to fetch: ${currentUrl}`);
+                const response = await fetch(currentUrl, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'image/*,text/html,application/xhtml+xml,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Cache-Control': 'no-cache',
+                    },
+                });
+                if (!response.ok) {
+                    console.log(`HTTP ${response.status} for ${currentUrl}, trying next...`);
+                    continue;
+                }
+                const contentType = response.headers.get('content-type') || '';
+                console.log(`Content-Type: ${contentType} for ${currentUrl}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                if (this.isImageBuffer(buffer)) {
+                    console.log(`Successfully fetched image: ${buffer.length} bytes from ${currentUrl}`);
+                    return buffer;
+                }
+                if (maxRedirects > 0) {
+                    const text = buffer.toString('utf-8');
+                    if (text.includes('<html') || text.includes('<meta') || text.includes('<img')) {
+                        const imageUrl = this.extractImageFromHtml(text, currentUrl);
+                        if (imageUrl && imageUrl !== currentUrl) {
+                            console.log(`Found image in HTML: ${imageUrl}, recursing...`);
+                            return this.fetchImageFromUrl(imageUrl, maxRedirects - 1);
+                        }
+                    }
+                }
+                console.log(`Content from ${currentUrl} is neither an image nor contains extractable image URL`);
+            }
+            catch (error) {
+                console.log(`Failed to fetch ${currentUrl}:`, error);
+                continue;
+            }
+        }
+        throw new Error('No valid image found at any of the attempted URLs');
+    }
+    isImageBuffer(buffer) {
+        if (buffer.length < 4)
+            return false;
+        const header = buffer.subarray(0, 4);
+        if (header[0] === 0xFF && header[1] === 0xD8)
+            return true;
+        if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47)
+            return true;
+        if (buffer.length >= 6) {
+            const gifHeader = buffer.subarray(0, 6);
+            if (gifHeader.toString() === 'GIF87a' || gifHeader.toString() === 'GIF89a')
+                return true;
+        }
+        if (buffer.length >= 12) {
+            const webpHeader = buffer.subarray(0, 4);
+            const webpFormat = buffer.subarray(8, 12);
+            if (webpHeader.toString() === 'RIFF' && webpFormat.toString() === 'WEBP')
+                return true;
+        }
+        if (header[0] === 0x42 && header[1] === 0x4D)
+            return true;
+        return false;
+    }
+    extractImageFromHtml(html, baseUrl) {
+        try {
+            const ogImageMatch = html.match(/<meta[^>]+property=['"]og:image['"][^>]+content=['"]([^'"]+)['"][^>]*>/i);
+            if (ogImageMatch) {
+                return this.resolveUrl(ogImageMatch[1], baseUrl);
+            }
+            const twitterImageMatch = html.match(/<meta[^>]+name=['"]twitter:image['"][^>]+content=['"]([^'"]+)['"][^>]*>/i);
+            if (twitterImageMatch) {
+                return this.resolveUrl(twitterImageMatch[1], baseUrl);
+            }
+            const imgMatches = html.match(/<img[^>]+src=['"]([^'"]+)['"][^>]*>/gi);
+            if (imgMatches && imgMatches.length > 0) {
+                const srcMatch = imgMatches[0].match(/src=['"]([^'"]+)['"]/i);
+                if (srcMatch) {
+                    return this.resolveUrl(srcMatch[1], baseUrl);
+                }
+            }
+            return null;
+        }
+        catch (error) {
+            console.error('Error extracting image from HTML:', error);
+            return null;
+        }
+    }
+    resolveUrl(url, baseUrl) {
+        try {
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            if (url.startsWith('//')) {
+                return new URL(baseUrl).protocol + url;
+            }
+            if (url.startsWith('/')) {
+                const base = new URL(baseUrl);
+                return `${base.protocol}//${base.host}${url}`;
+            }
+            return new URL(url, baseUrl).href;
+        }
+        catch (error) {
+            console.error('Error resolving URL:', error);
+            return url;
+        }
+    }
+    extractImageUrlFromSearchEngine(url) {
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.hostname.includes('bing.com') && urlObj.searchParams.has('mediaurl')) {
+                const mediaUrl = urlObj.searchParams.get('mediaurl');
+                if (mediaUrl) {
+                    const decodedUrl = decodeURIComponent(mediaUrl);
+                    console.log(`Extracted Bing media URL: ${decodedUrl}`);
+                    return decodedUrl;
+                }
+            }
+            if (urlObj.hostname.includes('google.com') && urlObj.pathname.includes('/imgres')) {
+                const imgUrl = urlObj.searchParams.get('imgurl');
+                if (imgUrl) {
+                    console.log(`Extracted Google image URL: ${imgUrl}`);
+                    return imgUrl;
+                }
+            }
+            if (this.isDirectImageUrl(url)) {
+                return url;
+            }
+            console.log(`No image URL extraction needed, using original URL: ${url}`);
+            return url;
+        }
+        catch (error) {
+            console.error('Error extracting image URL:', error);
+            return url;
+        }
+    }
+    isDirectImageUrl(url) {
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+        const lowerUrl = url.toLowerCase();
+        const urlWithoutParams = lowerUrl.split('?')[0]?.split('#')[0];
+        const hasImageExtension = imageExtensions.some(ext => urlWithoutParams?.endsWith(ext));
+        const hasImagePattern = lowerUrl.includes('/image/') ||
+            lowerUrl.includes('/img/') ||
+            lowerUrl.includes('/photo/') ||
+            lowerUrl.includes('/picture/') ||
+            lowerUrl.includes('/media/') ||
+            lowerUrl.includes('/assets/') ||
+            lowerUrl.includes('/uploads/') ||
+            lowerUrl.includes('/files/') ||
+            lowerUrl.includes('/content/') ||
+            lowerUrl.includes('cdn') ||
+            lowerUrl.includes('static');
+        return hasImageExtension || hasImagePattern;
+    }
     getMimeTypeFromUrl(url) {
-        const extension = url.toLowerCase().split('.').pop()?.split('?')[0];
+        const cleanUrl = url.split('?')[0] || url;
+        const extension = cleanUrl.toLowerCase().split('.').pop();
+        console.log(`Detected file extension: ${extension} from URL: ${url}`);
         switch (extension) {
             case 'jpg':
             case 'jpeg':
@@ -112,7 +307,12 @@ Important guidelines:
                 return 'image/webp';
             case 'gif':
                 return 'image/gif';
+            case 'bmp':
+                return 'image/bmp';
+            case 'svg':
+                return 'image/svg+xml';
             default:
+                console.log(`Unknown extension: ${extension}, defaulting to image/jpeg`);
                 return 'image/jpeg';
         }
     }

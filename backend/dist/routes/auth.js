@@ -56,7 +56,7 @@ router.get('/profile', jwtAuth_1.authenticateJWT, (req, res) => {
     res.json({
         success: true,
         data: {
-            id: req.user.id,
+            id: req.user.userId,
             email: req.user.email,
             name: req.user.name,
             avatarUrl: req.user.avatarUrl,
@@ -74,7 +74,7 @@ router.get('/status', jwtAuth_1.authenticateJWT, (req, res) => {
         success: true,
         authenticated: true,
         user: {
-            id: req.user.id,
+            id: req.user.userId,
             email: req.user.email,
             name: req.user.name,
             avatarUrl: req.user.avatarUrl,

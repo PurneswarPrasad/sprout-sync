@@ -5,7 +5,7 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
-const auth_1 = require("../middleware/auth");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const router = (0, express_1.Router)();
 exports.tagsRouter = router;
@@ -13,9 +13,9 @@ const updateTagSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Tag name is required'),
     colorHex: zod_1.z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color hex format').optional(),
 });
-router.get('/', auth_1.isAuthenticated, async (req, res) => {
+router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const { page = '1', limit = '50' } = req.query;
         const pageNum = parseInt(page.toString());
         const limitNum = parseInt(limit.toString());
@@ -63,9 +63,9 @@ router.get('/', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.createTagSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.createTagSchema), async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const validatedData = dtos_1.createTagSchema.parse(req.body);
         const tag = await prisma_1.prisma.tag.create({
             data: {
@@ -95,10 +95,10 @@ router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.createT
         });
     }
 });
-router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
+router.get('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const tagId = req.params['id'];
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const tag = await prisma_1.prisma.tag.findFirst({
             where: {
                 id: tagId,
@@ -142,10 +142,10 @@ router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(updateTagSchema), async (req, res) => {
+router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(updateTagSchema), async (req, res) => {
     try {
         const tagId = req.params['id'];
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const validatedData = updateTagSchema.parse(req.body);
         const tag = await prisma_1.prisma.tag.findFirst({
             where: {
@@ -189,10 +189,10 @@ router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(updateTagSch
         });
     }
 });
-router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
+router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const tagId = req.params['id'];
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const tag = await prisma_1.prisma.tag.findFirst({
             where: {
                 id: tagId,

@@ -16,8 +16,15 @@ export interface AIPlantIdentification {
 }
 export declare class AIService {
     private model;
+    constructor();
     identifyPlantFromImage(imageData: Buffer | string): Promise<AIPlantIdentification>;
     private fetchImageFromUrl;
+    private attemptImageFetch;
+    private isImageBuffer;
+    private extractImageFromHtml;
+    private resolveUrl;
+    private extractImageUrlFromSearchEngine;
+    private isDirectImageUrl;
     private getMimeTypeFromUrl;
     private sanitizeAIResponse;
 }

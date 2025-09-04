@@ -4,6 +4,11 @@ import { ArrowLeft, Droplets, Scissors, Sun, Leaf, Edit, CheckCircle } from 'luc
 import { Layout } from '../components/Layout';
 import { plantsAPI } from '../services/api';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
+import { PlantTrackingModal, PlantTrackingData } from '../components/PlantTrackingModal';
+import { PlantActionButtons } from '../components/PlantActionButtons';
+import { PlantTrackingCard } from '../components/PlantTrackingCard';
+import { PlantTrackingViewModal } from '../components/PlantTrackingViewModal';
+import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
 import { differenceInDays } from 'date-fns';
 
 interface PlantTask {
@@ -13,6 +18,16 @@ interface PlantTask {
   nextDueOn: string;
   lastCompletedOn: string | null;
   active: boolean;
+}
+
+interface PlantTrackingUpdate {
+  id: string;
+  plantId: string;
+  date: string;
+  note: string;
+  photoUrl: string | null;
+  cloudinaryPublicId: string | null;
+  createdAt: string;
 }
 
 interface Plant {
@@ -39,12 +54,26 @@ export function PlantDetailPage() {
   const [activeTab, setActiveTab] = useState<'care' | 'health' | 'about'>('care');
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<PlantTask | null>(null);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [showMonitorHealthModal, setShowMonitorHealthModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedTracking, setSelectedTracking] = useState<PlantTrackingUpdate | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [trackingToDelete, setTrackingToDelete] = useState<string | null>(null);
+  const [trackingUpdates, setTrackingUpdates] = useState<PlantTrackingUpdate[]>([]);
+  const [loadingTracking, setLoadingTracking] = useState(false);
 
   useEffect(() => {
     if (plantId) {
       fetchPlant();
     }
   }, [plantId]);
+
+  useEffect(() => {
+    if (activeTab === 'health' && plantId) {
+      fetchTrackingUpdates();
+    }
+  }, [activeTab, plantId]);
 
   const fetchPlant = async () => {
     try {
@@ -54,6 +83,20 @@ export function PlantDetailPage() {
       console.error('Error fetching plant:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrackingUpdates = async () => {
+    if (!plantId) return;
+    
+    setLoadingTracking(true);
+    try {
+      const response = await plantsAPI.getTrackingUpdates(plantId);
+      setTrackingUpdates(response.data.data);
+    } catch (error) {
+      console.error('Error fetching tracking updates:', error);
+    } finally {
+      setLoadingTracking(false);
     }
   };
 
@@ -223,6 +266,40 @@ export function PlantDetailPage() {
       setSelectedTask(null);
     } catch (error) {
       console.error('Error marking task complete:', error);
+    }
+  };
+
+  const handleTrackPlant = () => {
+    setShowTrackingModal(true);
+  };
+
+  const handleMonitorHealth = () => {
+    // For now, show an alert since this is a future feature
+    alert('Monitor plant health feature coming soon! This will include disease identification and health analysis.');
+  };
+
+  const handleOpenTracking = (tracking: PlantTrackingUpdate) => {
+    setSelectedTracking(tracking);
+    setShowViewModal(true);
+  };
+
+  const handleDeleteTracking = (trackingId: string) => {
+    setTrackingToDelete(trackingId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteTracking = async () => {
+    if (!plantId || !trackingToDelete) return;
+    
+    try {
+      await plantsAPI.deleteTrackingUpdate(plantId, trackingToDelete);
+      // Remove from local state after successful API call
+      setTrackingUpdates(prev => prev.filter(update => update.id !== trackingToDelete));
+      setShowDeleteDialog(false);
+      setTrackingToDelete(null);
+    } catch (error) {
+      console.error('Error deleting tracking update:', error);
+      // You could add a toast notification here to show the error to the user
     }
   };
 
@@ -609,9 +686,41 @@ export function PlantDetailPage() {
         )}
 
         {activeTab === 'health' && (
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Health</h2>
-            <p className="text-gray-600">Health section content will be implemented later.</p>
+          <div className="space-y-6">
+            {/* Action Buttons */}
+            <div className="flex justify-center">
+              <PlantActionButtons
+                plantName={plant?.name || 'Plant'}
+                onTrackPlant={handleTrackPlant}
+                onMonitorHealth={handleMonitorHealth}
+              />
+            </div>
+
+            {/* Tracking Updates */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Tracking Updates</h2>
+              {loadingTracking ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-500">Loading tracking updates...</p>
+                </div>
+              ) : trackingUpdates.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No tracking updates yet. Start by adding your first update!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {trackingUpdates.map((update) => (
+                    <PlantTrackingCard 
+                      key={update.id} 
+                      tracking={update}
+                      onOpen={handleOpenTracking}
+                      onDelete={handleDeleteTracking}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -636,6 +745,48 @@ export function PlantDetailPage() {
           cancelText="No, Cancel"
           icon="🌿"
         />
+      <PlantTrackingModal
+        isOpen={showTrackingModal}
+        plantName={plant?.name || ''}
+        plantId={plant?.id || ''}
+        onClose={() => setShowTrackingModal(false)}
+        onSubmit={async (data: PlantTrackingData) => {
+          if (!plant?.id) return;
+          try {
+            await plantsAPI.createTrackingUpdate(plant.id, data);
+            setShowTrackingModal(false);
+            // Refresh tracking updates to show the new one
+            fetchTrackingUpdates();
+          } catch (error) {
+            console.error('Error creating tracking update:', error);
+          }
+        }}
+      />
+      <PlantTrackingViewModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        tracking={selectedTracking || {
+          id: '',
+          plantId: '',
+          date: '',
+          note: '',
+          photoUrl: null,
+          cloudinaryPublicId: null,
+          createdAt: ''
+        }}
+      />
+      <DeleteConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setTrackingToDelete(null);
+        }}
+        onConfirm={confirmDeleteTracking}
+        title="Delete Tracking Update"
+        message="Are you sure you want to delete this tracking update? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </Layout>
   );
 }

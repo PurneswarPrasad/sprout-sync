@@ -5,13 +5,13 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
-const auth_1 = require("../middleware/auth");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const router = (0, express_1.Router)();
 exports.plantTagsRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
     try {
         const plantId = req.params['plantId'];
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const plant = await prisma_1.prisma.plant.findFirst({
             where: {
                 id: plantId,
@@ -41,7 +41,7 @@ const assignTagSchema = zod_1.z.object({
 const unassignTagSchema = zod_1.z.object({
     tagId: zod_1.z.string().uuid('Invalid tag ID'),
 });
-router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const plantId = req.params['plantId'];
         const plantTags = await prisma_1.prisma.plantTag.findMany({
@@ -71,10 +71,10 @@ router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) =>
         });
     }
 });
-router.post('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.validate)(assignTagSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(assignTagSchema), async (req, res) => {
     try {
         const plantId = req.params['plantId'];
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const { tagId } = req.body;
         const tag = await prisma_1.prisma.tag.findFirst({
             where: {
@@ -130,7 +130,7 @@ router.post('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.val
         });
     }
 });
-router.delete('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.validate)(unassignTagSchema), async (req, res) => {
+router.delete('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(unassignTagSchema), async (req, res) => {
     try {
         const plantId = req.params['plantId'];
         const { tagId } = req.body;
@@ -178,7 +178,7 @@ router.delete('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.v
         });
     }
 });
-router.delete('/:tagId', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.delete('/:tagId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const { plantId, tagId } = req.params;
         const plantTag = await prisma_1.prisma.plantTag.findFirst({

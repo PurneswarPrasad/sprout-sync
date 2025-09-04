@@ -5,14 +5,14 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
-const auth_1 = require("../middleware/auth");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const router = (0, express_1.Router)();
 exports.tasksRouter = router;
-router.get('/', auth_1.isAuthenticated, async (req, res) => {
+router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const { plantId, taskKey, completed, startDate, endDate } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.userId;
         let whereClause = {
             plant: {
                 userId: userId,
@@ -65,7 +65,7 @@ router.get('/', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
+router.get('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const taskId = req.params['id'];
         if (!taskId) {
@@ -74,7 +74,7 @@ router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
                 error: 'Task ID is required',
             });
         }
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const task = await prisma_1.prisma.plantTask.findFirst({
             where: {
                 id: taskId,
@@ -111,10 +111,10 @@ router.get('/:id', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
     try {
         const validatedData = dtos_1.createPlantTaskSchema.parse(req.body);
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const plant = await prisma_1.prisma.plant.findFirst({
             where: {
                 id: validatedData.plantId,
@@ -165,7 +165,7 @@ router.post('/', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.createP
         });
     }
 });
-router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.updatePlantTaskSchema), async (req, res) => {
+router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.updatePlantTaskSchema), async (req, res) => {
     try {
         const taskId = req.params['id'];
         if (!taskId) {
@@ -174,7 +174,7 @@ router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.updat
                 error: 'Task ID is required',
             });
         }
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const validatedData = dtos_1.updatePlantTaskSchema.parse(req.body);
         const task = await prisma_1.prisma.plantTask.findFirst({
             where: {
@@ -234,7 +234,7 @@ router.put('/:id', auth_1.isAuthenticated, (0, validate_1.validate)(dtos_1.updat
         });
     }
 });
-router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
+router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const taskId = req.params['id'];
         if (!taskId) {
@@ -243,7 +243,7 @@ router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
                 error: 'Task ID is required',
             });
         }
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const task = await prisma_1.prisma.plantTask.findFirst({
             where: {
                 id: taskId,
@@ -284,7 +284,7 @@ router.delete('/:id', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.post('/:id/complete', auth_1.isAuthenticated, async (req, res) => {
+router.post('/:id/complete', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const taskId = req.params['id'];
         if (!taskId) {
@@ -293,7 +293,7 @@ router.post('/:id/complete', auth_1.isAuthenticated, async (req, res) => {
                 error: 'Task ID is required',
             });
         }
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const task = await prisma_1.prisma.plantTask.findFirst({
             where: {
                 id: taskId,
@@ -340,11 +340,11 @@ router.post('/:id/complete', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.get('/upcoming', auth_1.isAuthenticated, async (req, res) => {
+router.get('/upcoming', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const { days = '7' } = req.query;
         const daysAhead = parseInt(days.toString());
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const now = new Date();
         const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
         const upcomingTasks = await prisma_1.prisma.plantTask.findMany({
@@ -386,9 +386,9 @@ router.get('/upcoming', auth_1.isAuthenticated, async (req, res) => {
         });
     }
 });
-router.get('/overdue', auth_1.isAuthenticated, async (req, res) => {
+router.get('/overdue', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const now = new Date();
         const overdueTasks = await prisma_1.prisma.plantTask.findMany({
             where: {

@@ -19,6 +19,7 @@ import { plantNotesRouter } from './routes/plantNotes';
 import { plantPhotosRouter } from './routes/plantPhotos';
 import { plantTagsRouter } from './routes/plantTags';
 import { aiRouter } from './routes/ai';
+import plantTrackingRouter from './routes/plantTracking';
 
 // Load environment variables
 dotenv.config();
@@ -79,6 +80,7 @@ app.use('/api/plants/:plantId/tasks', plantTasksRouter);
 app.use('/api/plants/:plantId/notes', plantNotesRouter);
 app.use('/api/plants/:plantId/photos', plantPhotosRouter);
 app.use('/api/plants/:plantId/tags', plantTagsRouter);
+app.use('/api/plants/:plantId/tracking', plantTrackingRouter);
 
 // Root endpoint
 app.get('/', (_req, res) => {

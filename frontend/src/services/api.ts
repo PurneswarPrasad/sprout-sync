@@ -64,6 +64,13 @@ export const plantsAPI = {
   getTaskTemplates: () => api.get('/api/plants/task-templates'),
   completeTask: (plantId: string, taskId: string) => 
     api.post(`/api/plants/${plantId}/tasks/${taskId}/complete`, {}),
+  // Plant tracking endpoints
+  getTrackingUpdates: (plantId: string, page?: number, limit?: number) => 
+    api.get(`/api/plants/${plantId}/tracking`, { params: { page, limit } }),
+  createTrackingUpdate: (plantId: string, data: any) => 
+    api.post(`/api/plants/${plantId}/tracking`, data),
+  deleteTrackingUpdate: (plantId: string, trackingId: string) => 
+    api.delete(`/api/plants/${plantId}/tracking/${trackingId}`),
 };
 
 export const aiAPI = {

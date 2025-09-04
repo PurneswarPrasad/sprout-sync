@@ -39,6 +39,7 @@ model Plant {
   tags            PlantTag[]
   notes           Note[]
   photos          Photo[]
+  trackingUpdates PlantTracking[]
 }
 
 model TaskTemplate {
@@ -105,6 +106,17 @@ model Photo {
   secureUrl       String
   takenAt         DateTime
   pointsAwarded   Int      @default(0)
+}
+
+model PlantTracking {
+  id                  String   @id @default(uuid())
+  plantId             String
+  plant               Plant    @relation(fields: [plantId], references: [id])
+  date                String
+  note                String
+  photoUrl            String?
+  cloudinaryPublicId  String?
+  createdAt           DateTime @default(now())
 }
 
 model NotificationLog {

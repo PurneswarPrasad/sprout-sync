@@ -8,7 +8,6 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const compression_1 = __importDefault(require("compression"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const passport_1 = __importDefault(require("./config/passport"));
@@ -23,6 +22,7 @@ const plantNotes_1 = require("./routes/plantNotes");
 const plantPhotos_1 = require("./routes/plantPhotos");
 const plantTags_1 = require("./routes/plantTags");
 const ai_1 = require("./routes/ai");
+const plantTracking_1 = __importDefault(require("./routes/plantTracking"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env['PORT'] || 3001;
@@ -34,12 +34,6 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-const limiter = (0, express_rate_limit_1.default)({
-    windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'),
-    max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'),
-    message: 'Too many requests from this IP, please try again later.',
-});
-app.use(limiter);
 app.use((0, morgan_1.default)('combined'));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -56,6 +50,7 @@ app.use('/api/plants/:plantId/tasks', plantTasks_1.plantTasksRouter);
 app.use('/api/plants/:plantId/notes', plantNotes_1.plantNotesRouter);
 app.use('/api/plants/:plantId/photos', plantPhotos_1.plantPhotosRouter);
 app.use('/api/plants/:plantId/tags', plantTags_1.plantTagsRouter);
+app.use('/api/plants/:plantId/tracking', plantTracking_1.default);
 app.get('/', (_req, res) => {
     res.json({
         message: '🌱 Plant Care API is running!',

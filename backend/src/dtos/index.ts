@@ -19,6 +19,9 @@ export * from './note';
 // Photo DTOs
 export * from './photo';
 
+// Plant Tracking DTOs
+export * from './plantTracking';
+
 // NotificationLog DTOs
 export * from './notificationLog';
 

@@ -5,14 +5,14 @@ const express_1 = require("express");
 const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
-const auth_1 = require("../middleware/auth");
+const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const router = (0, express_1.Router)();
 exports.plantNotesRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
     try {
         const plantId = req.params.plantId;
-        const userId = req.user.id;
+        const userId = req.user.userId;
         const plant = await prisma_1.prisma.plant.findFirst({
             where: {
                 id: plantId,
@@ -36,7 +36,7 @@ const checkPlantOwnership = async (req, res, next) => {
         });
     }
 };
-router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) => {
+router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
     try {
         const plantId = req.params['plantId'];
         const { taskKey, preset, page = '1', limit = '20' } = req.query;
@@ -84,7 +84,7 @@ router.get('/', auth_1.isAuthenticated, checkPlantOwnership, async (req, res) =>
         });
     }
 });
-router.post('/', auth_1.isAuthenticated, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createNoteSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createNoteSchema), async (req, res) => {
     try {
         const plantId = req.params['plantId'];
         const validatedData = dtos_1.createNoteSchema.parse(req.body);
