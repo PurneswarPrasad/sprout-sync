@@ -509,31 +509,172 @@ export const AddPlantPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Plant Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                    placeholder="e.g., Snake Plant, Monstera"
-                    required
-                  />
-                </div>
+                {/* Plant Name/Type and Image Upload - Side by Side */}
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Plant Name and Type Fields */}
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Plant Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                        placeholder="e.g., Snake Plant, Monstera"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Plant Type
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                    placeholder="e.g., Succulent, Tropical"
-                  />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Plant Type
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                        placeholder="e.g., Succulent, Tropical"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Plant Image Upload */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Plant Image
+                      </label>
+                      {isImageFromAI && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                          ✨ AI Auto-filled
+                        </span>
+                      )}
+                    </div>
+                    
+                    {!imagePreview ? (
+                      <div className="space-y-3">
+                        {/* Auto-populating indicator */}
+                        {isAutoPopulatingImage && (
+                          <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4 text-center bg-emerald-50">
+                            <div className="flex flex-col items-center">
+                              <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
+                              <span className="text-sm text-emerald-700 font-medium">
+                                Auto-populating image from AI identification...
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Upload from device */}
+                        <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center ${
+                          isAutoPopulatingImage ? 'opacity-50 pointer-events-none' : ''
+                        }`}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileInputChange}
+                            className="hidden"
+                            id="plant-image-upload"
+                            ref={fileInputRef}
+                            disabled={isUploadingImage}
+                          />
+                          <label
+                            htmlFor="plant-image-upload"
+                            className={`cursor-pointer flex flex-col items-center ${
+                              isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            {isUploadingImage ? (
+                              <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
+                            ) : (
+                              <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                            )}
+                            <span className="text-sm text-gray-600">
+                              {isUploadingImage ? 'Uploading...' : 'Drag & drop or click to upload photo'}
+                            </span>
+                          </label>
+                        </div>
+                        
+                        {/* Take photo with camera */}
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          disabled={isUploadingImage || isAutoPopulatingImage}
+                          className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
+                            isUploadingImage || isAutoPopulatingImage ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <Camera className="w-5 h-5" />
+                            <span>Take photo with camera</span>
+                          </div>
+                        </button>
+                      </div>
+                    ) : (
+                      /* Image preview */
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Plant preview"
+                          className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={deleteImage}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Camera view */}
+                    {showCamera && (
+                      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-lg p-4 w-full max-w-md">
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold">Take Photo</h3>
+                            <button
+                              type="button"
+                              onClick={stopCamera}
+                              className="p-2 hover:bg-gray-100 rounded-full"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                          
+                          <div className="relative">
+                            <video
+                              ref={videoRef}
+                              autoPlay
+                              playsInline
+                              className="w-full h-64 bg-gray-900 rounded-lg"
+                            />
+                          </div>
+                          
+                          <div className="flex gap-3 mt-4">
+                            <button
+                              type="button"
+                              onClick={stopCamera}
+                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={capturePhoto}
+                              className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                            >
+                              Capture
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -560,141 +701,6 @@ export const AddPlantPage: React.FC = () => {
                      />
                    </div>
                 </div>
-
-                {/* Plant Image Upload */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Plant Image
-                    </label>
-                    {isImageFromAI && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                        ✨ AI Auto-filled
-                      </span>
-                    )}
-                  </div>
-                  
-                  {!imagePreview ? (
-                    <div className="space-y-3">
-                      {/* Auto-populating indicator */}
-                      {isAutoPopulatingImage && (
-                        <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4 text-center bg-emerald-50">
-                          <div className="flex flex-col items-center">
-                            <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
-                            <span className="text-sm text-emerald-700 font-medium">
-                              Auto-populating image from AI identification...
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Upload from device */}
-                      <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center ${
-                        isAutoPopulatingImage ? 'opacity-50 pointer-events-none' : ''
-                      }`}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileInputChange}
-                          className="hidden"
-                          id="plant-image-upload"
-                          ref={fileInputRef}
-                          disabled={isUploadingImage}
-                        />
-                        <label
-                          htmlFor="plant-image-upload"
-                          className={`cursor-pointer flex flex-col items-center ${
-                            isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          {isUploadingImage ? (
-                            <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
-                          ) : (
-                            <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                          )}
-                          <span className="text-sm text-gray-600">
-                            {isUploadingImage ? 'Uploading...' : 'Drag & drop or click to upload photo'}
-                          </span>
-                        </label>
-                      </div>
-                      
-                      {/* Take photo with camera */}
-                      <button
-                        type="button"
-                        onClick={startCamera}
-                        disabled={isUploadingImage || isAutoPopulatingImage}
-                        className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
-                          isUploadingImage || isAutoPopulatingImage ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          <Camera className="w-5 h-5" />
-                          <span>Take photo with camera</span>
-                        </div>
-                      </button>
-                    </div>
-                  ) : (
-                    /* Image preview */
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Plant preview"
-                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={deleteImage}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Camera view */}
-                  {showCamera && (
-                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-                      <div className="bg-white rounded-lg p-4 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-lg font-semibold">Take Photo</h3>
-                          <button
-                            type="button"
-                            onClick={stopCamera}
-                            className="p-2 hover:bg-gray-100 rounded-full"
-                          >
-                            <X className="w-5 h-5" />
-                          </button>
-                        </div>
-                        
-                        <div className="relative">
-                          <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            className="w-full h-64 bg-gray-900 rounded-lg"
-                          />
-                        </div>
-                        
-                        <div className="flex gap-3 mt-4">
-                          <button
-                            type="button"
-                            onClick={stopCamera}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={capturePhoto}
-                            className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                          >
-                            Capture
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -712,115 +718,114 @@ export const AddPlantPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="space-y-4">
                   {taskTemplates.map((template) => {
                     const isSelected = selectedTasks.some(task => task.key === template.key);
+                    const selectedTask = selectedTasks.find(task => task.key === template.key);
                     
                     return (
-                      <div
-                        key={template.key}
-                        onClick={() => toggleTaskSelection(template)}
-                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                              isSelected ? 'scale-110' : ''
-                            }`}
-                            style={{ borderColor: template.colorHex }}
-                          >
-                            {isSelected && (
-                              <div
-                                className="w-2.5 h-2.5 rounded-full"
-                                style={{ backgroundColor: template.colorHex }}
-                              />
-                            )}
+                      <div key={template.key} className="space-y-3">
+                        {/* Task Selection Card */}
+                        <div
+                          onClick={() => toggleTaskSelection(template)}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                isSelected ? 'scale-110' : ''
+                              }`}
+                              style={{ borderColor: template.colorHex }}
+                            >
+                              {isSelected && (
+                                <div
+                                  className="w-2.5 h-2.5 rounded-full"
+                                  style={{ backgroundColor: template.colorHex }}
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-800">{template.label}</h3>
+                              <p className="text-sm text-gray-600">
+                                Default: every {template.defaultFrequencyDays} days
+                              </p>
+                            </div>
+                            <div
+                              className="w-4 h-4 rounded-full shadow-sm"
+                              style={{ backgroundColor: template.colorHex }}
+                            />
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-800">{template.label}</h3>
-                            <p className="text-sm text-gray-600">
-                              Default: every {template.defaultFrequencyDays} days
-                            </p>
-                          </div>
-                          <div
-                            className="w-4 h-4 rounded-full shadow-sm"
-                            style={{ backgroundColor: template.colorHex }}
-                          />
                         </div>
+
+                        {/* Task Configuration - appears directly below selected task */}
+                        {isSelected && selectedTask && (
+                          <div className="bg-white rounded-xl p-4 border border-gray-200 ml-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="w-4 h-4 rounded-full"
+                                  style={{ backgroundColor: selectedTask.colorHex }}
+                                />
+                                <h4 className="font-medium text-gray-800">{selectedTask.label}</h4>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeTask(selectedTask.key)}
+                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                              >
+                                <X className="w-4 h-4 text-gray-500" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Frequency (days)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={selectedTask.frequency}
+                                  onChange={(e) => updateTaskFrequency(selectedTask.key, parseInt(e.target.value))}
+                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Last Completed
+                                </label>
+                                <input
+                                  type="date"
+                                  value={selectedTask.frequency === 1 ? new Date().toISOString().split('T')[0] : (selectedTask.lastCompleted || '')}
+                                  onChange={(e) => updateTaskLastCompleted(selectedTask.key, e.target.value)}
+                                  className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
+                                    selectedTask.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
+                                  }`}
+                                  disabled={selectedTask.frequency === 1}
+                                />
+                                {selectedTask.frequency === 1 && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Auto-set to today for daily tasks
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              {/* Selected Tasks Configuration */}
-              {selectedTasks.length > 0 ? (
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-800">Configure Selected Tasks</h3>
-                  
-                  {selectedTasks.map((task) => (
-                    <div key={task.key} className="bg-white rounded-xl p-4 border border-gray-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: task.colorHex }}
-                          />
-                          <h4 className="font-medium text-gray-800">{task.label}</h4>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeTask(task.key)}
-                          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                        >
-                          <X className="w-4 h-4 text-gray-500" />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Frequency (days)
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={task.frequency}
-                            onChange={(e) => updateTaskFrequency(task.key, parseInt(e.target.value))}
-                            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                          />
-
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Last Completed
-                          </label>
-                          <input
-                            type="date"
-                            value={task.frequency === 1 ? new Date().toISOString().split('T')[0] : (task.lastCompleted || '')}
-                            onChange={(e) => updateTaskLastCompleted(task.key, e.target.value)}
-                            className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                              task.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
-                            }`}
-                            disabled={task.frequency === 1}
-                          />
-                          {task.frequency === 1 && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Auto-set to today for daily tasks
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+              {/* Show message when no tasks are selected */}
+              {!taskTemplatesLoading && selectedTasks.length === 0 && (
+                <div className="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 mt-6">
                   <div className="text-gray-400 mb-2">
                     <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
