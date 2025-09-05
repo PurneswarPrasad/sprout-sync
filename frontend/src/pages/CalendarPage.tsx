@@ -6,6 +6,13 @@ import { Layout } from '../components/Layout';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
 import { DayDetailsModal } from '../components/DayDetailsModal';
 
+// Helper function to set time to 00:00 for daily tasks
+const setTimeToMidnight = (date: Date) => {
+  const newDate = new Date(date);
+  newDate.setHours(0, 0, 0, 0);
+  return newDate;
+};
+
 interface PlantTask {
   id: string;
   taskKey: string;
@@ -117,12 +124,17 @@ export function CalendarPage() {
           
           // For daily tasks, only show if not completed today
           if (task.frequencyDays === 1 && !isCompletedToday) {
+            // Use the nextDueOn time if it's today, otherwise use midnight
+            const scheduledDate = isSameDay(new Date(task.nextDueOn), today) 
+              ? new Date(task.nextDueOn) 
+              : setTimeToMidnight(today);
+            
             calendarTasks.push({
               id: `${task.id}-daily`,
               plantName: plant.name,
               plantId: plant.id,
               taskKey: task.taskKey,
-              scheduledDate: today,
+              scheduledDate: scheduledDate,
               completed: false,
               icon: getTaskIcon(task.taskKey),
               color: getTaskColor(task.taskKey),
@@ -149,6 +161,7 @@ export function CalendarPage() {
               const isThisTaskCompleted = task.lastCompletedOn ? 
                 isSameDay(new Date(task.lastCompletedOn), taskDate) : false;
               
+              // Use the actual task date with its time preserved
               calendarTasks.push({
                 id: `${task.id}-${i}`,
                 plantName: plant.name,

@@ -7,6 +7,22 @@ import { ConfidenceNotification } from '../components/ConfidenceNotification';
 import { CityAutocomplete } from '../components/CityAutocomplete';
 import { CloudinaryService, CloudinaryUploadResult } from '../services/cloudinaryService';
 
+// Helper function to get today's date in YYYY-MM-DD format in local timezone
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Helper function to get today's date with 00:00 time for daily tasks
+const getTodayWithMidnightTime = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to 00:00:00.000
+  return today.toISOString();
+};
+
 interface TaskTemplate {
   id: string;
   key: string;
@@ -148,7 +164,7 @@ export const AddPlantPage: React.FC = () => {
         label: template.label,
         colorHex: template.colorHex,
         frequency: template.defaultFrequencyDays,
-        ...(template.defaultFrequencyDays === 1 && { lastCompleted: new Date().toISOString().split('T')[0] })
+        ...(template.defaultFrequencyDays === 1 && { lastCompleted: getTodayDateString() })
       };
       
       setSelectedTasks([...selectedTasks, newTask]);
@@ -160,7 +176,7 @@ export const AddPlantPage: React.FC = () => {
       if (task.key === taskKey) {
         // If frequency is set to 1, automatically set lastCompleted to today
         if (frequency === 1) {
-          return { ...task, frequency, lastCompleted: new Date().toISOString().split('T')[0] };
+          return { ...task, frequency, lastCompleted: getTodayDateString() };
         }
         // If frequency was 1 and is now changed to something else, clear lastCompleted
         else if (task.frequency === 1) {
@@ -313,7 +329,7 @@ export const AddPlantPage: React.FC = () => {
         label: template?.label || task.name,
         colorHex: template?.colorHex || '#3B82F6',
         frequency: task.frequencyDays,
-        ...(task.frequencyDays === 1 && { lastCompleted: new Date().toISOString().split('T')[0] })
+        ...(task.frequencyDays === 1 && { lastCompleted: getTodayDateString() })
       };
     });
 
@@ -435,15 +451,15 @@ export const AddPlantPage: React.FC = () => {
     try {
       // Prepare care tasks object
       const careTasks: any = {};
-      const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+      const today = getTodayDateString(); // Get today's date in YYYY-MM-DD format
       
       selectedTasks.forEach(task => {
         const taskData: any = { frequency: task.frequency };
         
-        // If frequency is 1, automatically set last completed to today
+        // If frequency is 1, automatically set last completed to today at 00:00
         if (task.frequency === 1) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
-          taskData[lastCompletedKey] = today;
+          taskData[lastCompletedKey] = getTodayWithMidnightTime();
         }
         // Otherwise, use the manually provided last completed date if available
         else if (task.lastCompleted) {
@@ -801,7 +817,7 @@ export const AddPlantPage: React.FC = () => {
                                 </label>
                                 <input
                                   type="date"
-                                  value={selectedTask.frequency === 1 ? new Date().toISOString().split('T')[0] : (selectedTask.lastCompleted || '')}
+                                  value={selectedTask.frequency === 1 ? getTodayDateString() : (selectedTask.lastCompleted || '')}
                                   onChange={(e) => updateTaskLastCompleted(selectedTask.key, e.target.value)}
                                   className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                                     selectedTask.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
