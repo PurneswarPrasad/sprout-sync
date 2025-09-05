@@ -320,8 +320,10 @@ router.post('/:taskId/complete', authenticateJWT, checkPlantOwnership, async (re
       });
     }
     
-    // Calculate next due date
-    const nextDueOn = new Date();
+    // Calculate next due date based on completion time + frequency
+    // This ensures 24-hour scheduling from the actual completion time
+    const completionTime = new Date();
+    const nextDueOn = new Date(completionTime);
     nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
     
     const updatedTask = await prisma.plantTask.update({

@@ -111,16 +111,19 @@ export function CalendarPage() {
     plants.forEach(plant => {
       plant.tasks.forEach(task => {
         if (task.active) {
-          // For frequency=1 tasks, always add to today's tasks
-          if (task.frequencyDays === 1) {
+          // Check if task was completed today
+          const isCompletedToday = task.lastCompletedOn ? 
+            isSameDay(new Date(task.lastCompletedOn), today) : false;
+          
+          // For daily tasks, only show if not completed today
+          if (task.frequencyDays === 1 && !isCompletedToday) {
             calendarTasks.push({
               id: `${task.id}-daily`,
               plantName: plant.name,
               plantId: plant.id,
               taskKey: task.taskKey,
               scheduledDate: today,
-              completed: task.lastCompletedOn ? 
-                isSameDay(new Date(task.lastCompletedOn), today) : false,
+              completed: false,
               icon: getTaskIcon(task.taskKey),
               color: getTaskColor(task.taskKey),
               taskId: task.id,
@@ -132,7 +135,7 @@ export function CalendarPage() {
             const taskDate = new Date(task.nextDueOn);
             taskDate.setDate(taskDate.getDate() + (i * task.frequencyDays));
             
-            // Skip today for daily tasks since we already added them above
+            // Skip today for daily tasks since we already handled them above
             if (task.frequencyDays === 1 && isSameDay(taskDate, today)) {
               continue;
             }
@@ -142,14 +145,17 @@ export function CalendarPage() {
             const weekEnd = endOfWeek(currentDate);
             
             if (taskDate >= weekStart && taskDate <= weekEnd) {
+              // Check if this specific task instance was completed
+              const isThisTaskCompleted = task.lastCompletedOn ? 
+                isSameDay(new Date(task.lastCompletedOn), taskDate) : false;
+              
               calendarTasks.push({
                 id: `${task.id}-${i}`,
                 plantName: plant.name,
                 plantId: plant.id,
                 taskKey: task.taskKey,
                 scheduledDate: taskDate,
-                completed: task.lastCompletedOn ? 
-                  isSameDay(new Date(task.lastCompletedOn), taskDate) : false,
+                completed: isThisTaskCompleted,
                 icon: getTaskIcon(task.taskKey),
                 color: getTaskColor(task.taskKey),
                 taskId: task.id,

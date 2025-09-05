@@ -179,8 +179,17 @@ export function PlantDetailPage() {
     if (!plant) return [];
     
     return plant.tasks.filter(task => {
-      if (task.lastCompletedOn) return false; // Skip completed tasks
+      // Check if task was completed today
+      const isCompletedToday = task.lastCompletedOn ? 
+        Math.abs(new Date(task.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
       
+      // Skip if completed today
+      if (isCompletedToday) return false;
+      
+      // For daily tasks, always show if not completed today
+      if (task.frequencyDays === 1) return true;
+      
+      // For other frequencies, check if due today
       const nextDue = new Date(task.nextDueOn);
       const daysUntilDue = differenceInDays(nextDue, new Date());
       return daysUntilDue === 0; // Only tasks due today (0 days)
@@ -455,7 +464,11 @@ export function PlantDetailPage() {
                   <p className="text-sm text-gray-600">
                     {(() => {
                       const waterTask = plant.tasks.find(t => t.taskKey === 'watering');
-                      if (waterTask!.lastCompletedOn !== null) return (
+                      // Check if task was completed today (within 24 hours)
+                      const isCompletedToday = waterTask!.lastCompletedOn ? 
+                        Math.abs(new Date(waterTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
+                      
+                      if (isCompletedToday) return (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm text-green-600 font-medium">Done for today</span>
@@ -493,7 +506,11 @@ export function PlantDetailPage() {
                   <p className="text-sm text-gray-600">
                     {(() => {
                       const fertilizeTask = plant.tasks.find(t => t.taskKey === 'fertilizing');
-                      if (fertilizeTask!.lastCompletedOn !== null) return (
+                      // Check if task was completed today (within 24 hours)
+                      const isCompletedToday = fertilizeTask!.lastCompletedOn ? 
+                        Math.abs(new Date(fertilizeTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
+                      
+                      if (isCompletedToday) return (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm text-green-600 font-medium">Done for today</span>
@@ -531,7 +548,11 @@ export function PlantDetailPage() {
                   <p className="text-sm text-gray-600">
                     {(() => {
                       const pruneTask = plant.tasks.find(t => t.taskKey === 'pruning');
-                      if (pruneTask!.lastCompletedOn !== null) return (
+                      // Check if task was completed today (within 24 hours)
+                      const isCompletedToday = pruneTask!.lastCompletedOn ? 
+                        Math.abs(new Date(pruneTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
+                      
+                      if (isCompletedToday) return (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm text-green-600 font-medium">Done for today</span>
@@ -569,7 +590,11 @@ export function PlantDetailPage() {
                   <p className="text-sm text-gray-600">
                     {(() => {
                       const sprayTask = plant.tasks.find(t => t.taskKey === 'spraying');
-                      if (sprayTask!.lastCompletedOn !== null) return (
+                      // Check if task was completed today (within 24 hours)
+                      const isCompletedToday = sprayTask!.lastCompletedOn ? 
+                        Math.abs(new Date(sprayTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
+                      
+                      if (isCompletedToday) return (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm text-green-600 font-medium">Done for today</span>
@@ -607,7 +632,11 @@ export function PlantDetailPage() {
                   <p className="text-sm text-gray-600">
                     {(() => {
                       const rotateTask = plant.tasks.find(t => t.taskKey === 'sunlightRotation');
-                      if (rotateTask!.lastCompletedOn !== null) return (
+                      // Check if task was completed today (within 24 hours)
+                      const isCompletedToday = rotateTask!.lastCompletedOn ? 
+                        Math.abs(new Date(rotateTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
+                      
+                      if (isCompletedToday) return (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm text-green-600 font-medium">Done for today</span>
