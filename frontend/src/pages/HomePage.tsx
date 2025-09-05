@@ -296,12 +296,16 @@ const HomePage: React.FC = () => {
           const nextDue = new Date(task.nextDueOn);
           const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
-          // Only include tasks due today (daysUntilDue === 0) or daily tasks (frequency=1)
-          if (task.frequencyDays === 1 || daysUntilDue === 0) {
+          // Check if task was completed today
+          const isCompleted = task.lastCompletedOn ? 
+            Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+          
+          // Include tasks that are:
+          // 1. Due today (daysUntilDue === 0), OR
+          // 2. Daily tasks (frequency=1), OR  
+          // 3. Completed today (regardless of due date)
+          if (task.frequencyDays === 1 || daysUntilDue === 0 || isCompleted) {
             const status = getTaskStatus(task);
-            // A task is completed if it was completed today, not just if it has ever been completed
-            const isCompleted = task.lastCompletedOn ? 
-              Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
             
             return {
               task,
