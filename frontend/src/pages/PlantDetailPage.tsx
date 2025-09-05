@@ -42,10 +42,20 @@ interface Plant {
   updatedAt: string;
   tasks: PlantTask[];
   tags: any[];
+  photos: PlantPhoto[];
   _count: {
     notes: number;
     photos: number;
   };
+}
+
+interface PlantPhoto {
+  id: string;
+  plantId: string;
+  cloudinaryPublicId: string;
+  secureUrl: string;
+  takenAt: string;
+  pointsAwarded: number;
 }
 
 export function PlantDetailPage() {
@@ -368,9 +378,19 @@ export function PlantDetailPage() {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-4">
+            {plant.photos && plant.photos.length > 0 ? (
+              <div className="w-16 h-16 rounded-lg overflow-hidden">
+                <img
+                  src={plant.photos[0].secureUrl}
+                  alt={plant.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
             <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center">
               <Leaf className="w-8 h-8 text-emerald-600" />
             </div>
+            )}
             <div>
               <h1 className="text-2xl font-bold text-gray-800">{plant.name}</h1>
               <p className="text-emerald-600">{plant.type || 'Unknown type'}</p>
@@ -716,7 +736,7 @@ export function PlantDetailPage() {
             </div>
 
             {/* Tracking Updates */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Tracking Updates</h2>
               {loadingTracking ? (
                 <div className="text-center py-8">
@@ -822,7 +842,7 @@ export function PlantDetailPage() {
         message="Are you sure you want to delete this tracking update? This action cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
-      />
+        />
     </Layout>
   );
 }

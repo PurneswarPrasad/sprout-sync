@@ -90,6 +90,7 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   
     try {
       let response;
+      let imageInfo: { type: 'camera' | 'url'; data: string; file?: File } | null = null;
       
       if (imageData.startsWith('data:image/')) {
         // Camera capture - convert base64 to file and upload
@@ -103,15 +104,32 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
         const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
         formData.append('image', file);
         
+        // Store image info for auto-population
+        imageInfo = {
+          type: 'camera',
+          data: imageData,
+          file: file
+        };
+        
         // Use file upload endpoint
         response = await aiAPI.identifyFile(formData);
       } else {
         // Image URL - use URL endpoint
+        imageInfo = {
+          type: 'url',
+          data: imageData
+        };
+        
         response = await aiAPI.identifyByUrl(imageData);
       }
   
       if (response.data.success) {
-        onIdentificationComplete(response.data.data);
+        // Include image info in the response for auto-population
+        const aiDataWithImage = {
+          ...response.data.data,
+          imageInfo: imageInfo
+        };
+        onIdentificationComplete(aiDataWithImage);
       } else {
         setError('Failed to identify plant. Please try again.');
       }

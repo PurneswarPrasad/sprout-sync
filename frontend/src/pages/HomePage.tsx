@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import { authAPI, plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
@@ -35,14 +35,25 @@ interface Plant {
   updatedAt: string;
   tasks: PlantTask[];
   tags: any[];
+  photos: PlantPhoto[];
   _count: {
     notes: number;
     photos: number;
   };
 }
 
+interface PlantPhoto {
+  id: string;
+  plantId: string;
+  cloudinaryPublicId: string;
+  secureUrl: string;
+  takenAt: string;
+  pointsAwarded: number;
+}
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +96,15 @@ const HomePage: React.FC = () => {
       fetchPlants();
     }
   }, [user]);
+
+  // Refresh plants when navigating from AddPlantPage
+  useEffect(() => {
+    if (location.state?.plantCreated) {
+      fetchPlants();
+      // Clear the state to prevent re-fetching
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   const fetchUserProfile = async () => {
     try {
@@ -455,9 +475,19 @@ const HomePage: React.FC = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <div className="relative">
+                              {plant.photos && plant.photos.length > 0 ? (
+                                <div className="w-10 h-10 rounded-lg overflow-hidden">
+                                  <img
+                                    src={plant.photos[0].secureUrl}
+                                    alt={plant.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
                               <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                                 <span className="text-xl">🌿</span>
                               </div>
+                              )}
                               <div className={`absolute -top-1 -right-1 w-3 h-3 ${health.color} rounded-full`}></div>
                             </div>
                             <div>

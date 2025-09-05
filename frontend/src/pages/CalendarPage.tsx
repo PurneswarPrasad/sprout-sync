@@ -25,10 +25,20 @@ interface Plant {
   updatedAt: string;
   tasks: PlantTask[];
   tags: any[];
+  photos: PlantPhoto[];
   _count: {
     notes: number;
     photos: number;
   };
+}
+
+interface PlantPhoto {
+  id: string;
+  plantId: string;
+  cloudinaryPublicId: string;
+  secureUrl: string;
+  takenAt: string;
+  pointsAwarded: number;
 }
 
 interface CalendarTask {

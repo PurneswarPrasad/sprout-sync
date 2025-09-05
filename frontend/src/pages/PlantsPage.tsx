@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { plantsAPI } from '../services/api';
 import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle, X } from 'lucide-react';
 import { Layout } from '../components/Layout';
@@ -16,10 +16,20 @@ interface Plant {
   updatedAt: string;
   tasks: PlantTask[];
   tags: PlantTag[];
+  photos: PlantPhoto[];
   _count: {
     notes: number;
     photos: number;
   };
+}
+
+interface PlantPhoto {
+  id: string;
+  plantId: string;
+  cloudinaryPublicId: string;
+  secureUrl: string;
+  takenAt: string;
+  pointsAwarded: number;
 }
 
 interface PlantTask {
@@ -41,6 +51,7 @@ interface PlantTag {
 
 export function PlantsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,6 +73,15 @@ export function PlantsPage() {
   useEffect(() => {
     fetchPlants();
   }, []);
+
+  // Refresh plants when navigating from AddPlantPage
+  useEffect(() => {
+    if (location.state?.plantCreated) {
+      fetchPlants();
+      // Clear the state to prevent re-fetching
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   const fetchPlants = async () => {
     try {
@@ -292,9 +312,19 @@ export function PlantsPage() {
                     onClick={() => navigate(`/plants/${plant.id}`)}
                   >
                     <div className="relative mb-3">
-                      <div className="w-full h-32 bg-emerald-100 rounded-lg flex items-center justify-center">
-                        <Leaf className="w-8 h-8 text-emerald-400" />
-                      </div>
+                      {plant.photos && plant.photos.length > 0 ? (
+                        <div className="w-full h-32 rounded-lg overflow-hidden">
+                          <img
+                            src={plant.photos[0].secureUrl}
+                            alt={plant.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-32 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <Leaf className="w-8 h-8 text-emerald-400" />
+                        </div>
+                      )}
                       <div className={`absolute top-2 right-2 w-3 h-3 ${health.color} rounded-full`}></div>
                       
                       {/* Delete Button */}

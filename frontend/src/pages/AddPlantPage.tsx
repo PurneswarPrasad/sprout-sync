@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
-import { ArrowLeft, Plus, Check, X } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X, Upload, Camera, Trash2 } from 'lucide-react';
 import { ConfidenceNotification } from '../components/ConfidenceNotification';
 import { CityAutocomplete } from '../components/CityAutocomplete';
+import { CloudinaryService, CloudinaryUploadResult } from '../services/cloudinaryService';
 
 interface TaskTemplate {
   id: string;
@@ -38,9 +39,23 @@ export const AddPlantPage: React.FC = () => {
     city: '',
   });
 
+  // Image upload state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUploadResult, setImageUploadResult] = useState<CloudinaryUploadResult | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const aiProcessedRef = useRef(false);
+
   // AI identification state
   const [aiConfidence, setAiConfidence] = useState<number | null>(null);
   const [showConfidenceNotification, setShowConfidenceNotification] = useState(false);
+  const [isImageFromAI, setIsImageFromAI] = useState(false);
+  const [isAutoPopulatingImage, setIsAutoPopulatingImage] = useState(false);
+  const [hasProcessedAI, setHasProcessedAI] = useState(false);
 
   // Fetch task templates on component mount
   useEffect(() => {
@@ -49,12 +64,27 @@ export const AddPlantPage: React.FC = () => {
 
   // Handle AI data from navigation state
   useEffect(() => {
-    if (location.state?.aiData && location.state?.fromAI) {
+    if (location.state?.aiData && location.state?.fromAI && !aiProcessedRef.current) {
+      console.log('Processing AI identification data for the first time');
+      aiProcessedRef.current = true;
+      setHasProcessedAI(true);
       handleAIIdentification(location.state.aiData);
       // Clear the state to prevent re-processing
       navigate(location.pathname, { replace: true });
     }
-  }, [location.state]);
+  }, [location.state?.aiData, location.state?.fromAI]);
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (imagePreview) {
+        CloudinaryService.revokePreviewUrl(imagePreview);
+      }
+    };
+  }, [stream, imagePreview]);
 
   const fetchTaskTemplates = async () => {
     setTaskTemplatesLoading(true);
@@ -153,8 +183,121 @@ export const AddPlantPage: React.FC = () => {
     setSelectedTasks(selectedTasks.filter(task => task.key !== taskKey));
   };
 
+  // Image handling functions
+  const handleImageUpload = async (file: File) => {
+    try {
+      setIsUploadingImage(true);
+      
+      console.log('Manual upload: Uploading image to Cloudinary', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+      
+      const result = await CloudinaryService.uploadImage(file);
+      console.log('Manual upload: Upload successful', {
+        publicId: result.public_id,
+        optimizedUrl: result.optimized_url
+      });
+      
+      setImageUploadResult(result);
+      setImageFile(file);
+      
+      // Create preview URL
+      const previewUrl = CloudinaryService.getPreviewUrl(file);
+      setImagePreview(previewUrl);
+      
+      // Reset AI flag when user manually uploads
+      setIsImageFromAI(false);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      setStream(mediaStream);
+      setShowCamera(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please try uploading a file instead.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = async () => {
+    if (!videoRef.current) return;
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    context.drawImage(videoRef.current, 0, 0);
+
+    canvas.toBlob(async (blob) => {
+      if (blob) {
+        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+        await handleImageUpload(file);
+        stopCamera();
+      }
+    }, 'image/jpeg', 0.8);
+  };
+
+  const deleteImage = async () => {
+    if (imageUploadResult) {
+      try {
+        await CloudinaryService.deleteImage(imageUploadResult.public_id);
+      } catch (error) {
+        console.error('Error deleting image from Cloudinary:', error);
+      }
+    }
+    
+    if (imagePreview) {
+      CloudinaryService.revokePreviewUrl(imagePreview);
+    }
+    
+    setImageFile(null);
+    setImagePreview(null);
+    setImageUploadResult(null);
+    setIsImageFromAI(false);
+  };
+
   // Function to handle AI identification data
-  const handleAIIdentification = (aiData: any) => {
+  const handleAIIdentification = async (aiData: any) => {
+    console.log('handleAIIdentification: Processing AI data', { hasImageInfo: !!aiData.imageInfo });
+    
+    // Prevent multiple executions
+    if (aiProcessedRef.current && hasProcessedAI) {
+      console.log('handleAIIdentification: Already processed, skipping');
+      return;
+    }
+    
     // Set plant name and type from AI identification
     setFormData(prev => ({
       ...prev,
@@ -176,9 +319,107 @@ export const AddPlantPage: React.FC = () => {
 
     setSelectedTasks(aiTasks);
 
+    // Auto-populate image if available
+    if (aiData.imageInfo) {
+      console.log('AI Auto-population: Image info', aiData.imageInfo);
+      await handleAIImageAutoPopulation(aiData.imageInfo);
+    }
+
     // Show confidence notification
     setAiConfidence(aiData.confidence);
     setShowConfidenceNotification(true);
+  };
+
+  // Function to handle AI image auto-population
+  const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url'; data: string; file?: File }) => {
+    // Prevent multiple executions
+    if (isAutoPopulatingImage) {
+      console.log('AI Auto-population: Already in progress, skipping');
+      return;
+    }
+    
+    try {
+      setIsAutoPopulatingImage(true);
+      console.log('AI Auto-population: Starting image auto-population');
+      
+      if (imageInfo.type === 'camera' && imageInfo.file) {
+        // For camera capture, upload directly to Cloudinary without calling handleImageUpload
+        // to avoid any potential double upload issues
+        console.log('AI Auto-population: Uploading camera image to Cloudinary', {
+          fileName: imageInfo.file.name,
+          fileSize: imageInfo.file.size,
+          fileType: imageInfo.file.type
+        });
+        
+        const result = await CloudinaryService.uploadImage(imageInfo.file);
+        console.log('AI Auto-population: Upload successful', {
+          publicId: result.public_id,
+          optimizedUrl: result.optimized_url
+        });
+        
+        setImageUploadResult(result);
+        setImageFile(imageInfo.file);
+        
+        // Create preview URL
+        const previewUrl = CloudinaryService.getPreviewUrl(imageInfo.file);
+        setImagePreview(previewUrl);
+        
+        setIsImageFromAI(true);
+      } else if (imageInfo.type === 'url') {
+        // For URL, we need to fetch the image and upload it to Cloudinary
+        await handleURLImageAutoPopulation(imageInfo.data);
+        setIsImageFromAI(true);
+      }
+    } catch (error) {
+      console.error('Error auto-populating image from AI identification:', error);
+      // Don't show error to user as this is a convenience feature
+    } finally {
+      setIsAutoPopulatingImage(false);
+    }
+  };
+
+  // Function to handle URL image auto-population
+  const handleURLImageAutoPopulation = async (imageUrl: string) => {
+    try {
+      setIsUploadingImage(true);
+      
+      console.log('AI Auto-population: Fetching image from URL', { imageUrl });
+      
+      // Fetch the image from URL
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch image from URL');
+      }
+      
+      const blob = await response.blob();
+      const file = new File([blob], 'ai-identified-image.jpg', { type: blob.type || 'image/jpeg' });
+      
+      console.log('AI Auto-population: Uploading URL image to Cloudinary', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+      
+      // Upload to Cloudinary
+      const result = await CloudinaryService.uploadImage(file);
+      console.log('AI Auto-population: URL upload successful', {
+        publicId: result.public_id,
+        optimizedUrl: result.optimized_url
+      });
+      
+      setImageUploadResult(result);
+      setImageFile(file);
+      
+      // Create preview URL
+      const previewUrl = CloudinaryService.getPreviewUrl(file);
+      setImagePreview(previewUrl);
+      
+    } catch (error) {
+      console.error('Error auto-populating URL image:', error);
+      // Don't show error to user as this is a convenience feature
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,7 +462,24 @@ export const AddPlantPage: React.FC = () => {
       const response = await plantsAPI.create(plantData);
 
       console.log('Plant created successfully:', response.data);
-      navigate('/plants');
+      
+      // If there's an uploaded image, create a photo record
+      if (imageUploadResult && response.data.data?.id) {
+        try {
+          await plantsAPI.createPhoto(response.data.data.id, {
+            plantId: response.data.data.id,
+            cloudinaryPublicId: imageUploadResult.public_id,
+            secureUrl: imageUploadResult.optimized_url,
+            takenAt: new Date().toISOString(),
+          });
+          console.log('Photo created successfully');
+        } catch (photoError) {
+          console.error('Error creating photo record:', photoError);
+          // Don't block navigation if photo creation fails
+        }
+      }
+      
+      navigate('/plants', { state: { plantCreated: true } });
     } catch (error) {
       console.error('Error creating plant:', error);
       alert('Failed to create plant. Please try again.');
@@ -301,6 +559,141 @@ export const AddPlantPage: React.FC = () => {
                        placeholder="e.g., New York"
                      />
                    </div>
+                </div>
+
+                {/* Plant Image Upload */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Plant Image
+                    </label>
+                    {isImageFromAI && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                        ✨ AI Auto-filled
+                      </span>
+                    )}
+                  </div>
+                  
+                  {!imagePreview ? (
+                    <div className="space-y-3">
+                      {/* Auto-populating indicator */}
+                      {isAutoPopulatingImage && (
+                        <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4 text-center bg-emerald-50">
+                          <div className="flex flex-col items-center">
+                            <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
+                            <span className="text-sm text-emerald-700 font-medium">
+                              Auto-populating image from AI identification...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Upload from device */}
+                      <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center ${
+                        isAutoPopulatingImage ? 'opacity-50 pointer-events-none' : ''
+                      }`}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                          id="plant-image-upload"
+                          ref={fileInputRef}
+                          disabled={isUploadingImage}
+                        />
+                        <label
+                          htmlFor="plant-image-upload"
+                          className={`cursor-pointer flex flex-col items-center ${
+                            isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {isUploadingImage ? (
+                            <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
+                          ) : (
+                            <Upload className="w-6 h-6 text-gray-400 mb-2" />
+                          )}
+                          <span className="text-sm text-gray-600">
+                            {isUploadingImage ? 'Uploading...' : 'Drag & drop or click to upload photo'}
+                          </span>
+                        </label>
+                      </div>
+                      
+                      {/* Take photo with camera */}
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        disabled={isUploadingImage || isAutoPopulatingImage}
+                        className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
+                          isUploadingImage || isAutoPopulatingImage ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <Camera className="w-5 h-5" />
+                          <span>Take photo with camera</span>
+                        </div>
+                      </button>
+                    </div>
+                  ) : (
+                    /* Image preview */
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Plant preview"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={deleteImage}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Camera view */}
+                  {showCamera && (
+                    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                      <div className="bg-white rounded-lg p-4 w-full max-w-md">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold">Take Photo</h3>
+                          <button
+                            type="button"
+                            onClick={stopCamera}
+                            className="p-2 hover:bg-gray-100 rounded-full"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        <div className="relative">
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            className="w-full h-64 bg-gray-900 rounded-lg"
+                          />
+                        </div>
+                        
+                        <div className="flex gap-3 mt-4">
+                          <button
+                            type="button"
+                            onClick={stopCamera}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={capturePhoto}
+                            className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                          >
+                            Capture
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

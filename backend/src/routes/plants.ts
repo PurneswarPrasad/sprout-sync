@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantSchema, updatePlantSchema } from '../dtos';
+import { CloudinaryService } from '../services/cloudinaryService';
 
 const router = Router();
 
@@ -93,6 +94,12 @@ router.get('/', authenticateJWT, async (req, res) => {
           include: {
             plant: true,
           },
+        },
+        photos: {
+          orderBy: {
+            takenAt: 'desc',
+          },
+          take: 1, // Only get the most recent photo for the list view
         },
         _count: {
           select: {
@@ -282,6 +289,17 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
             taskKey: 'asc',
           },
         },
+        photos: {
+          orderBy: {
+            takenAt: 'desc',
+          },
+        },
+        _count: {
+          select: {
+            notes: true,
+            photos: true,
+          },
+        },
       },
     });
     
@@ -403,7 +421,24 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
       });
     }
     
-    // Delete all related records first
+    // First, get all photos to delete from Cloudinary
+    const photos = await prisma.photo.findMany({
+      where: { plantId: plantId },
+      select: { cloudinaryPublicId: true }
+    });
+
+    // Delete images from Cloudinary
+    for (const photo of photos) {
+      try {
+        await CloudinaryService.deleteImage(photo.cloudinaryPublicId);
+        console.log(`Deleted image from Cloudinary: ${photo.cloudinaryPublicId}`);
+      } catch (error) {
+        console.error(`Failed to delete image from Cloudinary: ${photo.cloudinaryPublicId}`, error);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete all related records from database
     await prisma.$transaction([
       // Delete plant tasks
       prisma.plantTask.deleteMany({

@@ -71,6 +71,9 @@ export const plantsAPI = {
     api.post(`/api/plants/${plantId}/tracking`, data),
   deleteTrackingUpdate: (plantId: string, trackingId: string) => 
     api.delete(`/api/plants/${plantId}/tracking/${trackingId}`),
+  // Plant photo endpoints
+  createPhoto: (plantId: string, data: any) => 
+    api.post(`/api/plants/${plantId}/photos`, data),
 };
 
 export const aiAPI = {
