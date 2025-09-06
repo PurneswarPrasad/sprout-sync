@@ -464,16 +464,35 @@ export const AddPlantPage: React.FC = () => {
         // Otherwise, use the manually provided last completed date if available
         else if (task.lastCompleted) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
-          taskData[lastCompletedKey] = task.lastCompleted;
+          console.log(`Setting last completed for ${task.key}:`, {
+            lastCompleted: task.lastCompleted,
+            lastCompletedKey,
+            task
+          });
+          // Convert date string to ISO string with midnight time for consistency
+          const date = new Date(task.lastCompleted);
+          date.setHours(0, 0, 0, 0); // Set to 00:00:00.000
+          taskData[lastCompletedKey] = date.toISOString();
+        } else {
+          console.log(`No last completed date for ${task.key}:`, {
+            lastCompleted: task.lastCompleted,
+            task
+          });
         }
+
+        console.log('taskData', taskData);
         
         careTasks[task.key] = taskData;
+
+        console.log('careTasks', careTasks);
       });
 
       const plantData = {
         ...formData,
         careTasks: Object.keys(careTasks).length > 0 ? careTasks : undefined,
       };
+
+      console.log('plantData', plantData);
 
       const response = await plantsAPI.create(plantData);
 

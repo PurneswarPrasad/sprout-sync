@@ -18,10 +18,20 @@ const createPlantWithTasksSchema = createPlantSchema.extend({
         const date = new Date(val);
         return !isNaN(date.getTime());
       }, 'Invalid date format'),
+      lastWatering: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     fertilizing: z.object({
       frequency: z.number().positive(),
       lastFertilized: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
+      lastFertilizing: z.string().optional().refine((val) => {
         if (!val) return true;
         const date = new Date(val);
         return !isNaN(date.getTime());
@@ -34,6 +44,11 @@ const createPlantWithTasksSchema = createPlantSchema.extend({
         const date = new Date(val);
         return !isNaN(date.getTime());
       }, 'Invalid date format'),
+      lastPruning: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     spraying: z.object({
       frequency: z.number().positive(),
@@ -42,10 +57,20 @@ const createPlantWithTasksSchema = createPlantSchema.extend({
         const date = new Date(val);
         return !isNaN(date.getTime());
       }, 'Invalid date format'),
+      lastSpraying: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
     }).optional(),
     sunlightRotation: z.object({
       frequency: z.number().positive(),
       lastRotated: z.string().optional().refine((val) => {
+        if (!val) return true;
+        const date = new Date(val);
+        return !isNaN(date.getTime());
+      }, 'Invalid date format'),
+      lastSunlightRotation: z.string().optional().refine((val) => {
         if (!val) return true;
         const date = new Date(val);
         return !isNaN(date.getTime());
@@ -248,6 +273,7 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
 
               console.log('Processing task key:', taskKey);
               console.log('Task data:', taskData);
+              console.log('Task data keys:', Object.keys(taskData!));
               console.log('Found template:', template);
               console.log('Available keys in templateMap:', Array.from(templateMap.keys()));
               
