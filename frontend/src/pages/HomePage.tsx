@@ -152,29 +152,31 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Fix the getTaskStatus function
+  // Get task status based on due date
   const getTaskStatus = (task: PlantTask) => {
     const now = new Date();
     const nextDue = new Date(task.nextDueOn);
-    const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Set both dates to start of day for accurate comparison
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
     
     // Check if task was completed today
     const isCompletedToday = task.lastCompletedOn ? 
       Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
     
-    // If task is due today and was completed today, show "Done"
-    if ((daysUntilDue === 0 || task.frequencyDays === 1) && isCompletedToday) {
+    // If task was completed today, show "Done"
+    if (isCompletedToday) {
       return { status: 'completed', text: 'Done', color: 'text-green-600' };
     }
     
-    // For daily tasks (frequency=1), always show "Due today" if not completed today
-    if (task.frequencyDays === 1) {
-      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
-    }
+    // Calculate days until due for display purposes
+    const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (daysUntilDue < 0) {
+    // Determine status based on due date comparison
+    if (dueDate < today) {
       return { status: 'overdue', text: 'Overdue', color: 'text-red-600' };
-    } else if (daysUntilDue === 0) {
+    } else if (dueDate.getTime() === today.getTime()) {
       return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
     } else if (daysUntilDue === 1) {
       return { status: 'due-tomorrow', text: 'Due tomorrow', color: 'text-yellow-600' };
@@ -286,7 +288,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Fix the getTodaysTasks function
+  // Get tasks that are due today (nextDueOn = today)
   const getTodaysTasks = (): Array<{ task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean }> => {
     return plants.flatMap(plant => 
       plant.tasks
@@ -294,17 +296,17 @@ const HomePage: React.FC = () => {
         .map(task => {
           const now = new Date();
           const nextDue = new Date(task.nextDueOn);
-          const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Set both dates to start of day for accurate comparison
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
           
           // Check if task was completed today
           const isCompleted = task.lastCompletedOn ? 
             Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
           
-          // Include tasks that are:
-          // 1. Due today (daysUntilDue === 0), OR
-          // 2. Daily tasks (frequency=1), OR  
-          // 3. Completed today (regardless of due date)
-          if (task.frequencyDays === 1 || daysUntilDue === 0 || isCompleted) {
+          // Only include tasks that are due today (dueDate === today)
+          if (dueDate.getTime() === today.getTime()) {
             const status = getTaskStatus(task);
             
             return {
@@ -320,18 +322,45 @@ const HomePage: React.FC = () => {
     );
   };
 
-  // Fix the dashboard stats calculation
+  // Get tasks that are overdue (nextDueOn < today)
+  const getOverdueTasks = (): Array<{ task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean }> => {
+    return plants.flatMap(plant => 
+      plant.tasks
+        .filter(task => task.active)
+        .map(task => {
+          const now = new Date();
+          const nextDue = new Date(task.nextDueOn);
+          
+          // Set both dates to start of day for accurate comparison
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
+          
+          // Check if task was completed today
+          const isCompleted = task.lastCompletedOn ? 
+            Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+          
+          // Only include tasks that are overdue (dueDate < today)
+          if (dueDate < today) {
+            const status = getTaskStatus(task);
+            
+            return {
+              task,
+              plant,
+              status,
+              isCompleted
+            };
+          }
+          return null;
+        })
+        .filter((item): item is { task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean } => item !== null)
+    );
+  };
+
+  // Dashboard stats calculation
   const totalPlants = plants.length;
-  const activeTasks = plants.reduce((total, plant) => total + plant.tasks.filter(task => task.active).length, 0);
-  const overdueTasks = plants.reduce((total, plant) => {
-    const overdue = plant.tasks.filter(task => {
-      const now = new Date();
-      const nextDue = new Date(task.nextDueOn);
-      return nextDue < now && task.active;
-    });
-    return total + overdue.length;
-  }, 0);
-  const completedTasks = plants.reduce((total, plant) => {
+  const todaysTasksCount = getTodaysTasks().filter(({ isCompleted }) => !isCompleted).length;
+  const overdueTasksCount = getOverdueTasks().filter(({ isCompleted }) => !isCompleted).length;
+  const completedTasksCount = plants.reduce((total, plant) => {
     const completed = plant.tasks.filter(task => {
       if (!task.active) return false;
       if (!task.lastCompletedOn) return false;
@@ -400,7 +429,7 @@ const HomePage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Today's Tasks</p>
-                                 <p className="text-3xl font-bold text-blue-600">{getTodaysTasks().filter(({ isCompleted }) => !isCompleted).length}</p>
+                <p className="text-3xl font-bold text-blue-600">{todaysTasksCount}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <span className="text-2xl">📋</span>
@@ -412,7 +441,7 @@ const HomePage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-3xl font-bold text-red-600">{overdueTasks}</p>
+                <p className="text-3xl font-bold text-red-600">{overdueTasksCount}</p>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                 <span className="text-2xl">⚠️</span>
@@ -424,7 +453,7 @@ const HomePage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-3xl font-bold text-green-600">{completedTasks}</p>
+                <p className="text-3xl font-bold text-green-600">{completedTasksCount}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                 <span className="text-2xl">✅</span>
@@ -434,7 +463,7 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Plants Section */}
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
             <div className="flex items-center justify-between mb-6">
@@ -639,6 +668,81 @@ const HomePage: React.FC = () => {
                      </div>
                    ))}
                  </div>
+              );
+            })()}
+          </div>
+
+          {/* Overdue Tasks Section */}
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-800">Overdue Tasks</h3>
+              <button 
+                onClick={() => navigate('/calendar')}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+              >
+                View All
+              </button>
+            </div>
+            
+            {(() => {
+              const overdueTasks = getOverdueTasks();
+              
+              if (overdueTasks.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl">⚠️</span>
+                    </div>
+                    <p className="text-gray-600 mb-4">No overdue tasks</p>
+                    <p className="text-sm text-gray-500">
+                      Great job keeping up with your plant care!
+                    </p>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {overdueTasks.slice(0, 5).map(({ task, plant, status, isCompleted }) => (
+                    <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg border ${
+                      isCompleted 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-red-50 border-red-200'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-lg ${isCompleted ? 'opacity-50' : ''}`}>{getTaskIcon(task.taskKey)}</span>
+                        <div>
+                          <p className={`font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                            {task.taskKey}
+                          </p>
+                          <p className={`text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {plant.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {isCompleted ? (
+                          <div className="flex items-center space-x-1 text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm">Done</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className={`text-sm font-medium ${status.color}`}>
+                              {status.text}
+                            </span>
+                            <button
+                              onClick={() => openConfirmDialog(task, plant)}
+                              className="px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                              Mark Complete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               );
             })()}
           </div>

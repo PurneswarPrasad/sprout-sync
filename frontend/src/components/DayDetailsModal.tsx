@@ -174,11 +174,15 @@ export function DayDetailsModal({
                                                             <CheckCircle className="w-4 h-4" />
                                                             <span className="text-sm">Done</span>
                                                         </div>
-                                                    ) : isToday ? (
-                                                        // Only show "Mark Complete" button for today's tasks
+                                                    ) : (isToday || selectedDate < new Date()) ? (
+                                                        // Show "Mark Complete" button for today's tasks and overdue tasks
                                                         <button
                                                             onClick={() => handleMarkComplete(task)}
-                                                            className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
+                                                            className={`flex items-center space-x-1 transition-colors ${
+                                                                selectedDate < new Date()
+                                                                    ? 'text-red-600 hover:text-red-700'
+                                                                    : 'text-yellow-600 hover:text-yellow-700'
+                                                            }`}
                                                         >
                                                             <Clock className="w-4 h-4" />
                                                             <span className="text-sm">Mark Complete</span>

@@ -317,6 +317,19 @@ export function CalendarPage() {
     return tasks.filter(task => isSameDay(task.scheduledDate, date));
   };
 
+  const getOverdueTasks = () => {
+    const today = new Date();
+    return tasks
+      .filter(task => {
+        // Set both dates to start of day for accurate comparison
+        const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
+        const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return taskDate < todayDate && !task.completed;
+      })
+      .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
+      .slice(0, 5);
+  };
+
   const getTodaysTasks = () => {
     return tasks.filter(task => isSameDay(task.scheduledDate, new Date()));
   };
@@ -410,12 +423,20 @@ export function CalendarPage() {
                         <>
                           {visibleTasks.map((task) => {
                             const Icon = task.icon;
+                            // Check if task is overdue (scheduled date < today)
+                            const today = new Date();
+                            const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
+                            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                            const isOverdue = taskDate < todayDate && !task.completed;
+                            
                             return (
                               <div
                                 key={task.id}
                                 className={`flex items-center space-x-1 p-1 rounded text-xs ${
                                   task.completed
                                     ? 'bg-green-100 text-green-700'
+                                    : isOverdue
+                                    ? 'bg-red-100 text-red-700'
                                     : 'bg-emerald-100 text-emerald-700'
                                 }`}
                                 title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
@@ -440,6 +461,46 @@ export function CalendarPage() {
             })}
           </div>
         </div>
+
+        {/* Overdue Tasks */}
+        {getOverdueTasks().length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-red-600">Overdue Tasks</h2>
+            
+            <div className="space-y-3">
+              {getOverdueTasks().map((task) => {
+                const Icon = task.icon;
+                return (
+                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-red-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-10 h-10 ${task.color} rounded-lg flex items-center justify-center`}>
+                          <Icon className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-800">{task.plantName}</h3>
+                          <p className="text-sm text-red-600">
+                            {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => openConfirmDialog(task)}
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
+                        >
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm">Mark Complete</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Today's Tasks */}
         <div className="space-y-4">

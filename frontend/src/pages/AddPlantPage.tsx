@@ -464,20 +464,10 @@ export const AddPlantPage: React.FC = () => {
         // Otherwise, use the manually provided last completed date if available
         else if (task.lastCompleted) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
-          console.log(`Setting last completed for ${task.key}:`, {
-            lastCompleted: task.lastCompleted,
-            lastCompletedKey,
-            task
-          });
           // Convert date string to ISO string with midnight time for consistency
           const date = new Date(task.lastCompleted);
           date.setHours(0, 0, 0, 0); // Set to 00:00:00.000
           taskData[lastCompletedKey] = date.toISOString();
-        } else {
-          console.log(`No last completed date for ${task.key}:`, {
-            lastCompleted: task.lastCompleted,
-            task
-          });
         }
 
         console.log('taskData', taskData);
@@ -838,6 +828,7 @@ export const AddPlantPage: React.FC = () => {
                                   type="date"
                                   value={selectedTask.frequency === 1 ? getTodayDateString() : (selectedTask.lastCompleted || '')}
                                   onChange={(e) => updateTaskLastCompleted(selectedTask.key, e.target.value)}
+                                  max={getTodayDateString()}
                                   className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                                     selectedTask.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
                                   }`}

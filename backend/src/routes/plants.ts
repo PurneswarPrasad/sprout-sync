@@ -273,9 +273,6 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
 
               console.log('Processing task key:', taskKey);
               console.log('Task data:', taskData);
-              console.log('Task data keys:', Object.keys(taskData!));
-              console.log('Found template:', template);
-              console.log('Available keys in templateMap:', Array.from(templateMap.keys()));
               
               if (!template) {
                 console.error(`Task template not found for key: ${taskKey}`);
@@ -313,10 +310,14 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
                 
                 console.log(`Task ${taskKey}: lastCompletedOn=${lastCompletedOn.toISOString().split('T')[0]}, frequency=${task.frequency}, calculatedNextDue=${calculatedNextDue.toISOString().split('T')[0]}, today=${today.toISOString().split('T')[0]}`);
                 
-                // If the calculated next due date is today or in the past, the task is due today
-                if (calculatedNextDue <= today) {
+                // If the calculated next due date is today, the task is due today
+                // If it's in the past, keep the original due date to show it as overdue
+                if (calculatedNextDue.getTime() === today.getTime()) {
                   nextDueOn = new Date(today); // Due today
                   console.log(`Task ${taskKey}: Task is due today`);
+                } else if (calculatedNextDue < today) {
+                  nextDueOn = calculatedNextDue; // Keep original due date to show as overdue
+                  console.log(`Task ${taskKey}: Task is overdue (was due on ${nextDueOn.toISOString().split('T')[0]})`);
                 } else {
                   nextDueOn = calculatedNextDue; // Due in the future
                   console.log(`Task ${taskKey}: Task is due in the future on ${nextDueOn.toISOString().split('T')[0]}`);
