@@ -7,6 +7,7 @@ const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
+const cloudinaryService_1 = require("../services/cloudinaryService");
 const router = (0, express_1.Router)();
 exports.plantsRouter = router;
 const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
@@ -14,6 +15,12 @@ const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
         watering: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
             lastWatered: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
+            lastWatering: zod_1.z.string().optional().refine((val) => {
                 if (!val)
                     return true;
                 const date = new Date(val);
@@ -28,10 +35,22 @@ const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
                 const date = new Date(val);
                 return !isNaN(date.getTime());
             }, 'Invalid date format'),
+            lastFertilizing: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
         pruning: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
             lastPruned: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
+            lastPruning: zod_1.z.string().optional().refine((val) => {
                 if (!val)
                     return true;
                 const date = new Date(val);
@@ -46,10 +65,22 @@ const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
                 const date = new Date(val);
                 return !isNaN(date.getTime());
             }, 'Invalid date format'),
+            lastSpraying: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
         }).optional(),
         sunlightRotation: zod_1.z.object({
             frequency: zod_1.z.number().positive(),
             lastRotated: zod_1.z.string().optional().refine((val) => {
+                if (!val)
+                    return true;
+                const date = new Date(val);
+                return !isNaN(date.getTime());
+            }, 'Invalid date format'),
+            lastSunlightRotation: zod_1.z.string().optional().refine((val) => {
                 if (!val)
                     return true;
                 const date = new Date(val);
@@ -93,6 +124,12 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
                     include: {
                         plant: true,
                     },
+                },
+                photos: {
+                    orderBy: {
+                        takenAt: 'desc',
+                    },
+                    take: 1,
                 },
                 _count: {
                     select: {
@@ -224,8 +261,6 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                         const template = templateMap.get(taskKey);
                         console.log('Processing task key:', taskKey);
                         console.log('Task data:', taskData);
-                        console.log('Found template:', template);
-                        console.log('Available keys in templateMap:', Array.from(templateMap.keys()));
                         if (!template) {
                             console.error(`Task template not found for key: ${taskKey}`);
                             console.error('Available templates:', Array.from(templateMap.keys()));
@@ -235,10 +270,38 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                         const lastCompletedKey = `last${taskKey.charAt(0).toUpperCase() + taskKey.slice(1)}`;
                         if (lastCompletedKey in task && task[lastCompletedKey]) {
                             lastCompletedOn = new Date(task[lastCompletedKey]);
+                            lastCompletedOn.setHours(0, 0, 0, 0);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            if (lastCompletedOn > today) {
+                                console.warn(`Last completed date for ${taskKey} is in the future, setting to today`);
+                                lastCompletedOn = new Date(today);
+                            }
                         }
-                        const baseDate = lastCompletedOn || new Date();
-                        const nextDueOn = new Date(baseDate);
-                        nextDueOn.setDate(nextDueOn.getDate() + task.frequency);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        let nextDueOn;
+                        if (lastCompletedOn) {
+                            const calculatedNextDue = new Date(lastCompletedOn);
+                            calculatedNextDue.setDate(calculatedNextDue.getDate() + task.frequency);
+                            console.log(`Task ${taskKey}: lastCompletedOn=${lastCompletedOn.toISOString().split('T')[0]}, frequency=${task.frequency}, calculatedNextDue=${calculatedNextDue.toISOString().split('T')[0]}, today=${today.toISOString().split('T')[0]}`);
+                            if (calculatedNextDue.getTime() === today.getTime()) {
+                                nextDueOn = new Date(today);
+                                console.log(`Task ${taskKey}: Task is due today`);
+                            }
+                            else if (calculatedNextDue < today) {
+                                nextDueOn = calculatedNextDue;
+                                console.log(`Task ${taskKey}: Task is overdue (was due on ${nextDueOn.toISOString().split('T')[0]})`);
+                            }
+                            else {
+                                nextDueOn = calculatedNextDue;
+                                console.log(`Task ${taskKey}: Task is due in the future on ${nextDueOn.toISOString().split('T')[0]}`);
+                            }
+                        }
+                        else {
+                            nextDueOn = new Date(today);
+                            console.log(`Task ${taskKey}: No last completed date, task is due today`);
+                        }
                         return {
                             taskKey,
                             frequencyDays: task.frequency,
@@ -257,6 +320,17 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                 tasks: {
                     orderBy: {
                         taskKey: 'asc',
+                    },
+                },
+                photos: {
+                    orderBy: {
+                        takenAt: 'desc',
+                    },
+                },
+                _count: {
+                    select: {
+                        notes: true,
+                        photos: true,
                     },
                 },
             },
@@ -369,6 +443,34 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                 error: 'Plant not found',
             });
         }
+        const photos = await prisma_1.prisma.photo.findMany({
+            where: { plantId: plantId },
+            select: { cloudinaryPublicId: true }
+        });
+        const trackingUpdates = await prisma_1.prisma.plantTracking.findMany({
+            where: { plantId: plantId },
+            select: { cloudinaryPublicId: true }
+        });
+        for (const photo of photos) {
+            try {
+                await cloudinaryService_1.CloudinaryService.deleteImage(photo.cloudinaryPublicId);
+                console.log(`Deleted plant photo from Cloudinary: ${photo.cloudinaryPublicId}`);
+            }
+            catch (error) {
+                console.error(`Failed to delete plant photo from Cloudinary: ${photo.cloudinaryPublicId}`, error);
+            }
+        }
+        for (const tracking of trackingUpdates) {
+            if (tracking.cloudinaryPublicId) {
+                try {
+                    await cloudinaryService_1.CloudinaryService.deleteImage(tracking.cloudinaryPublicId);
+                    console.log(`Deleted tracking photo from Cloudinary: ${tracking.cloudinaryPublicId}`);
+                }
+                catch (error) {
+                    console.error(`Failed to delete tracking photo from Cloudinary: ${tracking.cloudinaryPublicId}`, error);
+                }
+            }
+        }
         await prisma_1.prisma.$transaction([
             prisma_1.prisma.plantTask.deleteMany({
                 where: { plantId: plantId },
@@ -380,6 +482,9 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                 where: { plantId: plantId },
             }),
             prisma_1.prisma.photo.deleteMany({
+                where: { plantId: plantId },
+            }),
+            prisma_1.prisma.plantTracking.deleteMany({
                 where: { plantId: plantId },
             }),
             prisma_1.prisma.plant.delete({

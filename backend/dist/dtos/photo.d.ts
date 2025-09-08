@@ -1,16 +1,13 @@
 import { z } from 'zod';
 export declare const createPhotoSchema: z.ZodObject<{
-    plantId: z.ZodString;
     cloudinaryPublicId: z.ZodString;
     secureUrl: z.ZodString;
     takenAt: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    plantId: string;
     cloudinaryPublicId: string;
     secureUrl: string;
     takenAt: string;
 }, {
-    plantId: string;
     cloudinaryPublicId: string;
     secureUrl: string;
     takenAt: string;

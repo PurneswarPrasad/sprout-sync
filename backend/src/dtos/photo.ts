@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 // Create Photo DTO
 export const createPhotoSchema = z.object({
-  plantId: z.string().uuid('Invalid plant ID'),
   cloudinaryPublicId: z.string().min(1, 'Cloudinary public ID is required'),
   secureUrl: z.string().url('Invalid secure URL'),
   takenAt: z.string().datetime('Invalid taken date'),

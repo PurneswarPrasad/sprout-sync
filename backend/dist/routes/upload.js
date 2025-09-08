@@ -74,5 +74,29 @@ router.post('/image', jwtAuth_1.authenticateJWT, upload.single('image'), async (
         });
     }
 });
+router.delete('/image/*', jwtAuth_1.authenticateJWT, async (req, res) => {
+    try {
+        const publicId = req.params[0];
+        if (!publicId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Public ID is required',
+            });
+        }
+        console.log('Deleting image with publicId:', publicId);
+        await cloudinaryService_1.CloudinaryService.deleteImage(publicId);
+        res.json({
+            success: true,
+            message: 'Image deleted successfully',
+        });
+    }
+    catch (error) {
+        console.error('Error deleting image:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete image',
+        });
+    }
+});
 exports.default = router;
 //# sourceMappingURL=upload.js.map

@@ -14,6 +14,17 @@ export interface AIPlantIdentification {
         frequencyDays: number;
     }>;
 }
+export interface AIPlantHealthAnalysis {
+    speciesGuess: string;
+    confidence: number;
+    disease: {
+        issue: string | null;
+        description: string | null;
+        affected: string | null;
+        steps: string | null;
+        issueConfidence: number | null;
+    };
+}
 export declare class AIService {
     private model;
     constructor();
@@ -26,7 +37,10 @@ export declare class AIService {
     private extractImageUrlFromSearchEngine;
     private isDirectImageUrl;
     private getMimeTypeFromUrl;
+    private getMimeTypeFromBuffer;
     private sanitizeAIResponse;
+    analyzePlantHealth(imageData: Buffer | string): Promise<AIPlantHealthAnalysis>;
+    private sanitizeHealthAnalysisResponse;
 }
 export declare const aiService: AIService;
 //# sourceMappingURL=aiService.d.ts.map

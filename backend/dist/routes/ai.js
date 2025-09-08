@@ -10,7 +10,7 @@ const zod_1 = require("zod");
 const aiService_1 = require("../services/aiService");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const validate_1 = require("../middleware/validate");
-const router = (0, express_1.Router)();
+const router = (0, express_1.Router)({ mergeParams: true });
 exports.aiRouter = router;
 router.get('/health', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
@@ -52,6 +52,9 @@ const upload = (0, multer_1.default)({
 const identifyByUrlSchema = zod_1.z.object({
     imageUrl: zod_1.z.string().url('Invalid image URL'),
 });
+const analyzeHealthByUrlSchema = zod_1.z.object({
+    imageUrl: zod_1.z.string().url('Invalid image URL'),
+});
 router.post('/identify/file', jwtAuth_1.authenticateJWT, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
@@ -89,6 +92,40 @@ router.post('/identify/url', jwtAuth_1.authenticateJWT, (0, validate_1.validate)
     catch (error) {
         console.error('AI identification error:', error);
         let errorMessage = 'Failed to identify plant';
+        if (error instanceof Error) {
+            if (error.message.includes('fetch')) {
+                errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
+            }
+            else if (error.message.includes('Invalid content type')) {
+                errorMessage = 'The URL does not point to a valid image file. Please use a direct image URL (ending in .jpg, .png, etc.) instead of a search engine page.';
+            }
+            else if (error.message.includes('GEMINI_API_KEY')) {
+                errorMessage = 'AI service is not properly configured.';
+            }
+            else {
+                errorMessage = error.message;
+            }
+        }
+        res.status(500).json({
+            success: false,
+            error: errorMessage,
+        });
+    }
+});
+router.post('/identify/issue/url', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(analyzeHealthByUrlSchema), async (req, res) => {
+    try {
+        const { imageUrl } = req.body;
+        console.log(`Received health analysis request for URL: ${imageUrl}`);
+        const analysis = await aiService_1.aiService.analyzePlantHealth(imageUrl);
+        res.json({
+            success: true,
+            data: analysis,
+            message: 'Plant health analysis completed successfully',
+        });
+    }
+    catch (error) {
+        console.error('AI health analysis error:', error);
+        let errorMessage = 'Failed to analyze plant health';
         if (error instanceof Error) {
             if (error.message.includes('fetch')) {
                 errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';

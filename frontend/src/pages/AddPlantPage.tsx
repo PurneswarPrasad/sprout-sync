@@ -492,7 +492,6 @@ export const AddPlantPage: React.FC = () => {
       if (imageUploadResult && response.data.data?.id) {
         try {
           await plantsAPI.createPhoto(response.data.data.id, {
-            plantId: response.data.data.id,
             cloudinaryPublicId: imageUploadResult.public_id,
             secureUrl: imageUploadResult.optimized_url,
             takenAt: new Date().toISOString(),

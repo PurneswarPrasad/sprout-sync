@@ -7,11 +7,11 @@ const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
-const router = (0, express_1.Router)();
+const router = (0, express_1.Router)({ mergeParams: true });
 exports.plantPhotosRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
     try {
-        const plantId = req.params.plantId;
+        const plantId = req.params['plantId'];
         const userId = req.user.userId;
         const plant = await prisma_1.prisma.plant.findFirst({
             where: {
@@ -80,16 +80,19 @@ router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res)
     }
 });
 router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createPhotoSchema), async (req, res) => {
+    const plantId = req.params['plantId'];
+    let validatedData;
     try {
-        const plantId = req.params['plantId'];
-        const validatedData = dtos_1.createPhotoSchema.parse(req.body);
+        validatedData = dtos_1.createPhotoSchema.parse(req.body);
+        console.log('Plant ID from params:', plantId);
+        console.log('Plant ID type:', typeof plantId);
+        console.log('All params:', req.params);
         const photo = await prisma_1.prisma.photo.create({
             data: {
                 plantId: plantId,
                 cloudinaryPublicId: validatedData.cloudinaryPublicId,
                 secureUrl: validatedData.secureUrl,
                 takenAt: new Date(validatedData.takenAt),
-                pointsAwarded: 10,
             },
         });
         res.status(201).json({
@@ -100,6 +103,8 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
     }
     catch (error) {
         console.error('Error creating plant photo:', error);
+        console.error('Plant ID:', plantId);
+        console.error('Validated data:', validatedData);
         if (error instanceof zod_1.z.ZodError) {
             return res.status(400).json({
                 success: false,
@@ -110,6 +115,7 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
         res.status(500).json({
             success: false,
             error: 'Failed to create plant photo',
+            details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 });

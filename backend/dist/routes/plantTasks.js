@@ -289,7 +289,8 @@ router.post('/:taskId/complete', jwtAuth_1.authenticateJWT, checkPlantOwnership,
                 error: 'Task not found',
             });
         }
-        const nextDueOn = new Date();
+        const completionTime = new Date();
+        const nextDueOn = new Date(completionTime);
         nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
         const updatedTask = await prisma_1.prisma.plantTask.update({
             where: { id: taskId },
