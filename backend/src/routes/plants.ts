@@ -486,14 +486,33 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
       select: { cloudinaryPublicId: true }
     });
 
-    // Delete images from Cloudinary
+    // Get all tracking updates with photos to delete from Cloudinary
+    const trackingUpdates = await prisma.plantTracking.findMany({
+      where: { plantId: plantId },
+      select: { cloudinaryPublicId: true }
+    });
+
+    // Delete plant photos from Cloudinary
     for (const photo of photos) {
       try {
         await CloudinaryService.deleteImage(photo.cloudinaryPublicId);
-        console.log(`Deleted image from Cloudinary: ${photo.cloudinaryPublicId}`);
+        console.log(`Deleted plant photo from Cloudinary: ${photo.cloudinaryPublicId}`);
       } catch (error) {
-        console.error(`Failed to delete image from Cloudinary: ${photo.cloudinaryPublicId}`, error);
+        console.error(`Failed to delete plant photo from Cloudinary: ${photo.cloudinaryPublicId}`, error);
         // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete tracking photos from Cloudinary
+    for (const tracking of trackingUpdates) {
+      if (tracking.cloudinaryPublicId) {
+        try {
+          await CloudinaryService.deleteImage(tracking.cloudinaryPublicId);
+          console.log(`Deleted tracking photo from Cloudinary: ${tracking.cloudinaryPublicId}`);
+        } catch (error) {
+          console.error(`Failed to delete tracking photo from Cloudinary: ${tracking.cloudinaryPublicId}`, error);
+          // Continue with database deletion even if Cloudinary deletion fails
+        }
       }
     }
 
@@ -513,6 +532,10 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
       }),
       // Delete photos
       prisma.photo.deleteMany({
+        where: { plantId: plantId },
+      }),
+      // Delete tracking updates (health monitoring notes and photos)
+      prisma.plantTracking.deleteMany({
         where: { plantId: plantId },
       }),
       // Finally delete the plant
