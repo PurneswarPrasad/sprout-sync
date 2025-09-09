@@ -152,6 +152,23 @@ const HomePage: React.FC = () => {
     }
   };
 
+  const getTaskDisplayName = (taskKey: string) => {
+    switch (taskKey) {
+      case 'watering':
+        return 'Water';
+      case 'fertilizing':
+        return 'Fertilize';
+      case 'pruning':
+        return 'Prune';
+      case 'spraying':
+        return 'Spray';
+      case 'sunlightRotation':
+        return 'Rotate';
+      default:
+        return taskKey;
+    }
+  };
+
   // Get task status based on due date
   const getTaskStatus = (task: PlantTask) => {
     const now = new Date();
@@ -638,7 +655,7 @@ const HomePage: React.FC = () => {
                         <span className={`text-base sm:text-lg ${isCompleted ? 'opacity-50' : ''}`}>{getTaskIcon(task.taskKey)}</span>
                         <div className="min-w-0 flex-1">
                           <p className={`font-medium text-sm sm:text-base ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'} truncate`}>
-                            {task.taskKey}
+                            {getTaskDisplayName(task.taskKey)}
                           </p>
                           <p className={`text-xs sm:text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                             {plant.name}
@@ -713,7 +730,7 @@ const HomePage: React.FC = () => {
                         <span className={`text-base sm:text-lg ${isCompleted ? 'opacity-50' : ''}`}>{getTaskIcon(task.taskKey)}</span>
                         <div className="min-w-0 flex-1">
                           <p className={`font-medium text-sm sm:text-base ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'} truncate`}>
-                            {task.taskKey}
+                            {getTaskDisplayName(task.taskKey)}
                           </p>
                           <p className={`text-xs sm:text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                             {plant.name}

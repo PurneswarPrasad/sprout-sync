@@ -218,18 +218,9 @@ export function PlantsPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">My Plants</h1>
-            <p className="text-gray-600">Manage your plant collection</p>
-          </div>
-          <button 
-            onClick={() => navigate('/add-plant')}
-            className="plant-button flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Plant</span>
-          </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">My Plants</h1>
+          <p className="text-gray-600">Manage your plant collection</p>
         </div>
 
         {/* Search and Filter */}
@@ -254,7 +245,7 @@ export function PlantsPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Add New Plant</h2>
           <div className="grid grid-cols-2 gap-4">
             <button 
-              onClick={() => setShowAddPlantModal(true)}
+              onClick={() => navigate('/ai-identification')}
               className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
             >
               <Camera className="w-8 h-8 text-emerald-600 mb-2" />

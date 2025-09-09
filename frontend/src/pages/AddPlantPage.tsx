@@ -790,13 +790,6 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                         {isSelected && selectedTask && (
                           <div className="bg-white rounded-xl p-4 border border-gray-200 ml-4">
                             <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className="w-4 h-4 rounded-full"
-                                  style={{ backgroundColor: selectedTask.colorHex }}
-                                />
-                                <h4 className="font-medium text-gray-800">{selectedTask.label}</h4>
-                              </div>
                               <button
                                 type="button"
                                 onClick={() => removeTask(selectedTask.key)}
@@ -885,7 +878,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                 ) : (
                   <>
                     <Plus className="w-4 h-4" />
-                    Add Plant
+                    Save Plant
                   </>
                 )}
               </button>
