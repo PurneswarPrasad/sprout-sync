@@ -400,16 +400,16 @@ export function PlantDetailPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             {plant.photos && plant.photos.length > 0 ? (
-              <div className="w-16 h-16 rounded-lg overflow-hidden">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex-shrink-0">
                 <img
                   src={plant.photos[0].secureUrl}
                   alt={plant.name}
@@ -417,13 +417,13 @@ export function PlantDetailPage() {
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <Leaf className="w-8 h-8 text-emerald-600" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Leaf className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
               </div>
             )}
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">{plant.name}</h1>
-              <p className="text-emerald-600">{plant.type || 'Unknown type'}</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate" title={plant.name}>{plant.name}</h1>
+              <p className="text-sm sm:text-base text-emerald-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
             </div>
           </div>
         </div>
@@ -462,8 +462,9 @@ export function PlantDetailPage() {
         {/* Tab Content */}
         {activeTab === 'care' && (
           <div className="space-y-6">
-            {/* Care Tasks Grid */}
-            <div className="flex flex-wrap justify-center gap-4">
+            {/* Care Tasks Grid - Horizontal Scrollable */}
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex gap-4 pb-2" style={{ width: 'max-content' }}>
               {/* Water */}
               {plant.tasks.find(t => t.taskKey === 'watering') && (
                 <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
@@ -698,29 +699,31 @@ export function PlantDetailPage() {
                   </p>
                 </div>
               )}
+              </div>
             </div>
 
             {/* Three Sections */}
             <div className="space-y-6">
               {/* Overdue Section */}
               {getOverdueTasks().length > 0 && (
-                <div className="bg-white rounded-lg p-6 border border-red-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-red-600">Overdue</h2>
-                    <p className="text-sm text-red-500">These tasks need immediate attention</p>
+                <div className="bg-white rounded-lg p-4 sm:p-6 border border-red-200">
+                  <div className="mb-4">
+                    <h2 className="text-lg sm:text-xl font-semibold text-red-600 mb-2">Overdue</h2>
+                    <p className="text-sm text-red-500">Needs immediate attention</p>
                   </div>
                   <div className="space-y-3">
                     {getOverdueTasks().map((task) => (
-                      <div key={task.id} className="bg-red-50 rounded-lg p-4 border border-red-200 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div key={task.id} className="bg-red-50 rounded-lg p-3 sm:p-4 border border-red-200 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           {getTaskIcon(task.taskKey)}
-                          <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
+                          <span className="font-medium text-gray-800 text-sm sm:text-base truncate">{getTaskName(task.taskKey)}</span>
                         </div>
                         <button
                           onClick={() => handleMarkComplete(task)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors flex-shrink-0"
                         >
-                          Mark Complete
+                          <span className="hidden sm:inline">Mark Complete</span>
+                          <span className="sm:hidden">Complete</span>
                         </button>
                       </div>
                     ))}
@@ -729,9 +732,9 @@ export function PlantDetailPage() {
               )}
 
               {/* Today Section */}
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">Today</h2>
+              <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
+                <div className="mb-4">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Today</h2>
                   <p className="text-sm text-gray-500">Tap on each task for instructions</p>
                 </div>
                 {getTodayTasks().length === 0 ? (
@@ -741,16 +744,17 @@ export function PlantDetailPage() {
                 ) : (
                   <div className="space-y-3">
                     {getTodayTasks().map((task) => (
-                      <div key={task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div key={task.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           {getTaskIcon(task.taskKey)}
-                          <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
+                          <span className="font-medium text-gray-800 text-sm sm:text-base truncate">{getTaskName(task.taskKey)}</span>
                         </div>
                         <button
                           onClick={() => handleMarkComplete(task)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors flex-shrink-0"
                         >
-                          Mark Complete
+                          <span className="hidden sm:inline">Mark Complete</span>
+                          <span className="sm:hidden">Complete</span>
                         </button>
                       </div>
                     ))}
@@ -759,7 +763,7 @@ export function PlantDetailPage() {
               </div>
 
               {/* Upcoming Section */}
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">Upcoming</h3>
                   <button className="px-3 py-1 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 transition-colors">
@@ -775,11 +779,11 @@ export function PlantDetailPage() {
                   <div className="space-y-3">
                     {getUpcomingTasks().map((item, index) => (
                       <div key={`${item.task.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">{getTaskIcon(item.task.taskKey)}</span>
-                          <div>
-                            <p className="font-medium text-gray-800">{getTaskName(item.task.taskKey)}</p>
-                            <p className="text-sm text-gray-600">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <span className="text-lg flex-shrink-0">{getTaskIcon(item.task.taskKey)}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-gray-800 text-sm sm:text-base truncate">{getTaskName(item.task.taskKey)}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 truncate">
                               {item.daysUntilDue === 1 ? 'Due tomorrow' : `Due in ${item.daysUntilDue} days`}
                             </p>
                           </div>
@@ -791,10 +795,10 @@ export function PlantDetailPage() {
               </div>
 
               {/* History Section */}
-              <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">History</h2>
-                  <button className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800">History</h2>
+                  <button className="px-3 sm:px-4 py-2 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-600 transition-colors">
                     History
                   </button>
                 </div>
@@ -805,12 +809,12 @@ export function PlantDetailPage() {
                 ) : (
                   <div className="space-y-3">
                     {getHistoryTasks().map((task) => (
-                      <div key={task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div key={task.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           {getTaskIcon(task.taskKey)}
-                          <span className="font-medium text-gray-800">{getTaskName(task.taskKey)}</span>
+                          <span className="font-medium text-gray-800 text-sm sm:text-base truncate">{getTaskName(task.taskKey)}</span>
                         </div>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">
                           {task.timeText}
                         </span>
                       </div>
@@ -823,9 +827,9 @@ export function PlantDetailPage() {
         )}
 
         {activeTab === 'health' && (
-          <div className="space-y-6">
-            {/* Action Buttons */}
-            <div className="flex justify-center">
+          <div className="flex flex-col">
+            {/* Action Buttons - Centered in remaining space */}
+            <div className={`flex items-center justify-center ${trackingUpdates.length > 0 ? 'py-8' : 'min-h-[60vh]'}`}>
               <PlantActionButtons
                 plantName={plant?.name || 'Plant'}
                 onTrackPlant={handleTrackPlant}
@@ -833,31 +837,29 @@ export function PlantDetailPage() {
               />
             </div>
 
-            {/* Tracking Updates */}
-            <div className="bg-white rounded-lg p-6 border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Tracking Updates</h2>
-              {loadingTracking ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-500">Loading tracking updates...</p>
-                </div>
-              ) : trackingUpdates.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No tracking updates yet. Start by adding your first update!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {trackingUpdates.map((update) => (
-                    <PlantTrackingCard
-                      key={update.id}
-                      tracking={update}
-                      onOpen={handleOpenTracking}
-                      onDelete={handleDeleteTracking}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Tracking Updates - Only show if there are updates */}
+            {trackingUpdates.length > 0 && (
+              <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Tracking Updates</h2>
+                {loadingTracking ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading tracking updates...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {trackingUpdates.map((update) => (
+                      <PlantTrackingCard
+                        key={update.id}
+                        tracking={update}
+                        onOpen={handleOpenTracking}
+                        onDelete={handleDeleteTracking}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

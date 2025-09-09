@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Leaf, Calendar, User, LogOut, Plus } from 'lucide-react';
+import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
 import { authAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -22,6 +22,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { logout: logoutFromStore } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -36,6 +38,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
 
     fetchUserProfile();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -63,13 +79,75 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+  
+  // Check if user is on plant detail page
+  const isOnPlantDetailPage = location.pathname.startsWith('/plants/') && location.pathname !== '/plants';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-amber-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="flex items-center justify-between py-4">
+              {/* Logo and Title - Left Side */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center">
+                  <span className="text-xl">🌱</span>
+                </div>
+                <div className="flex flex-col">
+                  <h1 className="text-lg font-bold text-gray-800 leading-tight">PlantCare</h1>
+                </div>
+              </div>
+              
+              {/* Profile Section - Right Side */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="flex items-center space-x-2 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  {user?.avatarUrl && (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full border-2 border-emerald-200"
+                    />
+                  )}
+                  <div className="text-right hidden xs:block">
+                    <p className="text-xs font-medium text-gray-800 truncate max-w-20">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate max-w-20">
+                      {user?.email?.split('@')[0]}
+                    </p>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Dropdown Menu */}
+                {showProfileDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-800">
+                        {user?.name}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center">
                 <span className="text-xl">🌱</span>
@@ -107,7 +185,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24">
         {children}
       </main>
 
@@ -136,13 +214,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </nav>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowAddPlantModal(true)}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center z-50"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {/* Floating Action Button - Hide on plant detail page */}
+      {!isOnPlantDetailPage && (
+        <button
+          onClick={() => setShowAddPlantModal(true)}
+          className="fixed bottom-20 right-4 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center z-50"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Add Plant Modal */}
       <AddPlantModal

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Camera, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Camera, Loader2, Upload, Image } from 'lucide-react';
 import { format } from 'date-fns';
 import { CloudinaryService } from '../services/cloudinaryService';
 import { api, aiAPI } from '../services/api';
@@ -35,10 +35,10 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
   const [note, setNote] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<string>('');
-  const [showCamera, setShowCamera] = useState<boolean>(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
-
+  const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const currentDate = format(new Date(), 'EEEE, MMM dd, yy');
 
   const resetModalState = async () => {
@@ -59,11 +59,8 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setNote('');
     setIsAnalyzing(false);
     setAnalysisError('');
-    setShowCamera(false);
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
+    setCapturedImage(null);
+    setActiveTab('camera');
   };
 
   useEffect(() => {
@@ -71,12 +68,6 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
       resetModalState();
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (showCamera && stream && videoRef) {
-      videoRef.srcObject = stream;
-    }
-  }, [showCamera, stream, videoRef]);
 
   const handleClose = async () => {
     await resetModalState();
@@ -99,9 +90,10 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setOriginalPhotoUrl('');
     setCloudinaryPublicId('');
     setNote(''); // Clear analysis note when image is deleted
+    setCapturedImage(null);
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -122,6 +114,10 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
       setAnalysisError('');
       setIsAnalyzing(true);
 
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setCapturedImage(previewUrl);
+
       const result = await CloudinaryService.uploadImage(file);
       
       setPhotoUrl(result.optimized_url);
@@ -135,84 +131,15 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     } catch (error) {
       console.error('Error uploading image:', error);
       setAnalysisError('Failed to upload image. Please try again.');
+      setCapturedImage(null);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      setStream(mediaStream);
-      setShowCamera(true);
-      setAnalysisError('');
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setAnalysisError('Unable to access camera. Please check permissions.');
-    }
-  };
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setShowCamera(false);
-  };
-
-  const capturePhoto = async () => {
-    if (!videoRef || !stream) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      
-      if (!context) return;
-
-      canvas.width = videoRef.videoWidth;
-      canvas.height = videoRef.videoHeight;
-      
-      context.drawImage(videoRef, 0, 0);
-      
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-
-        // Convert blob to file
-        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-        
-        try {
-          setAnalysisError('');
-          setIsAnalyzing(true);
-
-          const result = await CloudinaryService.uploadImage(file);
-          
-          setPhotoUrl(result.optimized_url);
-          setOriginalPhotoUrl(result.original_url);
-          setCloudinaryPublicId(result.public_id);
-
-          console.log('Uploaded camera capture to Cloudinary:', result);
-
-          // Stop camera and hide it
-          stopCamera();
-
-          // Automatically analyze the image after upload
-          await analyzeImage(result.original_url);
-        } catch (error) {
-          console.error('Error uploading camera capture:', error);
-          setAnalysisError('Failed to upload photo. Please try again.');
-        } finally {
-          setIsAnalyzing(false);
-        }
-      }, 'image/jpeg', 0.8);
-    } catch (error) {
-      console.error('Error capturing photo:', error);
-      setAnalysisError('Failed to capture photo. Please try again.');
+  const handleTakePhoto = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -275,27 +202,59 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setNote('');
     setIsAnalyzing(false);
     setAnalysisError('');
-    setShowCamera(false);
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
+    setCapturedImage(null);
     onClose();
   };
+
+  // Handle back button and escape key
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    const handlePopState = () => {
+      if (isOpen) {
+        handleClose();
+        // Push a new state to prevent going back
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      window.addEventListener('popstate', handlePopState);
+      // Push a new state when modal opens
+      window.history.pushState(null, '', window.location.href);
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscapeKey);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
         {/* Header - Fixed */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 truncate pr-2" title={`Monitor ${plantName}'s Health`}>
             Monitor {plantName}'s Health
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           >
             <X size={24} />
           </button>
@@ -313,7 +272,8 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
                 type="text"
                 value={plantName}
                 disabled
-                className="w-full bg-gray-50 px-3 py-2 rounded-lg text-gray-600 cursor-not-allowed"
+                className="w-full bg-gray-50 px-3 py-2 rounded-lg text-gray-600 cursor-not-allowed truncate"
+                title={plantName}
               />
             </div>
 
@@ -330,103 +290,142 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
               />
             </div>
 
-            {/* Photo Upload */}
+            {/* Photo Upload Section */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Upload Photo
               </label>
               
-              {!showCamera && !photoUrl ? (
-                <div className="space-y-3">
-                  {/* Upload from device */}
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      id="health-photo-upload"
-                      disabled={isAnalyzing}
-                    />
-                    <label
-                      htmlFor="health-photo-upload"
-                      className={`cursor-pointer flex flex-col items-center ${
-                        isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+              {!capturedImage ? (
+                <div className="space-y-4">
+                  {/* Tab Navigation */}
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setActiveTab('camera')}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        activeTab === 'camera'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      {isAnalyzing ? (
-                        <Loader2 className="w-6 h-6 text-blue-500 animate-spin mb-2" />
-                      ) : (
-                        <Camera className="w-6 h-6 text-gray-400 mb-2" />
-                      )}
-                      <span className="text-sm text-gray-600">
-                        {isAnalyzing ? 'Analyzing...' : 'Upload from device'}
-                      </span>
-                    </label>
-                  </div>
-                  
-                  {/* Take photo with camera */}
-                  <button
-                    onClick={startCamera}
-                    disabled={isAnalyzing}
-                    className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
-                      isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <Camera className="w-5 h-5" />
-                      <span>Take photo with camera</span>
-                    </div>
-                  </button>
-                </div>
-              ) : showCamera ? (
-                /* Camera view */
-                <div className="space-y-3">
-                  <div className="relative bg-black rounded-lg overflow-hidden">
-                    <video
-                      ref={setVideoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-white bg-opacity-20 rounded-full p-2">
-                        <Camera className="w-8 h-8 text-white" />
+                      <div className="flex items-center justify-center gap-2">
+                        <Camera className="w-4 h-4" />
+                        Take Photo
                       </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('upload')}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        activeTab === 'upload'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Camera Tab */}
+                  {activeTab === 'camera' && (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="bg-gray-100 rounded-xl p-8 mb-4">
+                          <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 mb-4">
+                            Take a photo of your plant to analyze its health
+                          </p>
+                          <button
+                            onClick={handleTakePhoto}
+                            disabled={isAnalyzing}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isAnalyzing ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Processing...
+                              </div>
+                            ) : (
+                              'Take Photo'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Hidden file input for camera capture */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
                     </div>
+                  )}
+
+                  {/* Upload Tab */}
+                  {activeTab === 'upload' && (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="bg-gray-100 rounded-xl p-8 mb-4">
+                          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 mb-4">
+                            Upload a photo from your device
+                          </p>
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isAnalyzing}
+                            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isAnalyzing ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Processing...
+                              </div>
+                            ) : (
+                              'Choose File'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Hidden file input for upload */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Image Preview */
+                <div className="space-y-4">
+                  <div className="relative">
+                    <img
+                      src={capturedImage}
+                      alt="Captured plant photo"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={handleDeleteImage}
+                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                   
-                  <div className="flex gap-3">
-                    <button
-                      onClick={stopCamera}
-                      className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={capturePhoto}
-                      disabled={isAnalyzing}
-                      className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isAnalyzing ? 'Processing...' : 'Capture Photo'}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-              
-              {photoUrl && (
-                <div className="mt-3 relative">
-                  <img
-                    src={photoUrl}
-                    alt="Uploaded plant photo"
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={handleDeleteImage}
-                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                  {isAnalyzing && (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 text-blue-500 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Analyzing plant health...</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

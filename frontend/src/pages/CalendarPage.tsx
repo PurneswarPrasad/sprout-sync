@@ -358,20 +358,20 @@ export function CalendarPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Calendar</h1>
-            <p className="text-gray-600">Track your plant care schedule</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Calendar</h1>
+            <p className="text-sm sm:text-base text-gray-600">Track your plant care schedule</p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center sm:justify-end space-x-2">
             <button
               onClick={() => setCurrentDate(subDays(currentDate, 7))}
               className="p-2 hover:bg-emerald-100 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-4 h-4 text-emerald-600" />
             </button>
-            <span className="font-medium text-gray-800">
-              {format(currentDate, 'MMMM yyyy')}
+            <span className="font-medium text-gray-800 text-sm sm:text-base">
+              {format(currentDate, 'MMM yyyy')}
             </span>
             <button
               onClick={() => setCurrentDate(addDays(currentDate, 7))}
@@ -383,16 +383,16 @@ export function CalendarPage() {
         </div>
 
         {/* Week View */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
-          <div className="grid grid-cols-7 gap-2 mb-4">
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-600 py-2">
                 {day}
               </div>
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {weekDays.map((day) => {
               const dayTasks = getTasksForDate(day);
               const isToday = isSameDay(day, new Date());
@@ -400,7 +400,7 @@ export function CalendarPage() {
               return (
                 <div
                   key={day.toString()}
-                  className={`min-h-24 p-2 rounded-lg border cursor-pointer transition-colors ${
+                  className={`min-h-20 sm:min-h-24 p-1 sm:p-2 rounded-lg border cursor-pointer transition-colors ${
                     isToday
                       ? 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100'
                       : 'bg-white border-gray-200 hover:bg-gray-50'
@@ -442,7 +442,7 @@ export function CalendarPage() {
                                 title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
                               >
                                 <Icon className="w-3 h-3" />
-                                <span className="truncate">{getTaskTypeLabel(task.taskKey)}</span>
+                                <span className="truncate" title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}>{getTaskTypeLabel(task.taskKey)}</span>
                               </div>
                             );
                           })}
@@ -471,27 +471,28 @@ export function CalendarPage() {
               {getOverdueTasks().map((task) => {
                 const Icon = task.icon;
                 return (
-                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-red-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 ${task.color} rounded-lg flex items-center justify-center`}>
-                          <Icon className="w-5 h-5 text-white" />
+                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-red-200">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <div>
-                          <h3 className="font-medium text-gray-800">{task.plantName}</h3>
-                          <p className="text-sm text-red-600">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-gray-800 truncate text-sm sm:text-base" title={task.plantName}>{task.plantName}</h3>
+                          <p className="text-xs sm:text-sm text-red-600 truncate">
                             {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center flex-shrink-0">
                         <button
                           onClick={() => openConfirmDialog(task)}
                           className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
                         >
                           <Clock className="w-4 h-4" />
-                          <span className="text-sm">Mark Complete</span>
+                          <span className="text-xs sm:text-sm hidden sm:inline">Mark Complete</span>
+                          <span className="text-xs sm:text-sm sm:hidden">Complete</span>
                         </button>
                       </div>
                     </div>
@@ -519,34 +520,35 @@ export function CalendarPage() {
               {getTodaysTasks().map((task) => {
                 const Icon = task.icon;
                 return (
-                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 ${task.color} rounded-lg flex items-center justify-center`}>
-                          <Icon className="w-5 h-5 text-white" />
+                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-white/20">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <div>
-                          <h3 className="font-medium text-gray-800">{task.plantName}</h3>
-                          <p className="text-sm text-gray-600">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-gray-800 truncate text-sm sm:text-base" title={task.plantName}>{task.plantName}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600 truncate">
                             {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'h:mm a')}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center flex-shrink-0">
                         {task.completed ? (
                           <div className="flex items-center space-x-1 text-green-600">
                             <CheckCircle className="w-4 h-4" />
-                            <span className="text-sm">Done</span>
+                            <span className="text-xs sm:text-sm">Done</span>
                           </div>
                         ) : (
-                                                     <button
-                             onClick={() => openConfirmDialog(task)}
-                             className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
-                           >
-                             <Clock className="w-4 h-4" />
-                             <span className="text-sm">Mark Complete</span>
-                           </button>
+                          <button
+                            onClick={() => openConfirmDialog(task)}
+                            className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span className="text-xs sm:text-sm hidden sm:inline">Mark Complete</span>
+                            <span className="text-xs sm:text-sm sm:hidden">Complete</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -574,14 +576,14 @@ export function CalendarPage() {
               {getUpcomingTasks().map((task) => {
                 const Icon = task.icon;
                 return (
-                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 ${task.color} rounded-lg flex items-center justify-center`}>
+                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-white/20">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className={`w-8 h-8 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
                         <Icon className="w-4 h-4 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-800">{task.plantName}</h3>
-                        <p className="text-sm text-gray-600">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-800 truncate text-sm sm:text-base" title={task.plantName}>{task.plantName}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600 truncate">
                           {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
                         </p>
                       </div>

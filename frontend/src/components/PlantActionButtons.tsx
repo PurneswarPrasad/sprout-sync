@@ -22,9 +22,44 @@ export const PlantActionButtons: React.FC<PlantActionButtonsProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const handleBackButton = () => {
+      if (isOpen) {
+        setIsOpen(false);
+        return true; // Prevent default back behavior
+      }
+      return false;
+    };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+      
+      // Handle Android back button
+      const handlePopState = () => {
+        if (isOpen) {
+          setIsOpen(false);
+          // Push a new state to prevent going back
+          window.history.pushState(null, '', window.location.href);
+        }
+      };
+      
+      window.addEventListener('popstate', handlePopState);
+      // Push a new state when modal opens
+      window.history.pushState(null, '', window.location.href);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen]);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -40,8 +75,18 @@ export const PlantActionButtons: React.FC<PlantActionButtonsProps> = ({
     onMonitorHealth();
   };
 
+  // Cleanup function to handle history state
+  useEffect(() => {
+    return () => {
+      // Clean up any pushed history states when component unmounts
+      if (isOpen) {
+        window.history.back();
+      }
+    };
+  }, []);
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex flex-col items-center" ref={dropdownRef}>
       {/* Main Button */}
       <button
         onClick={handleToggle}
@@ -52,12 +97,25 @@ export const PlantActionButtons: React.FC<PlantActionButtonsProps> = ({
 
       {/* Text below button */}
       <p className="text-center text-sm text-gray-600 mt-2 font-medium">
-        Post {plantName}'s update
+        Keep track of your plant
       </p>
 
       {/* Dropdown Options */}
       {isOpen && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px] z-10">
+        <>
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40" 
+            onClick={() => setIsOpen(false)}
+            onTouchStart={() => setIsOpen(false)}
+          />
+          
+          {/* Modal content */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div 
+              className="bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[280px] max-w-[90vw] mx-4 pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
           <button
             onClick={handleTrackPlant}
             className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3"
@@ -83,7 +141,9 @@ export const PlantActionButtons: React.FC<PlantActionButtonsProps> = ({
               <div className="text-sm text-gray-500">Check for diseases</div>
             </div>
           </button>
-        </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

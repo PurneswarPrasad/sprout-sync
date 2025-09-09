@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, ArrowLeft, Loader2 } from 'lucide-react';
+import { Camera, Upload, ArrowLeft, Loader2, AlertCircle, Image } from 'lucide-react';
 import { aiAPI } from '../services/api';
 
 interface AIPlantIdentificationProps {
@@ -34,54 +34,17 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  
+  // Create refs for the hidden file inputs
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-      }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setError('Unable to access camera. Please check permissions.');
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  };
-
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      const context = canvas.getContext('2d');
-      
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
-        
-        const imageData = canvas.toDataURL('image/jpeg');
-        setCapturedImage(imageData);
-        stopCamera();
-      }
-    }
-  };
-
-  const retakePhoto = () => {
-    setCapturedImage(null);
-    setError(null);
-    startCamera();
+  const handleFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCapturedImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const identifyPlant = async (imageData: string) => {
@@ -90,10 +53,10 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   
     try {
       let response;
-      let imageInfo: { type: 'camera' | 'url'; data: string; file?: File } | null = null;
+      let imageInfo: { type: 'camera' | 'url' | 'file'; data: string; file?: File } | null = null;
       
       if (imageData.startsWith('data:image/')) {
-        // Camera capture - convert base64 to file and upload
+        // Camera capture or file upload - convert base64 to file and upload
         const formData = new FormData();
         
         // Convert base64 data URL to blob
@@ -101,12 +64,12 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
         const blob = await base64Response.blob();
         
         // Create file from blob
-        const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], 'plant-image.jpg', { type: 'image/jpeg' });
         formData.append('image', file);
         
         // Store image info for auto-population
         imageInfo = {
-          type: 'camera',
+          type: 'file',
           data: imageData,
           file: file
         };
@@ -151,20 +114,11 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
 
   const handleCaptureSubmit = async () => {
     if (!capturedImage) {
-      setError('Please capture an image first');
+      setError('Please capture or upload an image first');
       return;
     }
     await identifyPlant(capturedImage);
   };
-
-  React.useEffect(() => {
-    if (activeTab === 'camera' && !capturedImage) {
-      startCamera();
-    }
-    return () => {
-      stopCamera();
-    };
-  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-amber-50 p-4">
@@ -211,28 +165,72 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
           {activeTab === 'camera' && (
             <div className="space-y-4">
               {!capturedImage ? (
-                <div className="space-y-4">
-                  <div className="relative bg-gray-100 rounded-xl overflow-hidden aspect-video">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center text-gray-500">
-                        <Camera className="w-12 h-12 mx-auto mb-2" />
-                        <p>Position your plant in the camera view</p>
-                      </div>
+                <div className="space-y-6">
+                  {/* Take Photo Section */}
+                  <div className="text-center">
+                    <div className="bg-gray-100 rounded-xl p-8 mb-4">
+                      <Camera className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-600 mb-6">Take a photo of your plant</p>
+                      
+                      {/* Hidden file input for camera */}
+                      <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleFileUpload(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      
+                      {/* Custom styled button for camera */}
+                      <button
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="w-full py-3 px-6 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                      >
+                        Take Photo
+                      </button>
+                      
+                      <p className="text-xs text-gray-500 mt-2">
+                        This will open your camera app
+                      </p>
                     </div>
                   </div>
-                  <canvas ref={canvasRef} className="hidden" />
-                  <button
-                    onClick={captureImage}
-                    className="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors"
-                  >
-                    Capture Photo
-                  </button>
+                  
+                  {/* Upload from Gallery Section */}
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Or upload from your gallery:</p>
+                    
+                    {/* Hidden file input for gallery */}
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileUpload(file);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    
+                    {/* Custom styled button for gallery */}
+                    <button
+                      onClick={() => galleryInputRef.current?.click()}
+                      className="w-full py-2 px-4 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                    >
+                      Choose Photo
+                    </button>
+                    
+                    <p className="text-xs text-gray-500 mt-1">
+                      Choose an existing photo from your device
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -245,7 +243,10 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
                   </div>
                   <div className="flex space-x-3">
                     <button
-                      onClick={retakePhoto}
+                      onClick={() => {
+                        setCapturedImage(null);
+                        setError(null);
+                      }}
                       className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                     >
                       Retake

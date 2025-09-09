@@ -132,28 +132,66 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
     setCloudinaryPublicId(null);
   };
 
+  // Handle back button and escape key
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    const handlePopState = () => {
+      if (isOpen) {
+        handleClose();
+        // Push a new state to prevent going back
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      window.addEventListener('popstate', handlePopState);
+      // Push a new state when modal opens
+      window.history.pushState(null, '', window.location.href);
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscapeKey);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">Track {plantName}</h2>
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
+      <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 flex-shrink-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 truncate pr-2" title={`Track ${plantName}`}>
+            Track {plantName}
+          </h2>
           <button
             onClick={handleClose}
-            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0"
           >
             <X className="w-4 h-4 text-gray-600" />
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4">
           {/* Plant Name (Read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Plant Name
             </label>
-            <div className="bg-gray-50 px-3 py-2 rounded-lg text-gray-600">
+            <div className="bg-gray-50 px-3 py-2 rounded-lg text-gray-600 truncate" title={plantName}>
               {plantName}
             </div>
           </div>
@@ -241,7 +279,10 @@ export const PlantTrackingModal: React.FC<PlantTrackingModalProps> = ({
             )}
           </div>
 
-          {/* Submit Button */}
+        </div>
+
+        {/* Submit Button - Fixed at bottom */}
+        <div className="flex-shrink-0 pt-4">
           <button
             onClick={handleSubmit}
             disabled={!note.trim()}

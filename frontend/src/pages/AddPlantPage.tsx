@@ -347,52 +347,53 @@ export const AddPlantPage: React.FC = () => {
   };
 
   // Function to handle AI image auto-population
-  const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url'; data: string; file?: File }) => {
-    // Prevent multiple executions
-    if (isAutoPopulatingImage) {
-      console.log('AI Auto-population: Already in progress, skipping');
-      return;
-    }
+  // Function to handle AI image auto-population
+const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' | 'file'; data: string; file?: File }) => {
+  // Prevent multiple executions
+  if (isAutoPopulatingImage) {
+    console.log('AI Auto-population: Already in progress, skipping');
+    return;
+  }
+  
+  setIsAutoPopulatingImage(true);
+  
+  try {
+    console.log('AI Auto-population: Starting image auto-population');
     
-    try {
-      setIsAutoPopulatingImage(true);
-      console.log('AI Auto-population: Starting image auto-population');
+    if ((imageInfo.type === 'camera' || imageInfo.type === 'file') && imageInfo.file) {
+      // For camera capture or file upload, upload directly to Cloudinary
+      console.log('AI Auto-population: Uploading image to Cloudinary', {
+        fileName: imageInfo.file.name,
+        fileSize: imageInfo.file.size,
+        fileType: imageInfo.file.type
+      });
       
-      if (imageInfo.type === 'camera' && imageInfo.file) {
-        // For camera capture, upload directly to Cloudinary without calling handleImageUpload
-        // to avoid any potential double upload issues
-        console.log('AI Auto-population: Uploading camera image to Cloudinary', {
-          fileName: imageInfo.file.name,
-          fileSize: imageInfo.file.size,
-          fileType: imageInfo.file.type
-        });
-        
-        const result = await CloudinaryService.uploadImage(imageInfo.file);
-        console.log('AI Auto-population: Upload successful', {
-          publicId: result.public_id,
-          optimizedUrl: result.optimized_url
-        });
-        
-        setImageUploadResult(result);
-        setImageFile(imageInfo.file);
-        
-        // Create preview URL
-        const previewUrl = CloudinaryService.getPreviewUrl(imageInfo.file);
-        setImagePreview(previewUrl);
-        
-        setIsImageFromAI(true);
-      } else if (imageInfo.type === 'url') {
-        // For URL, we need to fetch the image and upload it to Cloudinary
-        await handleURLImageAutoPopulation(imageInfo.data);
-        setIsImageFromAI(true);
-      }
-    } catch (error) {
-      console.error('Error auto-populating image from AI identification:', error);
-      // Don't show error to user as this is a convenience feature
-    } finally {
-      setIsAutoPopulatingImage(false);
+      const result = await CloudinaryService.uploadImage(imageInfo.file);
+      console.log('AI Auto-population: Upload successful', {
+        publicId: result.public_id,
+        optimizedUrl: result.optimized_url
+      });
+      
+      setImageUploadResult(result);
+      setImageFile(imageInfo.file);
+      
+      // Create preview URL
+      const previewUrl = CloudinaryService.getPreviewUrl(imageInfo.file);
+      setImagePreview(previewUrl);
+      
+      setIsImageFromAI(true);
+    } else if (imageInfo.type === 'url') {
+      // For URL, we need to fetch the image and upload it to Cloudinary
+      await handleURLImageAutoPopulation(imageInfo.data);
+      setIsImageFromAI(true);
     }
-  };
+  } catch (error) {
+    console.error('Error auto-populating image from AI identification:', error);
+    // Don't show error to user as this is a convenience feature
+  } finally {
+    setIsAutoPopulatingImage(false);
+  }
+};
 
   // Function to handle URL image auto-population
   const handleURLImageAutoPopulation = async (imageUrl: string) => {

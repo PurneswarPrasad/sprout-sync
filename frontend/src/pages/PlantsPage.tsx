@@ -342,8 +342,8 @@ export function PlantsPage() {
                     
                     <div className="space-y-3">
                       <div>
-                        <h3 className="font-semibold text-gray-800">{plant.name}</h3>
-                        <p className="text-sm text-gray-600">{plant.type || 'Unknown type'}</p>
+                        <h3 className="font-semibold text-gray-800 truncate" title={plant.name}>{plant.name}</h3>
+                        <p className="text-sm text-gray-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
                       </div>
                       
                       {/* Tags */}
