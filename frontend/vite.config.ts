@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'Plant Care App',
         short_name: 'PlantCare',
@@ -15,6 +16,8 @@ export default defineConfig({
         theme_color: '#10b981',
         background_color: '#f0fdf4',
         display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
         start_url: '/',
         icons: [
           {
@@ -28,7 +31,23 @@ export default defineConfig({
             type: 'image/png'
           }
         ]
-      }
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'cloudinary-images',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+              },
+            },
+          },
+        ],
+      },
     })
   ],
   resolve: {
