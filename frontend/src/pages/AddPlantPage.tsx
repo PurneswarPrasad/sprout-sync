@@ -19,8 +19,25 @@ const getTodayDateString = () => {
 // Helper function to get today's date with 00:00 time for daily tasks
 const getTodayWithMidnightTime = () => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set to 00:00:00.000
-  return today.toISOString();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  
+  // Construct ISO string manually to avoid timezone conversion
+  return `${year}-${month}-${day}T00:00:00.000Z`;
+};
+
+// Helper function to convert date string to ISO string WITHOUT timezone conversion
+const convertDateStringToLocalISO = (dateString: string) => {
+  // Parse the date string components
+  const [year, month, day] = dateString.split('-').map(Number);
+  
+  // Construct ISO string manually to avoid timezone conversion issues
+  // This ensures the date remains as intended regardless of local timezone
+  const paddedMonth = String(month).padStart(2, '0');
+  const paddedDay = String(day).padStart(2, '0');
+  
+  return `${year}-${paddedMonth}-${paddedDay}T00:00:00.000Z`;
 };
 
 interface TaskTemplate {
@@ -465,10 +482,8 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
         // Otherwise, use the manually provided last completed date if available
         else if (task.lastCompleted) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
-          // Convert date string to ISO string with midnight time for consistency
-          const date = new Date(task.lastCompleted);
-          date.setHours(0, 0, 0, 0); // Set to 00:00:00.000
-          taskData[lastCompletedKey] = date.toISOString();
+          // Convert date string to ISO string in local timezone to avoid timezone shifts
+          taskData[lastCompletedKey] = convertDateStringToLocalISO(task.lastCompleted);
         }
 
         console.log('taskData', taskData);
