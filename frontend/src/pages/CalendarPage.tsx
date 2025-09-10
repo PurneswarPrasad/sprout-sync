@@ -317,6 +317,23 @@ export function CalendarPage() {
     return tasks.filter(task => isSameDay(task.scheduledDate, date));
   };
 
+  const isTaskOverdue = (task: CalendarTask) => {
+    // Check if this task was originally scheduled before today by looking at the plant's task data
+    const plant = plants.find(p => p.id === task.plantId);
+    if (!plant) return false;
+    
+    const plantTask = plant.tasks.find(t => t.id === task.taskId);
+    if (!plantTask) return false;
+    
+    const today = new Date();
+    const nextDue = new Date(plantTask.nextDueOn);
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const nextDueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
+    
+    // If the original nextDueOn is before today, this task is overdue
+    return nextDueDate < todayDate;
+  };
+
   const getOverdueTasks = () => {
     const today = new Date();
     return tasks
@@ -324,14 +341,18 @@ export function CalendarPage() {
         // Set both dates to start of day for accurate comparison
         const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
         const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        return taskDate < todayDate && !task.completed;
+        // Include tasks that are overdue (scheduled before today) OR tasks scheduled for today but overdue from earlier dates
+        return (taskDate < todayDate || (taskDate.getTime() === todayDate.getTime() && isTaskOverdue(task))) && !task.completed;
       })
       .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
       .slice(0, 5);
   };
 
   const getTodaysTasks = () => {
-    return tasks.filter(task => isSameDay(task.scheduledDate, new Date()));
+    return tasks.filter(task => {
+      // Include tasks that are scheduled for today AND are not overdue from earlier dates
+      return isSameDay(task.scheduledDate, new Date()) && !isTaskOverdue(task);
+    });
   };
 
   const getUpcomingTasks = () => {
@@ -423,11 +444,11 @@ export function CalendarPage() {
                         <>
                           {visibleTasks.map((task) => {
                             const Icon = task.icon;
-                            // Check if task is overdue (scheduled date < today)
+                            // Check if task is overdue - only show red if it's actually overdue
                             const today = new Date();
                             const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
                             const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                            const isOverdue = taskDate < todayDate && !task.completed;
+                            const isOverdue = (taskDate < todayDate || (taskDate.getTime() === todayDate.getTime() && isTaskOverdue(task))) && !task.completed;
                             
                             return (
                               <div

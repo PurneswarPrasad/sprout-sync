@@ -210,10 +210,15 @@ export function PlantDetailPage() {
       // For daily tasks, always show if not completed today
       if (task.frequencyDays === 1) return true;
 
-      // For other frequencies, check if due today
+      // For other frequencies, check if due today (exactly today, not tomorrow)
       const nextDue = new Date(task.nextDueOn);
-      const daysUntilDue = differenceInDays(nextDue, new Date());
-      return daysUntilDue === 0; // Only tasks due today (0 days)
+      const today = new Date();
+      
+      // Compare dates without time components
+      const nextDueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      return nextDueDate.getTime() === todayDate.getTime(); // Only tasks due exactly today
     });
   };
 
