@@ -23,6 +23,14 @@ const getTodayWithMidnightTime = () => {
   return today.toISOString();
 };
 
+// Helper function to convert date string to ISO string in local timezone
+const convertDateStringToLocalISO = (dateString: string) => {
+  // Parse the date string in local timezone to avoid UTC conversion issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day, 0, 0, 0, 0); // month is 0-indexed
+  return date.toISOString();
+};
+
 interface TaskTemplate {
   id: string;
   key: string;
@@ -465,10 +473,8 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
         // Otherwise, use the manually provided last completed date if available
         else if (task.lastCompleted) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
-          // Convert date string to ISO string with midnight time for consistency
-          const date = new Date(task.lastCompleted);
-          date.setHours(0, 0, 0, 0); // Set to 00:00:00.000
-          taskData[lastCompletedKey] = date.toISOString();
+          // Convert date string to ISO string in local timezone to avoid timezone shifts
+          taskData[lastCompletedKey] = convertDateStringToLocalISO(task.lastCompleted);
         }
 
         console.log('taskData', taskData);
