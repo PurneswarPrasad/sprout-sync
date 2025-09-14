@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown } from 'lucide-react';
+import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Settings } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
 import { authAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -134,6 +134,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       </p>
                     </div>
                     <button
+                      onClick={() => navigate('/settings')}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </button>
+                    <button
                       onClick={handleLogout}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                     >
@@ -171,6 +178,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
               </div>
+              
+              <button
+                onClick={() => navigate('/settings')}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white/70 hover:bg-white/90 rounded-lg border border-gray-200 transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
+              </button>
               
               <button
                 onClick={handleLogout}
