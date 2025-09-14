@@ -21,9 +21,13 @@ import { plantTagsRouter } from './routes/plantTags';
 import { aiRouter } from './routes/ai';
 import plantTrackingRouter from './routes/plantTracking';
 import uploadRouter from './routes/upload';
+import notificationsRouter from './routes/notifications';
 
 // Load environment variables
 dotenv.config();
+
+// Initialize notification scheduler
+import './services/notificationScheduler';
 
 const app = express();
 const PORT = process.env['PORT'] || 3001;
@@ -73,6 +77,7 @@ app.use('/api/test', testRouter);
 app.use('/auth', authRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Plants routes (must come before nested routes)
 app.use('/api/plants', plantsRouter);

@@ -139,7 +139,7 @@ model UserSettings {
   user             User     @relation(fields: [userId], references: [id])
   persona          Persona
   timezone         String
-  onesignalPlayerId String?
+  fcmToken         String?  // Firebase Cloud Messaging token for push notifications
 }
 
 enum Persona {
