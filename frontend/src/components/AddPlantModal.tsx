@@ -6,7 +6,7 @@ interface AddPlantModalProps {
   onClose: () => void;
   onManualEntry: () => void;
   onCameraID: () => void;
-  onCheckHealth: () => void;
+  onCheckHealth?: () => void;
 }
 
 export const AddPlantModal: React.FC<AddPlantModalProps> = ({
