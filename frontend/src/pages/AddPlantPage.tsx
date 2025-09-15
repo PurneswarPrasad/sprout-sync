@@ -22,7 +22,7 @@ const getTodayWithMidnightTime = () => {
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');
-  
+
   // Construct ISO string manually to avoid timezone conversion
   return `${year}-${month}-${day}T00:00:00.000Z`;
 };
@@ -31,13 +31,25 @@ const getTodayWithMidnightTime = () => {
 const convertDateStringToLocalISO = (dateString: string) => {
   // Parse the date string components
   const [year, month, day] = dateString.split('-').map(Number);
-  
+
   // Construct ISO string manually to avoid timezone conversion issues
   // This ensures the date remains as intended regardless of local timezone
   const paddedMonth = String(month).padStart(2, '0');
   const paddedDay = String(day).padStart(2, '0');
-  
+
   return `${year}-${paddedMonth}-${paddedDay}T00:00:00.000Z`;
+};
+
+// Helper function to get task icon based on task key
+const getTaskIcon = (taskKey: string): string => {
+  const iconMap: { [key: string]: string } = {
+    watering: '💧',
+    fertilizing: '🌱',
+    pruning: '✂️',
+    spraying: '💨',
+    sunlightRotation: '☀️',
+  };
+  return iconMap[taskKey] || '🌿';
 };
 
 interface TaskTemplate {
@@ -63,7 +75,7 @@ export const AddPlantPage: React.FC = () => {
   const [taskTemplatesLoading, setTaskTemplatesLoading] = useState(true);
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<SelectedTask[]>([]);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -172,7 +184,7 @@ export const AddPlantPage: React.FC = () => {
 
   const toggleTaskSelection = (template: TaskTemplate) => {
     const isSelected = selectedTasks.some(task => task.key === template.key);
-    
+
     if (isSelected) {
       setSelectedTasks(selectedTasks.filter(task => task.key !== template.key));
     } else {
@@ -183,7 +195,7 @@ export const AddPlantPage: React.FC = () => {
         frequency: template.defaultFrequencyDays,
         ...(template.defaultFrequencyDays === 1 && { lastCompleted: getTodayDateString() })
       };
-      
+
       setSelectedTasks([...selectedTasks, newTask]);
     }
   };
@@ -207,7 +219,7 @@ export const AddPlantPage: React.FC = () => {
   };
 
   const updateTaskLastCompleted = (taskKey: string, lastCompleted: string) => {
-    setSelectedTasks(selectedTasks.map(task => 
+    setSelectedTasks(selectedTasks.map(task =>
       task.key === taskKey ? { ...task, lastCompleted } : task
     ));
   };
@@ -220,26 +232,26 @@ export const AddPlantPage: React.FC = () => {
   const handleImageUpload = async (file: File) => {
     try {
       setIsUploadingImage(true);
-      
+
       console.log('Manual upload: Uploading image to Cloudinary', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type
       });
-      
+
       const result = await CloudinaryService.uploadImage(file);
       console.log('Manual upload: Upload successful', {
         publicId: result.public_id,
         optimizedUrl: result.optimized_url
       });
-      
+
       setImageUploadResult(result);
       setImageFile(file);
-      
+
       // Create preview URL
       const previewUrl = CloudinaryService.getPreviewUrl(file);
       setImagePreview(previewUrl);
-      
+
       // Reset AI flag when user manually uploads
       setIsImageFromAI(false);
     } catch (error) {
@@ -264,7 +276,7 @@ export const AddPlantPage: React.FC = () => {
       });
       setStream(mediaStream);
       setShowCamera(true);
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
@@ -310,11 +322,11 @@ export const AddPlantPage: React.FC = () => {
         console.error('Error deleting image from Cloudinary:', error);
       }
     }
-    
+
     if (imagePreview) {
       CloudinaryService.revokePreviewUrl(imagePreview);
     }
-    
+
     setImageFile(null);
     setImagePreview(null);
     setImageUploadResult(null);
@@ -324,13 +336,13 @@ export const AddPlantPage: React.FC = () => {
   // Function to handle AI identification data
   const handleAIIdentification = async (aiData: any) => {
     console.log('handleAIIdentification: Processing AI data', { hasImageInfo: !!aiData.imageInfo });
-    
+
     // Prevent multiple executions
     if (aiProcessedRef.current && hasProcessedAI) {
       console.log('handleAIIdentification: Already processed, skipping');
       return;
     }
-    
+
     // Set plant name and type from AI identification
     setFormData(prev => ({
       ...prev,
@@ -365,89 +377,89 @@ export const AddPlantPage: React.FC = () => {
 
   // Function to handle AI image auto-population
   // Function to handle AI image auto-population
-const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' | 'file'; data: string; file?: File }) => {
-  // Prevent multiple executions
-  if (isAutoPopulatingImage) {
-    console.log('AI Auto-population: Already in progress, skipping');
-    return;
-  }
-  
-  setIsAutoPopulatingImage(true);
-  
-  try {
-    console.log('AI Auto-population: Starting image auto-population');
-    
-    if ((imageInfo.type === 'camera' || imageInfo.type === 'file') && imageInfo.file) {
-      // For camera capture or file upload, upload directly to Cloudinary
-      console.log('AI Auto-population: Uploading image to Cloudinary', {
-        fileName: imageInfo.file.name,
-        fileSize: imageInfo.file.size,
-        fileType: imageInfo.file.type
-      });
-      
-      const result = await CloudinaryService.uploadImage(imageInfo.file);
-      console.log('AI Auto-population: Upload successful', {
-        publicId: result.public_id,
-        optimizedUrl: result.optimized_url
-      });
-      
-      setImageUploadResult(result);
-      setImageFile(imageInfo.file);
-      
-      // Create preview URL
-      const previewUrl = CloudinaryService.getPreviewUrl(imageInfo.file);
-      setImagePreview(previewUrl);
-      
-      setIsImageFromAI(true);
-    } else if (imageInfo.type === 'url') {
-      // For URL, we need to fetch the image and upload it to Cloudinary
-      await handleURLImageAutoPopulation(imageInfo.data);
-      setIsImageFromAI(true);
+  const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' | 'file'; data: string; file?: File }) => {
+    // Prevent multiple executions
+    if (isAutoPopulatingImage) {
+      console.log('AI Auto-population: Already in progress, skipping');
+      return;
     }
-  } catch (error) {
-    console.error('Error auto-populating image from AI identification:', error);
-    // Don't show error to user as this is a convenience feature
-  } finally {
-    setIsAutoPopulatingImage(false);
-  }
-};
+
+    setIsAutoPopulatingImage(true);
+
+    try {
+      console.log('AI Auto-population: Starting image auto-population');
+
+      if ((imageInfo.type === 'camera' || imageInfo.type === 'file') && imageInfo.file) {
+        // For camera capture or file upload, upload directly to Cloudinary
+        console.log('AI Auto-population: Uploading image to Cloudinary', {
+          fileName: imageInfo.file.name,
+          fileSize: imageInfo.file.size,
+          fileType: imageInfo.file.type
+        });
+
+        const result = await CloudinaryService.uploadImage(imageInfo.file);
+        console.log('AI Auto-population: Upload successful', {
+          publicId: result.public_id,
+          optimizedUrl: result.optimized_url
+        });
+
+        setImageUploadResult(result);
+        setImageFile(imageInfo.file);
+
+        // Create preview URL
+        const previewUrl = CloudinaryService.getPreviewUrl(imageInfo.file);
+        setImagePreview(previewUrl);
+
+        setIsImageFromAI(true);
+      } else if (imageInfo.type === 'url') {
+        // For URL, we need to fetch the image and upload it to Cloudinary
+        await handleURLImageAutoPopulation(imageInfo.data);
+        setIsImageFromAI(true);
+      }
+    } catch (error) {
+      console.error('Error auto-populating image from AI identification:', error);
+      // Don't show error to user as this is a convenience feature
+    } finally {
+      setIsAutoPopulatingImage(false);
+    }
+  };
 
   // Function to handle URL image auto-population
   const handleURLImageAutoPopulation = async (imageUrl: string) => {
     try {
       setIsUploadingImage(true);
-      
+
       console.log('AI Auto-population: Fetching image from URL', { imageUrl });
-      
+
       // Fetch the image from URL
       const response = await fetch(imageUrl);
       if (!response.ok) {
         throw new Error('Failed to fetch image from URL');
       }
-      
+
       const blob = await response.blob();
       const file = new File([blob], 'ai-identified-image.jpg', { type: blob.type || 'image/jpeg' });
-      
+
       console.log('AI Auto-population: Uploading URL image to Cloudinary', {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type
       });
-      
+
       // Upload to Cloudinary
       const result = await CloudinaryService.uploadImage(file);
       console.log('AI Auto-population: URL upload successful', {
         publicId: result.public_id,
         optimizedUrl: result.optimized_url
       });
-      
+
       setImageUploadResult(result);
       setImageFile(file);
-      
+
       // Create preview URL
       const previewUrl = CloudinaryService.getPreviewUrl(file);
       setImagePreview(previewUrl);
-      
+
     } catch (error) {
       console.error('Error auto-populating URL image:', error);
       // Don't show error to user as this is a convenience feature
@@ -458,7 +470,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       alert('Plant name is required');
       return;
@@ -470,10 +482,10 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
       // Prepare care tasks object
       const careTasks: any = {};
       const today = getTodayDateString(); // Get today's date in YYYY-MM-DD format
-      
+
       selectedTasks.forEach(task => {
         const taskData: any = { frequency: task.frequency };
-        
+
         // If frequency is 1, automatically set last completed to today at 00:00
         if (task.frequency === 1) {
           const lastCompletedKey = `last${task.key.charAt(0).toUpperCase() + task.key.slice(1)}`;
@@ -487,7 +499,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
         }
 
         console.log('taskData', taskData);
-        
+
         careTasks[task.key] = taskData;
 
         console.log('careTasks', careTasks);
@@ -503,7 +515,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
       const response = await plantsAPI.create(plantData);
 
       console.log('Plant created successfully:', response.data);
-      
+
       // If there's an uploaded image, create a photo record
       if (imageUploadResult && response.data.data?.id) {
         try {
@@ -518,8 +530,8 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
           // Don't block navigation if photo creation fails
         }
       }
-      
-      navigate('/plants', { state: { plantCreated: true } });
+
+      navigate(`/plants/${response.data.data.id}`, { state: { plantCreated: true } });
     } catch (error) {
       console.error('Error creating plant:', error);
       alert('Failed to create plant. Please try again.');
@@ -547,7 +559,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
             {/* Basic Information */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
-              
+
               <div className="space-y-4">
                 {/* Plant Name/Type and Image Upload - Side by Side */}
                 <div className="flex flex-col lg:flex-row gap-6">
@@ -593,7 +605,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                         </span>
                       )}
                     </div>
-                    
+
                     {!imagePreview ? (
                       <div className="space-y-3">
                         {/* Auto-populating indicator */}
@@ -607,11 +619,10 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                             </div>
                           </div>
                         )}
-                        
+
                         {/* Upload from device */}
-                        <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center ${
-                          isAutoPopulatingImage ? 'opacity-50 pointer-events-none' : ''
-                        }`}>
+                        <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center ${isAutoPopulatingImage ? 'opacity-50 pointer-events-none' : ''
+                          }`}>
                           <input
                             type="file"
                             accept="image/*"
@@ -623,9 +634,8 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                           />
                           <label
                             htmlFor="plant-image-upload"
-                            className={`cursor-pointer flex flex-col items-center ${
-                              isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-                            }`}
+                            className={`cursor-pointer flex flex-col items-center ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                              }`}
                           >
                             {isUploadingImage ? (
                               <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
@@ -637,15 +647,14 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                             </span>
                           </label>
                         </div>
-                        
+
                         {/* Take photo with camera */}
                         <button
                           type="button"
                           onClick={startCamera}
                           disabled={isUploadingImage || isAutoPopulatingImage}
-                          className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
-                            isUploadingImage || isAutoPopulatingImage ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
+                          className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${isUploadingImage || isAutoPopulatingImage ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                         >
                           <div className="flex items-center justify-center gap-2">
                             <Camera className="w-5 h-5" />
@@ -659,7 +668,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                         <img
                           src={imagePreview}
                           alt="Plant preview"
-                          className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                          className="w-full h-auto max-h-48 object-contain rounded-lg border border-gray-200"
                         />
                         <button
                           type="button"
@@ -685,7 +694,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                               <X className="w-5 h-5" />
                             </button>
                           </div>
-                          
+
                           <div className="relative">
                             <video
                               ref={videoRef}
@@ -694,7 +703,7 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                               className="w-full h-64 bg-gray-900 rounded-lg"
                             />
                           </div>
-                          
+
                           <div className="flex gap-3 mt-4">
                             <button
                               type="button"
@@ -731,22 +740,29 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                   </div>
 
                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                       City/Location
-                     </label>
-                     <CityAutocomplete
-                       value={formData.city}
-                       onChange={(city) => setFormData({ ...formData, city })}
-                       placeholder="e.g., New York"
-                     />
-                   </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      City/Location
+                    </label>
+                    <CityAutocomplete
+                      value={formData.city}
+                      onChange={(city) => setFormData({ ...formData, city })}
+                      placeholder="e.g., New York"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Care Tasks */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Care Tasks</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">Care Tasks</h2>
+                {!taskTemplatesLoading && selectedTasks.length === 0 && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                    No tasks selected!
+                  </span>
+                )}
+              </div>
               <p className="text-gray-600 mb-6">Select which care tasks you'd like to set up for this plant:</p>
 
               {/* Available Task Templates */}
@@ -762,113 +778,92 @@ const handleAIImageAutoPopulation = async (imageInfo: { type: 'camera' | 'url' |
                   {taskTemplates.map((template) => {
                     const isSelected = selectedTasks.some(task => task.key === template.key);
                     const selectedTask = selectedTasks.find(task => task.key === template.key);
-                    
+
                     return (
                       <div key={template.key} className="space-y-3">
-                        {/* Task Selection Card */}
-                        <div
-                          onClick={() => toggleTaskSelection(template)}
-                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                            isSelected
-                              ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
+                        {/* Task Selection Card with inline configuration */}
+                        <div className={`rounded-xl border-2 transition-all ${isSelected
+                            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                          }`}>
+                          <div className="flex flex-col lg:flex-row gap-4 p-4">
+                            {/* Task Selection Area */}
                             <div
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                                isSelected ? 'scale-110' : ''
-                              }`}
-                              style={{ borderColor: template.colorHex }}
+                              onClick={() => toggleTaskSelection(template)}
+                              className={`flex items-center gap-3 cursor-pointer transition-all ${isSelected ? 'flex-1 lg:flex-none lg:w-64' : 'flex-1'
+                                }`}
                             >
-                              {isSelected && (
-                                <div
-                                  className="w-2.5 h-2.5 rounded-full"
-                                  style={{ backgroundColor: template.colorHex }}
-                                />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-800">{template.label}</h3>
-                              <p className="text-sm text-gray-600">
-                                Default: every {template.defaultFrequencyDays} days
-                              </p>
-                            </div>
-                            <div
-                              className="w-4 h-4 rounded-full shadow-sm"
-                              style={{ backgroundColor: template.colorHex }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Task Configuration - appears directly below selected task */}
-                        {isSelected && selectedTask && (
-                          <div className="bg-white rounded-xl p-4 border border-gray-200 ml-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <button
-                                type="button"
-                                onClick={() => removeTask(selectedTask.key)}
-                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                              >
-                                <X className="w-4 h-4 text-gray-500" />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Frequency (days)
-                                </label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={selectedTask.frequency}
-                                  onChange={(e) => updateTaskFrequency(selectedTask.key, parseInt(e.target.value))}
-                                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Last Completed
-                                </label>
-                                <input
-                                  type="date"
-                                  value={selectedTask.frequency === 1 ? getTodayDateString() : (selectedTask.lastCompleted || '')}
-                                  onChange={(e) => updateTaskLastCompleted(selectedTask.key, e.target.value)}
-                                  max={getTodayDateString()}
-                                  className={`w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                                    selectedTask.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
+                              <div
+                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'scale-110' : ''
                                   }`}
-                                  disabled={selectedTask.frequency === 1}
-                                />
-                                {selectedTask.frequency === 1 && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Auto-set to today for daily tasks
-                                  </p>
+                                style={{ borderColor: template.colorHex }}
+                              >
+                                {isSelected && (
+                                  <div
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{ backgroundColor: template.colorHex }}
+                                  />
                                 )}
                               </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-gray-800 truncate">{template.label}</h3>
+                                <p className="text-sm text-gray-600 truncate">
+                                  Default: every {template.defaultFrequencyDays} days
+                                </p>
+                              </div>
+                              {!isSelected && <div className="w-6 h-6 flex items-center justify-center text-lg flex-shrink-0">
+                                {getTaskIcon(template.key)}
+                              </div>}
                             </div>
+
+                            {/* Task Configuration - appears beside selected task */}
+                            {isSelected && selectedTask && (
+                              <div className="flex-1 lg:flex-none lg:w-80 flex items-center gap-3 min-w-0">
+                                <div className="flex-1 min-w-0">
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Frequency (days)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={selectedTask.frequency}
+                                    onChange={(e) => updateTaskFrequency(selectedTask.key, parseInt(e.target.value))}
+                                    className="w-full px-2 py-1.5 text-sm rounded-md border border-gray-200 focus:ring-1 focus:ring-emerald-500 focus:border-transparent"
+                                  />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Last Completed
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={selectedTask.frequency === 1 ? getTodayDateString() : (selectedTask.lastCompleted || '')}
+                                    onChange={(e) => updateTaskLastCompleted(selectedTask.key, e.target.value)}
+                                    max={getTodayDateString()}
+                                    className={`w-full px-2 py-1.5 text-sm rounded-md border border-gray-200 focus:ring-1 focus:ring-emerald-500 focus:border-transparent ${selectedTask.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
+                                      }`}
+                                    disabled={selectedTask.frequency === 1}
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeTask(selectedTask.key)}
+                                  className="p-2 rounded-full hover:bg-gray-100 transition-colors self-end flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4 text-gray-500" />
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              {/* Show message when no tasks are selected */}
-              {!taskTemplatesLoading && selectedTasks.length === 0 && (
-                <div className="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 mt-6">
-                  <div className="text-gray-400 mb-2">
-                    <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-600 text-sm">No tasks selected</p>
-                  <p className="text-gray-500 text-xs mt-1">Select care tasks above to configure them</p>
-                </div>
-              )}
             </div>
 
             {/* Submit Button */}

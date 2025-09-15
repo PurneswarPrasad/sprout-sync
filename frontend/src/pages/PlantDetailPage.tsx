@@ -407,7 +407,7 @@ export function PlantDetailPage() {
         {/* Header */}
         <div className="flex items-center gap-3 sm:gap-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/plants')}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -418,7 +418,7 @@ export function PlantDetailPage() {
                 <img
                   src={plant.photos[0].secureUrl}
                   alt={plant.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             ) : (

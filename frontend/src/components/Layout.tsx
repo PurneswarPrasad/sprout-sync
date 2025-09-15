@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
+import { Footer } from './Footer';
 import { authAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
@@ -80,8 +81,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const isActive = (path: string) => location.pathname === path;
   
-  // Check if user is on plant detail page
+  // Check if user is on plant detail page, add plant page, or AI identification page
   const isOnPlantDetailPage = location.pathname.startsWith('/plants/') && location.pathname !== '/plants';
+  const isOnAddPlantPage = location.pathname === '/add-plant';
+  const isOnAIIdentificationPage = location.pathname === '/ai-identification';
+  const shouldHideFloatingButton = isOnPlantDetailPage || isOnAddPlantPage || isOnAIIdentificationPage;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-amber-50">
@@ -155,6 +159,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <h1 className="text-2xl font-bold text-gray-800">PlantCare</h1>
             </div>
             
+            {/* Center - Newsletter signup */}
+            <div className="flex-1 flex justify-center">
+              <button className="text-sm text-gray-600 hover:bg-emerald-100 hover:border-emerald-300 border border-transparent px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer">
+                Newsletter coming soon! Click <span className="font-bold">here</span> to sign up.
+              </button>
+            </div>
+            
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 {user?.avatarUrl && (
@@ -184,15 +195,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24">
+      {/* Main Content - Different padding for mobile vs desktop */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 sm:pb-20">
         {children}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Footer - Desktop only */}
+      <div className="hidden sm:block">
+        <Footer />
+      </div>
+
+      {/* Bottom Navigation - Responsive visibility */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-white/20 shadow-lg z-50">
-        <div className="max-w-md mx-auto px-4">
-          <div className="flex justify-around py-3">
+        <div className="max-w-md sm:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Mobile Navigation */}
+          <div className="flex justify-around py-3 sm:hidden">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -211,14 +228,37 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               );
             })}
           </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex justify-center py-4">
+            <div className="flex items-center space-x-20">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                      isActive(item.path)
+                        ? 'text-emerald-600 bg-emerald-50 font-medium'
+                        : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </nav>
 
-      {/* Floating Action Button - Hide on plant detail page */}
-      {!isOnPlantDetailPage && (
+      {/* Floating Action Button - Hide on plant detail page, add plant page, and AI identification page */}
+      {!shouldHideFloatingButton && (
         <button
           onClick={() => setShowAddPlantModal(true)}
-          className="fixed bottom-20 right-4 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center z-50"
+          className="fixed bottom-20 right-4 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center z-50 sm:bottom-24"
         >
           <Plus className="w-6 h-6" />
         </button>

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, ArrowLeft, Loader2, AlertCircle, Image } from 'lucide-react';
 import { aiAPI } from '../services/api';
+import { TipsModal } from './TipsModal';
 
 interface AIPlantIdentificationProps {
   onBack: () => void;
@@ -35,9 +36,33 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Tips modal state
+  const [showTipsModal, setShowTipsModal] = useState(false);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  
   // Create refs for the hidden file inputs
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTakePhotoClick = () => {
+    setShowTipsModal(true);
+    setCurrentTipIndex(0);
+  };
+
+  const handleNextTip = () => {
+    if (currentTipIndex < 2) { // 3 tips total (0, 1, 2)
+      setCurrentTipIndex(currentTipIndex + 1);
+    } else {
+      // Last tip - open camera
+      setShowTipsModal(false);
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const handleCloseTips = () => {
+    setShowTipsModal(false);
+    setCurrentTipIndex(0);
+  };
 
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
@@ -189,14 +214,14 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
                       
                       {/* Custom styled button for camera */}
                       <button
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={handleTakePhotoClick}
                         className="w-full py-3 px-6 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
                       >
                         Take Photo
                       </button>
                       
                       <p className="text-xs text-gray-500 mt-2">
-                        This will open your camera app
+                        This will show tips before opening your camera
                       </p>
                     </div>
                   </div>
@@ -234,11 +259,11 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="relative bg-gray-100 rounded-xl overflow-hidden aspect-video">
+                  <div className="relative bg-gray-100 rounded-xl overflow-hidden">
                     <img
                       src={capturedImage}
                       alt="Captured plant"
-                      className="w-full h-full object-cover"
+                      className="w-full h-auto max-h-96 object-contain"
                     />
                   </div>
                   <div className="flex space-x-3">
@@ -325,6 +350,14 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
           </ul>
         </div>
       </div>
+
+      {/* Tips Modal */}
+      <TipsModal
+        isOpen={showTipsModal}
+        currentTipIndex={currentTipIndex}
+        onNext={handleNextTip}
+        onClose={handleCloseTips}
+      />
     </div>
   );
 };

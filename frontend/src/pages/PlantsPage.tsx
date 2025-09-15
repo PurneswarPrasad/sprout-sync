@@ -5,6 +5,7 @@ import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle, X } from 'lucid
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
+import { authAPI } from '../services/api';
 
 interface Plant {
   id: string;
@@ -49,14 +50,22 @@ interface PlantTag {
   };
 }
 
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string;
+}
+
 export function PlantsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
-  
+
   // Delete confirmation state
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
@@ -72,6 +81,21 @@ export function PlantsPage() {
 
   useEffect(() => {
     fetchPlants();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await authAPI.profile();
+        if (response.data.success) {
+          setUser(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
   }, []);
 
   // Refresh plants when navigating from AddPlantPage
@@ -99,21 +123,21 @@ export function PlantsPage() {
     const now = new Date();
     const nextDue = new Date(task.nextDueOn);
     const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     // Check if task was completed today
-    const isCompletedToday = task.lastCompletedOn ? 
+    const isCompletedToday = task.lastCompletedOn ?
       Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-    
+
     // If task is due today and was completed today, show "Done"
     if ((daysUntilDue === 0 || task.frequencyDays === 1) && isCompletedToday) {
       return { status: 'completed', text: 'Done', color: 'text-green-600' };
     }
-    
+
     // For daily tasks (frequency=1), always show "Due today" if not completed today
     if (task.frequencyDays === 1) {
       return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
     }
-    
+
     if (daysUntilDue < 0) {
       return { status: 'overdue', text: 'Overdue', color: 'text-red-600' };
     } else if (daysUntilDue === 0) {
@@ -178,7 +202,7 @@ export function PlantsPage() {
 
       // Remove the plant from the local state
       setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));
-      
+
       closeDeleteDialog();
     } catch (error) {
       console.error('Error deleting plant:', error);
@@ -244,7 +268,7 @@ export function PlantsPage() {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Add New Plant</h2>
           <div className="grid grid-cols-2 gap-4">
-            <button 
+            <button
               onClick={() => navigate('/ai-identification')}
               className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
             >
@@ -252,7 +276,7 @@ export function PlantsPage() {
               <span className="font-medium text-gray-800">Camera ID</span>
               <span className="text-sm text-gray-600">AI-powered</span>
             </button>
-            <button 
+            <button
               onClick={() => navigate('/add-plant')}
               className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
             >
@@ -266,7 +290,7 @@ export function PlantsPage() {
         {/* Plants Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">Your Plants ({filteredPlants.length})</h2>
+            {filteredPlants.length > 0 ? <h2 className="text-lg font-semibold text-gray-800">Hi {user?.name}, your garden has {filteredPlants.length} plants</h2> : <h2 className="text-lg font-semibold text-gray-800">Hi {user?.name}, your garden is empty!</h2>}
             <select className="text-sm border border-gray-200 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
               <option>All Plants</option>
               <option>Healthy</option>
@@ -282,7 +306,7 @@ export function PlantsPage() {
                 {searchTerm ? 'Try adjusting your search terms.' : 'Start by adding your first plant!'}
               </p>
               {!searchTerm && (
-                <button 
+                <button
                   onClick={() => navigate('/add-plant')}
                   className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
                 >
@@ -295,20 +319,20 @@ export function PlantsPage() {
               {filteredPlants.map((plant) => {
                 const health = getPlantHealth(plant);
                 const activeTasks = plant.tasks.filter(task => task.active);
-                
+
                 return (
-                  <div 
-                    key={plant.id} 
+                  <div
+                    key={plant.id}
                     className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 hover:scale-105 transition-transform duration-200 cursor-pointer"
                     onClick={() => navigate(`/plants/${plant.id}`)}
                   >
                     <div className="relative mb-3">
                       {plant.photos && plant.photos.length > 0 ? (
-                        <div className="w-full h-32 rounded-lg overflow-hidden">
+                        <div className="w-full rounded-lg overflow-hidden">
                           <img
                             src={plant.photos[0].secureUrl}
                             alt={plant.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-auto max-h-32 object-contain"
                           />
                         </div>
                       ) : (
@@ -317,7 +341,7 @@ export function PlantsPage() {
                         </div>
                       )}
                       <div className={`absolute top-2 right-2 w-3 h-3 ${health.color} rounded-full`}></div>
-                      
+
                       {/* Delete Button */}
                       <button
                         onClick={(e) => {
@@ -330,13 +354,13 @@ export function PlantsPage() {
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div>
                         <h3 className="font-semibold text-gray-800 truncate" title={plant.name}>{plant.name}</h3>
                         <p className="text-sm text-gray-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
                       </div>
-                      
+
                       {/* Tags */}
                       {plant.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
@@ -350,7 +374,7 @@ export function PlantsPage() {
                           ))}
                         </div>
                       )}
-                      
+
                       {/* Tasks */}
                       {activeTasks.length > 0 && (
                         <div className="space-y-2">
@@ -360,11 +384,11 @@ export function PlantsPage() {
                             const sortedTasks = [...activeTasks].sort((a, b) => {
                               const aCompleted = a.lastCompletedOn !== null;
                               const bCompleted = b.lastCompletedOn !== null;
-                              
+
                               // Completed tasks appear first
                               if (aCompleted && !bCompleted) return -1;
                               if (!aCompleted && bCompleted) return 1;
-                              
+
                               // If both are completed or both are pending, sort by due date
                               if (aCompleted === bCompleted) {
                                 const now = new Date();
@@ -372,20 +396,20 @@ export function PlantsPage() {
                                 const bDue = new Date(b.nextDueOn);
                                 const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                                 const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                                
+
                                 // Most urgent (smaller days until due) appears first
                                 return aDaysUntilDue - bDaysUntilDue;
                               }
-                              
+
                               return 0;
                             });
-                            
+
                             return sortedTasks.slice(0, 3).map((task) => {
                               // Check if task was completed today, not just if it has ever been completed
                               const now = new Date();
-                              const isCompleted = task.lastCompletedOn ? 
+                              const isCompleted = task.lastCompletedOn ?
                                 Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-                              
+
                               if (isCompleted) {
                                 return (
                                   <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
@@ -409,14 +433,14 @@ export function PlantsPage() {
                           )}
                         </div>
                       )}
-                      
+
                       {/* Stats */}
                       <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
                         <div className="flex items-center gap-4">
                           <span>{plant._count.notes} notes</span>
                           <span>{plant._count.photos} photos</span>
                         </div>
-                        <button 
+                        <button
                           onClick={() => navigate(`/plants/${plant.id}`)}
                           className="text-emerald-600 hover:text-emerald-700 font-medium"
                         >

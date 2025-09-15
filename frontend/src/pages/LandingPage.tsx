@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
+import { Footer } from '../components/Footer';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [showFloatingHeader, setShowFloatingHeader] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
     // Check if user is already authenticated
     const checkAuthStatus = async () => {
       try {
         const response = await authAPI.status();
-        
+
         if (response.data.success && response.data.authenticated) {
           // User is already authenticated, redirect to home page
           navigate('/home');
@@ -26,6 +29,30 @@ const LandingPage: React.FC = () => {
 
     checkAuthStatus();
   }, [navigate]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Show header when scrolling down past 200px
+      if (currentScrollY > 200 && currentScrollY > lastScrollY) {
+        setShowFloatingHeader(true);
+      }
+      // Hide header when scrolling up or at the top (but keep it visible at the very top)
+      else if (currentScrollY < lastScrollY && currentScrollY > 50) {
+        setShowFloatingHeader(false);
+      }
+      // Always show at the very top
+      else if (currentScrollY <= 50) {
+        setShowFloatingHeader(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   const handleGoogleSignIn = () => {
     // Redirect to backend OAuth endpoint
@@ -45,6 +72,34 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-amber-50">
+      {/* Floating Header */}
+      <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${showFloatingHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        }`}>
+        <div className="bg-gradient-to-br from-emerald-50/80 via-green-50/80 to-amber-50/80 backdrop-blur-sm border-b border-emerald-200/30 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Left side - Logo and Name */}
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-green-600 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🌱</span>
+                </div>
+                <span className="text-xl font-bold text-gray-800">SproutSync</span>
+              </div>
+
+              {/* Center - Newsletter signup */}
+              <div className="flex-1 flex justify-center">
+                <button className="text-sm text-gray-600 hover:bg-emerald-100 hover:border-emerald-300 border border-transparent px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer">
+                  Newsletter coming soon! Click <span className="font-bold">here</span> to sign up.
+                </button>
+              </div>
+
+              {/* Right side - Empty for balance */}
+              <div className="w-24"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-200 rounded-full opacity-20 blur-3xl"></div>
@@ -56,24 +111,21 @@ const LandingPage: React.FC = () => {
         {/* Top spacing for mobile */}
         <div className="pt-8 sm:pt-12 lg:pt-16"></div>
 
-         {/* Header */}
-         <div className="text-center mb-8 sm:mb-12">
+        {/* Header */}
+        <div className="text-center mb-8 sm:mb-12">
           <div className="flex justify-center mb-4 sm:mb-6">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-3xl sm:text-4xl">🌱</span>
-            </div>
           </div>
-          
+
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 mb-4 sm:mb-6 leading-tight px-2">
             Nurture your plants,
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600">
-              nurture yourself
+              nurture yourself!
             </span>
           </h1>
-          
+
           <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed px-4">
-            Transform your plant care journey into a mindful ritual. Track, learn, and grow alongside your green companions with our intuitive plant care app.
+            Transform your plant care journey into a mindful ritual. <br />Track, learn, and grow alongside your green companions<br /> with our intuitive plant care app.
           </p>
         </div>
 
@@ -86,15 +138,15 @@ const LandingPage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             <div className="relative flex items-center space-x-3">
               <svg className="w-6 h-6" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
               <span>Sign in with Google</span>
             </div>
           </button>
-          
+
           <p className="text-sm text-gray-500 mt-4">
             Join thousands of plant lovers already growing with us
           </p>
@@ -102,37 +154,51 @@ const LandingPage: React.FC = () => {
 
         {/* Features */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 max-w-6xl mx-auto">
-          <div className="text-center p-4 sm:p-6 bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">📅</span>
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+            <div className="w-full h-48 sm:h-56">
+              <img
+                src="/calendar_landingpage.png"
+                alt="Smart Scheduling"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Smart Scheduling</h3>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Never miss a watering or feeding with personalized care reminders</p>
+            <div className="p-4 sm:p-6 text-center">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Smart Scheduling</h3>
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Never miss a watering or feeding with personalized care reminders</p>
+            </div>
           </div>
 
-          <div className="text-center p-4 sm:p-6 bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">📸</span>
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+            <div className="w-full h-48 sm:h-56">
+              <img
+                src="/AIidentify_landingpage.png"
+                alt="Plant Identification"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Plant Identification</h3>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Identify unknown plants and get expert care tips instantly</p>
+            <div className="p-4 sm:p-6 text-center">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Plant Identification</h3>
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Identify unknown plants and get expert care tips instantly</p>
+            </div>
           </div>
 
-          <div className="text-center p-4 sm:p-6 bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 sm:col-span-2 lg:col-span-1">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <span className="text-xl sm:text-2xl">📊</span>
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden sm:col-span-2 lg:col-span-1">
+            <div className="w-full h-48 sm:h-56">
+              <img
+                src="/growth_landingpage.png"
+                alt="Growth Tracking"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Growth Tracking</h3>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Monitor your plants' progress and celebrate their milestones</p>
+            <div className="p-4 sm:p-6 text-center">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Growth Tracking</h3>
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Monitor your plants' progress and celebrate their milestones</p>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-auto pb-8 text-center">
-          <p className="text-xs sm:text-sm text-gray-400">
-            Made with 🌱 for plant enthusiasts
-          </p>
-        </div>
+        <Footer />
       </div>
     </div>
   );

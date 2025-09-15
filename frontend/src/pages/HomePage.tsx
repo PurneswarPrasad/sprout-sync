@@ -530,7 +530,7 @@ const HomePage: React.FC = () => {
                                   <img
                                     src={plant.photos[0].secureUrl}
                                     alt={plant.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain"
                                   />
                                 </div>
                               ) : (
