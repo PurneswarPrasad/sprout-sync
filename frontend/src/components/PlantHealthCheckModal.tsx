@@ -1,0 +1,426 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Camera, Loader2, Upload, Heart } from 'lucide-react';
+import { CloudinaryService } from '../services/cloudinaryService';
+import { aiAPI } from '../services/api';
+
+interface PlantHealthCheckModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface HealthAnalysis {
+  speciesGuess: string;
+  confidence: number;
+  disease: {
+    issue: string | null;
+    description: string | null;
+    affected: string | null;
+    steps: string | null;
+    issueConfidence: number | null;
+  };
+}
+
+const PlantHealthCheckModal: React.FC<PlantHealthCheckModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [originalPhotoUrl, setOriginalPhotoUrl] = useState<string>('');
+  const [cloudinaryPublicId, setCloudinaryPublicId] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisError, setAnalysisError] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<HealthAnalysis | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const resetModalState = async () => {
+    // Clean up Cloudinary image if it was uploaded
+    if (cloudinaryPublicId) {
+      try {
+        await CloudinaryService.deleteImage(cloudinaryPublicId);
+        console.log('Deleted image from Cloudinary:', cloudinaryPublicId);
+      } catch (error) {
+        console.error('Error deleting image from Cloudinary:', error);
+        // Continue with cleanup even if deletion fails
+      }
+    }
+    
+    setPhotoUrl('');
+    setOriginalPhotoUrl('');
+    setCloudinaryPublicId('');
+    setIsAnalyzing(false);
+    setAnalysisError('');
+    setCapturedImage(null);
+    setAnalysis(null);
+    setActiveTab('camera');
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetModalState();
+    }
+  }, [isOpen]);
+
+  const handleClose = async () => {
+    await resetModalState();
+    onClose();
+  };
+
+  const handleDeleteImage = async () => {
+    if (cloudinaryPublicId) {
+      try {
+        await CloudinaryService.deleteImage(cloudinaryPublicId);
+        console.log('Deleted image from Cloudinary:', cloudinaryPublicId);
+      } catch (error) {
+        console.error('Error deleting image from Cloudinary:', error);
+        // Continue with frontend cleanup even if Cloudinary deletion fails
+      }
+    }
+    
+    // Clean up frontend state
+    setPhotoUrl('');
+    setOriginalPhotoUrl('');
+    setCloudinaryPublicId('');
+    setCapturedImage(null);
+    setAnalysis(null);
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setAnalysisError('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (!allowedTypes.includes(file.type)) {
+      setAnalysisError('Please upload a valid image file (JPG, PNG, WebP, HEIC)');
+      return;
+    }
+
+    try {
+      setAnalysisError('');
+      setIsAnalyzing(true);
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setCapturedImage(previewUrl);
+
+      const result = await CloudinaryService.uploadImage(file);
+      
+      setPhotoUrl(result.optimized_url);
+      setOriginalPhotoUrl(result.original_url);
+      setCloudinaryPublicId(result.public_id);
+
+      console.log('Uploaded image to Cloudinary:', result);
+
+      // Automatically analyze the image after upload
+      await analyzeImage(result.original_url);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setAnalysisError('Failed to upload image. Please try again.');
+      setCapturedImage(null);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleTakePhoto = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const analyzeImage = async (imageUrl: string) => {
+    try {
+      setIsAnalyzing(true);
+      setAnalysisError('');
+
+      const response = await aiAPI.analyzeHealthByUrl(imageUrl);
+
+      if (response.data.success && response.data.data) {
+        setAnalysis(response.data.data);
+      } else {
+        setAnalysisError('Failed to analyze image. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      setAnalysisError('Failed to analyze image. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Handle back button and escape key
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    const handlePopState = () => {
+      if (isOpen) {
+        handleClose();
+        // Push a new state to prevent going back
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      window.addEventListener('popstate', handlePopState);
+      // Push a new state when modal opens
+      window.history.pushState(null, '', window.location.href);
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscapeKey);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+        {/* Header - Fixed */}
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
+            Check Plant Health
+          </h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-4">
+            {/* Photo Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Photo
+              </label>
+              
+              {!capturedImage ? (
+                <div className="space-y-4">
+                  {/* Tab Navigation */}
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setActiveTab('camera')}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        activeTab === 'camera'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Camera className="w-4 h-4" />
+                        Take Photo
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('upload')}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        activeTab === 'upload'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Camera Tab */}
+                  {activeTab === 'camera' && (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="bg-gray-100 rounded-xl p-8 mb-4">
+                          <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 mb-4">
+                            Take a photo of your plant to analyze its health
+                          </p>
+                          <button
+                            onClick={handleTakePhoto}
+                            disabled={isAnalyzing}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isAnalyzing ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Processing...
+                              </div>
+                            ) : (
+                              'Take Photo'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Hidden file input for camera capture */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+
+                  {/* Upload Tab */}
+                  {activeTab === 'upload' && (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <div className="bg-gray-100 rounded-xl p-8 mb-4">
+                          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 mb-4">
+                            Upload a photo from your device
+                          </p>
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isAnalyzing}
+                            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isAnalyzing ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Processing...
+                              </div>
+                            ) : (
+                              'Choose File'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Hidden file input for upload */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Image Preview */
+                <div className="space-y-4">
+                  <div className="relative">
+                    <img
+                      src={capturedImage}
+                      alt="Captured plant photo"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={handleDeleteImage}
+                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  {isAnalyzing && (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 text-blue-500 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Analyzing plant health...</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Analysis Results */}
+            {analysis && (
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-emerald-600" />
+                    Analysis Results
+                  </h3>
+                  
+                  {/* Species Guess */}
+                  <div className="mb-3">
+                    <p className="text-sm text-gray-600">Species:</p>
+                    <p className="font-medium text-gray-800">{analysis.speciesGuess}</p>
+                    <p className="text-xs text-gray-500">Confidence: {Math.round(analysis.confidence * 100)}%</p>
+                  </div>
+
+                  {/* Health Status */}
+                  <div>
+                    <p className="text-sm text-gray-600">Health Status:</p>
+                    {analysis.disease.issue ? (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="font-medium text-red-800">⚠️ Issue Detected: {analysis.disease.issue}</p>
+                        {analysis.disease.description && (
+                          <p className="text-sm text-red-700 mt-1">{analysis.disease.description}</p>
+                        )}
+                        {analysis.disease.affected && (
+                          <p className="text-sm text-red-700 mt-1"><strong>Affected:</strong> {analysis.disease.affected}</p>
+                        )}
+                        {analysis.disease.steps && (
+                          <p className="text-sm text-red-700 mt-1"><strong>Care Steps:</strong> {analysis.disease.steps}</p>
+                        )}
+                        {analysis.disease.issueConfidence && (
+                          <p className="text-xs text-red-600 mt-1">Confidence: {Math.round(analysis.disease.issueConfidence * 100)}%</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="font-medium text-green-800">✅ Plant appears healthy!</p>
+                        <p className="text-sm text-green-700 mt-1">No significant issues detected. Continue with regular care routine.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {analysisError && (
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                {analysisError}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer - Fixed */}
+        <div className="border-t border-gray-200 p-6">
+          <button
+            onClick={handleClose}
+            className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PlantHealthCheckModal;

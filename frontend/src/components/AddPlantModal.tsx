@@ -1,11 +1,12 @@
 import React from 'react';
-import { Camera, PenTool, X } from 'lucide-react';
+import { Camera, PenTool, X, Heart } from 'lucide-react';
 
 interface AddPlantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onManualEntry: () => void;
   onCameraID: () => void;
+  onCheckHealth: () => void;
 }
 
 export const AddPlantModal: React.FC<AddPlantModalProps> = ({
@@ -13,6 +14,7 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({
   onClose,
   onManualEntry,
   onCameraID,
+  onCheckHealth,
 }) => {
   if (!isOpen) return null;
 
@@ -55,6 +57,19 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({
             <div className="text-left">
               <h3 className="font-semibold text-gray-800">Manual Entry</h3>
               <p className="text-sm text-gray-600">Enter plant details manually</p>
+            </div>
+          </button>
+
+          <button
+            onClick={onCheckHealth}
+            className="w-full p-4 border-2 border-gray-300 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 flex items-center gap-4"
+          >
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+              <Heart className="w-6 h-6 text-gray-600" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-800">Check Plant Health</h3>
+              <p className="text-sm text-gray-600">Analyze any plant's health without adding it</p>
             </div>
           </button>
         </div>

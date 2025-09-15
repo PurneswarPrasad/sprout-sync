@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
+import PlantHealthCheckModal from './PlantHealthCheckModal';
 import { Footer } from './Footer';
 import { authAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -23,6 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { logout: logoutFromStore } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  const [showHealthCheckModal, setShowHealthCheckModal] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -276,6 +278,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           setShowAddPlantModal(false);
           navigate('/ai-identification');
         }}
+        onCheckHealth={() => {
+          setShowAddPlantModal(false);
+          setShowHealthCheckModal(true);
+        }}
+      />
+
+      {/* Plant Health Check Modal */}
+      <PlantHealthCheckModal
+        isOpen={showHealthCheckModal}
+        onClose={() => setShowHealthCheckModal(false)}
       />
     </div>
   );
