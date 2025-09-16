@@ -5,6 +5,7 @@ import { Layout } from '../components/Layout';
 import { ArrowLeft, Plus, Check, X, Upload, Camera, Trash2 } from 'lucide-react';
 import { ConfidenceNotification } from '../components/ConfidenceNotification';
 import { CityAutocomplete } from '../components/CityAutocomplete';
+import { PlantCareCards } from '../components/PlantCareCards';
 import { CloudinaryService, CloudinaryUploadResult } from '../services/cloudinaryService';
 
 // Helper function to get today's date in YYYY-MM-DD format in local timezone
@@ -52,6 +53,19 @@ const getTaskIcon = (taskKey: string): string => {
   return iconMap[taskKey] || '🌿';
 };
 
+// Helper function to generate dynamic task frequency text
+const getTaskFrequencyText = (template: TaskTemplate, selectedTask?: SelectedTask): string => {
+  const frequency = selectedTask?.frequency || template.defaultFrequencyDays;
+  const isSuggested = selectedTask?.isSuggested || false;
+  
+  if (frequency === 1) {
+    return isSuggested ? 'Suggested: everyday' : 'Default: everyday';
+  } else {
+    const prefix = isSuggested ? 'Suggested' : 'Default';
+    return `${prefix}: every ${frequency} days`;
+  }
+};
+
 interface TaskTemplate {
   id: string;
   key: string;
@@ -66,6 +80,7 @@ interface SelectedTask {
   colorHex: string;
   frequency: number;
   lastCompleted?: string;
+  isSuggested?: boolean; // Track if frequency was changed from default or set by AI
 }
 
 export const AddPlantPage: React.FC = () => {
@@ -84,6 +99,9 @@ export const AddPlantPage: React.FC = () => {
     type: '',
     acquisitionDate: '',
     city: '',
+    careLevel: '',
+    sunRequirements: '',
+    toxicityLevel: '',
   });
 
 
@@ -214,6 +232,7 @@ export const AddPlantPage: React.FC = () => {
         label: template.label,
         colorHex: template.colorHex,
         frequency: template.defaultFrequencyDays,
+        isSuggested: false, // Default tasks are not suggested
         ...(template.defaultFrequencyDays === 1 && { lastCompleted: getTodayDateString() })
       };
 
@@ -224,16 +243,33 @@ export const AddPlantPage: React.FC = () => {
   const updateTaskFrequency = (taskKey: string, frequency: number) => {
     setSelectedTasks(selectedTasks.map(task => {
       if (task.key === taskKey) {
+        const template = taskTemplates.find(t => t.key === taskKey);
+        const isDefaultFrequency = template && frequency === template.defaultFrequencyDays;
+        
         // If frequency is set to 1, automatically set lastCompleted to today
         if (frequency === 1) {
-          return { ...task, frequency, lastCompleted: getTodayDateString() };
+          return { 
+            ...task, 
+            frequency, 
+            lastCompleted: getTodayDateString(),
+            isSuggested: !isDefaultFrequency
+          };
         }
         // If frequency was 1 and is now changed to something else, clear lastCompleted
         else if (task.frequency === 1) {
-          return { ...task, frequency, lastCompleted: undefined };
+          return { 
+            ...task, 
+            frequency, 
+            lastCompleted: undefined,
+            isSuggested: !isDefaultFrequency
+          };
         }
-        // Otherwise, just update frequency
-        return { ...task, frequency };
+        // Otherwise, just update frequency and mark as suggested if not default
+        return { 
+          ...task, 
+          frequency,
+          isSuggested: !isDefaultFrequency
+        };
       }
       return task;
     }));
@@ -355,6 +391,23 @@ export const AddPlantPage: React.FC = () => {
     setAiData(null); // Clear AI data when image is deleted
   };
 
+  // Cleanup function to delete uploaded images when navigating away
+  const cleanupUploadedImages = async () => {
+    if (imageUploadResult) {
+      try {
+        console.log('Cleaning up uploaded image:', imageUploadResult.public_id);
+        await CloudinaryService.deleteImage(imageUploadResult.public_id);
+        console.log('Successfully deleted image from Cloudinary');
+      } catch (error) {
+        console.error('Error cleaning up image from Cloudinary:', error);
+      }
+    }
+
+    if (imagePreview) {
+      CloudinaryService.revokePreviewUrl(imagePreview);
+    }
+  };
+
   // Function to handle AI identification data
   const handleAIIdentification = async (aiData: any) => {
     console.log('handleAIIdentification: Processing AI data', { 
@@ -373,22 +426,28 @@ export const AddPlantPage: React.FC = () => {
     // Store AI data for later use (e.g., for the tag message)
     setAiData(aiData);
 
-    // Set plant names and type from AI identification
+    // Set plant names, type, and care information from AI identification
     setFormData(prev => ({
       ...prev,
       botanicalName: aiData.botanicalName || '',
       commonName: aiData.commonName || '',
       type: aiData.plantType || '',
+      careLevel: aiData.careLevel || '',
+      sunRequirements: aiData.sunRequirements || '',
+      toxicityLevel: aiData.toxicityLevel || '',
     }));
 
     // Convert AI suggested tasks to selected tasks
     const aiTasks: SelectedTask[] = aiData.suggestedTasks.map((task: any) => {
       const template = taskTemplates.find(t => t.key === task.name);
+      const isDefaultFrequency = template && task.frequencyDays === template.defaultFrequencyDays;
+      
       return {
         key: task.name,
         label: template?.label || task.name,
         colorHex: template?.colorHex || '#3B82F6',
         frequency: task.frequencyDays,
+        isSuggested: !isDefaultFrequency, // Mark as suggested if not default frequency
         ...(task.frequencyDays === 1 && { lastCompleted: getTodayDateString() })
       };
     });
@@ -582,7 +641,10 @@ export const AddPlantPage: React.FC = () => {
           {/* Header */}
           <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={() => navigate('/plants')}
+              onClick={async () => {
+                await cleanupUploadedImages();
+                navigate('/plants');
+              }}
               className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -815,6 +877,19 @@ export const AddPlantPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Plant Care Information Cards */}
+            {(formData.careLevel || formData.sunRequirements || formData.toxicityLevel || selectedTasks.length > 0) && (
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">Plant Care Information</h2>
+                <PlantCareCards
+                  careLevel={formData.careLevel as 'Easy' | 'Moderate' | 'Difficult' | undefined}
+                  waterFrequency={selectedTasks.find(task => task.key === 'watering')?.frequency}
+                  sunRequirements={formData.sunRequirements as 'No sun' | 'Part to Full' | 'Full sun' | undefined}
+                  toxicityLevel={formData.toxicityLevel as 'Low' | 'Medium' | 'High' | undefined}
+                />
+              </div>
+            )}
+
             {/* Care Tasks */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
@@ -870,7 +945,7 @@ export const AddPlantPage: React.FC = () => {
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-medium text-gray-800 truncate">{template.label}</h3>
                                 <p className="text-sm text-gray-600 truncate">
-                                  Default: every {template.defaultFrequencyDays} days
+                                  {getTaskFrequencyText(template, selectedTask)}
                                 </p>
                               </div>
                               {!isSelected && <div className="w-6 h-6 flex items-center justify-center text-lg flex-shrink-0">
@@ -932,7 +1007,10 @@ export const AddPlantPage: React.FC = () => {
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => navigate('/plants')}
+                onClick={async () => {
+                  await cleanupUploadedImages();
+                  navigate('/plants');
+                }}
                 className="flex-1 px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
               >
                 Cancel

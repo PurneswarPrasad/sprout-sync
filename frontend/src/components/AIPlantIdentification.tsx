@@ -46,6 +46,20 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
+  // Cleanup function to revoke any temporary image URLs
+  const cleanupTemporaryImages = () => {
+    if (capturedImage && capturedImage.startsWith('blob:')) {
+      URL.revokeObjectURL(capturedImage);
+    }
+  };
+
+  // Cleanup on component unmount
+  React.useEffect(() => {
+    return () => {
+      cleanupTemporaryImages();
+    };
+  }, [capturedImage]);
+
   const handleTakePhotoClick = () => {
     setShowTipsModal(true);
     setCurrentTipIndex(0);
@@ -153,7 +167,10 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={onBack}
+            onClick={() => {
+              cleanupTemporaryImages();
+              onBack();
+            }}
             className="p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:bg-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />

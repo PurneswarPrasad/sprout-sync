@@ -14,6 +14,9 @@ exports.createPlantSchema = zod_1.z.object({
         return !isNaN(date.getTime());
     }, 'Invalid date format'),
     city: zod_1.z.string().optional(),
+    careLevel: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']).optional(),
+    sunRequirements: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']).optional(),
+    toxicityLevel: zod_1.z.enum(['Low', 'Medium', 'High']).optional(),
 });
 exports.updatePlantSchema = exports.createPlantSchema.partial();
 exports.plantResponseSchema = zod_1.z.object({
@@ -25,6 +28,9 @@ exports.plantResponseSchema = zod_1.z.object({
     type: zod_1.z.string().nullable(),
     acquisitionDate: zod_1.z.date().nullable(),
     city: zod_1.z.string().nullable(),
+    careLevel: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']).nullable(),
+    sunRequirements: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']).nullable(),
+    toxicityLevel: zod_1.z.enum(['Low', 'Medium', 'High']).nullable(),
     createdAt: zod_1.z.date(),
     updatedAt: zod_1.z.date(),
     _count: zod_1.z.object({

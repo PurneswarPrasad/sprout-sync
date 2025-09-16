@@ -34,6 +34,9 @@ model Plant {
   type            String?
   acquisitionDate DateTime?
   city            String?
+  careLevel       String?       // Easy, Moderate, Difficult
+  sunRequirements String?       // No sun, Part to Full, Full sun
+  toxicityLevel   String?       // Low, Medium, High
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

@@ -3,6 +3,9 @@ export interface AIPlantIdentification {
     commonName: string;
     plantType: string;
     confidence: number;
+    careLevel: 'Easy' | 'Moderate' | 'Difficult';
+    sunRequirements: 'No sun' | 'Part to Full' | 'Full sun';
+    toxicityLevel: 'Low' | 'Medium' | 'High';
     care: {
         watering: string;
         fertilizing: string;

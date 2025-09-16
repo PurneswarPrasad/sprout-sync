@@ -12,6 +12,9 @@ export const createPlantSchema = z.object({
     return !isNaN(date.getTime());
   }, 'Invalid date format'),
   city: z.string().optional(),
+  careLevel: z.enum(['Easy', 'Moderate', 'Difficult']).optional(),
+  sunRequirements: z.enum(['No sun', 'Part to Full', 'Full sun']).optional(),
+  toxicityLevel: z.enum(['Low', 'Medium', 'High']).optional(),
 });
 
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
@@ -31,6 +34,9 @@ export const plantResponseSchema = z.object({
   type: z.string().nullable(),
   acquisitionDate: z.date().nullable(),
   city: z.string().nullable(),
+  careLevel: z.enum(['Easy', 'Moderate', 'Difficult']).nullable(),
+  sunRequirements: z.enum(['No sun', 'Part to Full', 'Full sun']).nullable(),
+  toxicityLevel: z.enum(['Low', 'Medium', 'High']).nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   _count: z.object({

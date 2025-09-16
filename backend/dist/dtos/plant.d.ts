@@ -6,6 +6,9 @@ export declare const createPlantSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodString>;
     acquisitionDate: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>;
     city: z.ZodOptional<z.ZodString>;
+    careLevel: z.ZodOptional<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>;
+    sunRequirements: z.ZodOptional<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>;
+    toxicityLevel: z.ZodOptional<z.ZodEnum<["Low", "Medium", "High"]>>;
 }, "strip", z.ZodTypeAny, {
     botanicalName: string;
     commonName: string;
@@ -13,6 +16,9 @@ export declare const createPlantSchema: z.ZodObject<{
     petName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
 }, {
     botanicalName: string;
     commonName: string;
@@ -20,6 +26,9 @@ export declare const createPlantSchema: z.ZodObject<{
     petName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
 }>;
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
 export declare const updatePlantSchema: z.ZodObject<{
@@ -29,6 +38,9 @@ export declare const updatePlantSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     acquisitionDate: z.ZodOptional<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>>;
     city: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    careLevel: z.ZodOptional<z.ZodOptional<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>>;
+    sunRequirements: z.ZodOptional<z.ZodOptional<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>>;
+    toxicityLevel: z.ZodOptional<z.ZodOptional<z.ZodEnum<["Low", "Medium", "High"]>>>;
 }, "strip", z.ZodTypeAny, {
     type?: string | undefined;
     petName?: string | undefined;
@@ -36,6 +48,9 @@ export declare const updatePlantSchema: z.ZodObject<{
     commonName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
 }, {
     type?: string | undefined;
     petName?: string | undefined;
@@ -43,6 +58,9 @@ export declare const updatePlantSchema: z.ZodObject<{
     commonName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
 }>;
 export type UpdatePlantDTO = z.infer<typeof updatePlantSchema>;
 export declare const plantResponseSchema: z.ZodObject<{
@@ -54,6 +72,9 @@ export declare const plantResponseSchema: z.ZodObject<{
     type: z.ZodNullable<z.ZodString>;
     acquisitionDate: z.ZodNullable<z.ZodDate>;
     city: z.ZodNullable<z.ZodString>;
+    careLevel: z.ZodNullable<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>;
+    sunRequirements: z.ZodNullable<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>;
+    toxicityLevel: z.ZodNullable<z.ZodEnum<["Low", "Medium", "High"]>>;
     createdAt: z.ZodDate;
     updatedAt: z.ZodDate;
     _count: z.ZodOptional<z.ZodObject<{
@@ -75,6 +96,9 @@ export declare const plantResponseSchema: z.ZodObject<{
     commonName: string | null;
     acquisitionDate: Date | null;
     city: string | null;
+    careLevel: "Easy" | "Moderate" | "Difficult" | null;
+    sunRequirements: "No sun" | "Part to Full" | "Full sun" | null;
+    toxicityLevel: "Low" | "Medium" | "High" | null;
     userId: string;
     updatedAt: Date;
     _count?: {
@@ -90,6 +114,9 @@ export declare const plantResponseSchema: z.ZodObject<{
     commonName: string | null;
     acquisitionDate: Date | null;
     city: string | null;
+    careLevel: "Easy" | "Moderate" | "Difficult" | null;
+    sunRequirements: "No sun" | "Part to Full" | "Full sun" | null;
+    toxicityLevel: "Low" | "Medium" | "High" | null;
     userId: string;
     updatedAt: Date;
     _count?: {

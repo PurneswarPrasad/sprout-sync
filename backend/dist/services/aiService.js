@@ -29,6 +29,9 @@ You are a plant identification expert. Analyze the provided image and return a J
   "commonName": "Common name of the plant (or empty string if unknown)",
   "plantType": "Category of the plant",
   "confidence": 0.92,
+  "careLevel": "Easy" | "Moderate" | "Difficult",
+  "sunRequirements": "No sun" | "Part to Full" | "Full sun",
+  "toxicityLevel": "Low" | "Medium" | "High",
   "care": {
     "watering": "Detailed watering instructions",
     "fertilizing": "Detailed fertilizing instructions", 
@@ -53,6 +56,9 @@ Important guidelines:
 - Provide specific, actionable care instructions (how much, how often, environmental cues).
 - Use reasonable frequencyDays for suggestedTasks.
 - Ensure all task names match exactly: watering, fertilizing, pruning, spraying, sunlightRotation.
+- For careLevel: "Easy" for beginner-friendly plants, "Moderate" for plants needing some attention, "Difficult" for plants requiring expert care.
+- For sunRequirements: "No sun" for shade-loving plants, "Part to Full" for plants that tolerate partial shade, "Full sun" for sun-loving plants.
+- For toxicityLevel: "Low" for safe plants, "Medium" for plants with mild toxicity, "High" for plants that are highly toxic to humans/pets.
 `;
             let imagePart;
             if (typeof imageData === 'string') {
@@ -345,6 +351,9 @@ Important guidelines:
             commonName: response.commonName || '',
             plantType: response.plantType || 'Unknown Type',
             confidence: Math.min(Math.max(response.confidence || 0.5, 0), 1),
+            careLevel: response.careLevel || 'Moderate',
+            sunRequirements: response.sunRequirements || 'Part to Full',
+            toxicityLevel: response.toxicityLevel || 'Low',
             care: {
                 watering: response.care?.watering || 'Water when soil is dry',
                 fertilizing: response.care?.fertilizing || 'Fertilize monthly during growing season',
