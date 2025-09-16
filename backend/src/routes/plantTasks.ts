@@ -68,7 +68,9 @@ router.get('/', authenticateJWT, checkPlantOwnership, async (req, res) => {
           plant: {
             select: {
               id: true,
-              name: true,
+              petName: true,
+              botanicalName: true,
+              commonName: true,
               type: true,
             },
           },
@@ -121,7 +123,9 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskS
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -164,7 +168,9 @@ router.get('/:taskId', authenticateJWT, checkPlantOwnership, async (req, res) =>
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -226,7 +232,9 @@ router.put('/:taskId', authenticateJWT, checkPlantOwnership, validate(updatePlan
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -269,7 +277,9 @@ router.delete('/:taskId', authenticateJWT, checkPlantOwnership, async (req, res)
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -336,7 +346,9 @@ router.post('/:taskId/complete', authenticateJWT, checkPlantOwnership, async (re
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -393,7 +405,9 @@ router.post('/:taskId/reschedule', authenticateJWT, checkPlantOwnership, async (
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },

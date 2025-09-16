@@ -9,7 +9,8 @@ interface PlantHealthCheckModalProps {
 }
 
 interface HealthAnalysis {
-  speciesGuess: string;
+  botanicalName: string;
+  commonName: string;
   confidence: number;
   disease: {
     issue: string | null;
@@ -365,8 +366,14 @@ const PlantHealthCheckModal: React.FC<PlantHealthCheckModalProps> = ({
                   
                   {/* Species Guess */}
                   <div className="mb-3">
-                    <p className="text-sm text-gray-600">Species:</p>
-                    <p className="font-medium text-gray-800">{analysis.speciesGuess}</p>
+                    <p className="text-sm text-gray-600">Botanical Name:</p>
+                    <p className="font-medium text-gray-800">{analysis.botanicalName}</p>
+                    {analysis.commonName && (
+                      <>
+                        <p className="text-sm text-gray-600 mt-1">Common Name:</p>
+                        <p className="font-medium text-gray-800">{analysis.commonName}</p>
+                      </>
+                    )}
                     <p className="text-xs text-gray-500">Confidence: {Math.round(analysis.confidence * 100)}%</p>
                   </div>
 

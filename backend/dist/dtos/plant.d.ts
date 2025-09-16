@@ -1,34 +1,46 @@
 import { z } from 'zod';
 export declare const createPlantSchema: z.ZodObject<{
-    name: z.ZodString;
+    petName: z.ZodOptional<z.ZodString>;
+    botanicalName: z.ZodString;
+    commonName: z.ZodString;
     type: z.ZodOptional<z.ZodString>;
     acquisitionDate: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>;
     city: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
+    botanicalName: string;
+    commonName: string;
     type?: string | undefined;
+    petName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
 }, {
-    name: string;
+    botanicalName: string;
+    commonName: string;
     type?: string | undefined;
+    petName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
 }>;
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
 export declare const updatePlantSchema: z.ZodObject<{
-    name: z.ZodOptional<z.ZodString>;
+    petName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    botanicalName: z.ZodOptional<z.ZodString>;
+    commonName: z.ZodOptional<z.ZodString>;
     type: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     acquisitionDate: z.ZodOptional<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>>;
     city: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
-    name?: string | undefined;
     type?: string | undefined;
+    petName?: string | undefined;
+    botanicalName?: string | undefined;
+    commonName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
 }, {
-    name?: string | undefined;
     type?: string | undefined;
+    petName?: string | undefined;
+    botanicalName?: string | undefined;
+    commonName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
 }>;
@@ -36,7 +48,9 @@ export type UpdatePlantDTO = z.infer<typeof updatePlantSchema>;
 export declare const plantResponseSchema: z.ZodObject<{
     id: z.ZodString;
     userId: z.ZodString;
-    name: z.ZodString;
+    petName: z.ZodNullable<z.ZodString>;
+    botanicalName: z.ZodNullable<z.ZodString>;
+    commonName: z.ZodNullable<z.ZodString>;
     type: z.ZodNullable<z.ZodString>;
     acquisitionDate: z.ZodNullable<z.ZodDate>;
     city: z.ZodNullable<z.ZodString>;
@@ -54,9 +68,11 @@ export declare const plantResponseSchema: z.ZodObject<{
     }>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
-    name: string;
     createdAt: Date;
     type: string | null;
+    petName: string | null;
+    botanicalName: string | null;
+    commonName: string | null;
     acquisitionDate: Date | null;
     city: string | null;
     userId: string;
@@ -67,9 +83,11 @@ export declare const plantResponseSchema: z.ZodObject<{
     } | undefined;
 }, {
     id: string;
-    name: string;
     createdAt: Date;
     type: string | null;
+    petName: string | null;
+    botanicalName: string | null;
+    commonName: string | null;
     acquisitionDate: Date | null;
     city: string | null;
     userId: string;

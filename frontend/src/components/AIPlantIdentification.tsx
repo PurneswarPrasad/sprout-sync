@@ -10,7 +10,9 @@ interface AIPlantIdentificationProps {
 }
 
 interface AIIdentificationResult {
-  speciesGuess: string;
+  botanicalName: string;
+  commonName: string;
+  plantType: string;
   confidence: number;
   care: {
     watering: string;

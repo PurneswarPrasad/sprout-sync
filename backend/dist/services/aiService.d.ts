@@ -1,5 +1,6 @@
 export interface AIPlantIdentification {
-    speciesGuess: string;
+    botanicalName: string;
+    commonName: string;
     plantType: string;
     confidence: number;
     care: {
@@ -15,7 +16,8 @@ export interface AIPlantIdentification {
     }>;
 }
 export interface AIPlantHealthAnalysis {
-    speciesGuess: string;
+    botanicalName: string;
+    commonName: string;
     confidence: number;
     disease: {
         issue: string | null;

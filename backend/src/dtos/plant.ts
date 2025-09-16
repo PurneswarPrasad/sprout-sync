@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 // Create Plant DTO
 export const createPlantSchema = z.object({
-  name: z.string().min(1, 'Plant name is required'),
+  petName: z.string().optional(),
+  botanicalName: z.string().min(1, 'Botanical name is required'),
+  commonName: z.string().min(1, 'Common name is required'),
   type: z.string().optional(),
   acquisitionDate: z.string().optional().refine((val) => {
     if (!val) return true;
@@ -23,7 +25,9 @@ export type UpdatePlantDTO = z.infer<typeof updatePlantSchema>;
 export const plantResponseSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  name: z.string(),
+  petName: z.string().nullable(),
+  botanicalName: z.string().nullable(),
+  commonName: z.string().nullable(),
   type: z.string().nullable(),
   acquisitionDate: z.date().nullable(),
   city: z.string().nullable(),

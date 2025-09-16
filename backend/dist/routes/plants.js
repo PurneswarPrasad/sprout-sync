@@ -99,7 +99,9 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
         if (search) {
             const searchTerm = search.toString();
             whereClause.OR = [
-                { name: { contains: searchTerm, mode: 'insensitive' } },
+                { petName: { contains: searchTerm, mode: 'insensitive' } },
+                { botanicalName: { contains: searchTerm, mode: 'insensitive' } },
+                { commonName: { contains: searchTerm, mode: 'insensitive' } },
                 { type: { contains: searchTerm, mode: 'insensitive' } },
             ];
         }
@@ -249,7 +251,9 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
         const plant = await prisma_1.prisma.plant.create({
             data: {
                 userId: userId,
-                name: validatedData.name,
+                petName: validatedData.petName || null,
+                botanicalName: validatedData.botanicalName,
+                commonName: validatedData.commonName,
                 type: validatedData.type || null,
                 acquisitionDate: validatedData.acquisitionDate ? new Date(validatedData.acquisitionDate) : null,
                 city: validatedData.city || null,
@@ -380,8 +384,12 @@ router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.up
             });
         }
         const updateData = {};
-        if (validatedData.name !== undefined)
-            updateData.name = validatedData.name;
+        if (validatedData.petName !== undefined)
+            updateData.petName = validatedData.petName || null;
+        if (validatedData.botanicalName !== undefined)
+            updateData.botanicalName = validatedData.botanicalName;
+        if (validatedData.commonName !== undefined)
+            updateData.commonName = validatedData.commonName;
         if (validatedData.type !== undefined)
             updateData.type = validatedData.type || null;
         if (validatedData.acquisitionDate !== undefined)

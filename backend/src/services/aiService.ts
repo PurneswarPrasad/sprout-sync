@@ -3,7 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const genAI = new GoogleGenerativeAI(process.env['GEMINI_API_KEY']!);
 
 export interface AIPlantIdentification {
-  speciesGuess: string;
+  botanicalName: string;
+  commonName: string;
   plantType: string;
   confidence: number;
   care: {
@@ -20,7 +21,8 @@ export interface AIPlantIdentification {
 }
 
 export interface AIPlantHealthAnalysis {
-  speciesGuess: string;
+  botanicalName: string;
+  commonName: string;
   confidence: number;
   disease: {
     issue: string | null;
@@ -56,7 +58,8 @@ export class AIService {
 You are a plant identification expert. Analyze the provided image and return a JSON response with the following structure:
 
 {
-  "speciesGuess": "Scientific name or common name of the plant",
+  "botanicalName": "Botanical (scientific) name of the plant — REQUIRED (use \"Unknown Plant\" if you cannot identify)",
+  "commonName": "Common name of the plant (or empty string if unknown)",
   "plantType": "Category of the plant",
   "confidence": 0.92,
   "care": {
@@ -76,12 +79,13 @@ You are a plant identification expert. Analyze the provided image and return a J
 }
 
 Important guidelines:
-- Return ONLY valid JSON, no additional text
-- Use realistic confidence scores (0.7-0.95)
-- Provide specific, actionable care instructions
-- Use reasonable frequency days for tasks
-- If you can't identify the plant clearly, use "Unknown Plant" as speciesGuess with lower confidence
-- Ensure all task names match exactly: watering, fertilizing, pruning, spraying, sunlightRotation
+- Return ONLY valid JSON, no additional text.
+- The field \"botanicalName\" is REQUIRED. If you can't identify the plant clearly, set \"botanicalName\": \"Unknown Plant\" and lower the confidence.
+- \"commonName\" may be empty if unknown.
+- Use realistic confidence scores between 0.70 and 0.95.
+- Provide specific, actionable care instructions (how much, how often, environmental cues).
+- Use reasonable frequencyDays for suggestedTasks.
+- Ensure all task names match exactly: watering, fertilizing, pruning, spraying, sunlightRotation.
 `;
 
       let imagePart: any;
@@ -452,7 +456,8 @@ Important guidelines:
   private sanitizeAIResponse(response: any): AIPlantIdentification {
     // Ensure all required fields exist
     const sanitized: AIPlantIdentification = {
-      speciesGuess: response.speciesGuess || 'Unknown Plant',
+      botanicalName: response.botanicalName || 'Unknown Plant',
+      commonName: response.commonName || '',
       plantType: response.plantType || 'Unknown Type',
       confidence: Math.min(Math.max(response.confidence || 0.5, 0), 1),
       care: {
@@ -515,7 +520,8 @@ Do not include explanations or extra text outside the JSON.
 The JSON schema must look like this:
 
 {
-  "speciesGuess": string,             // Most likely species name
+  "botanicalName": string,            // Botanical (scientific) name of the plant
+  "commonName": string,               // Common name of the plant (or empty string if unknown)
   "confidence": number,               // 0–1, model confidence
   "disease": {
     "issue": string | null,           // Name of the detected issue (e.g., "Powdery mildew") or null if none
@@ -608,7 +614,8 @@ Rules:
   private sanitizeHealthAnalysisResponse(response: any): AIPlantHealthAnalysis {
     // Ensure all required fields exist
     const sanitized: AIPlantHealthAnalysis = {
-      speciesGuess: response.speciesGuess || 'Unknown Plant',
+      botanicalName: response.botanicalName || 'Unknown Plant',
+      commonName: response.commonName || '',
       confidence: Math.min(Math.max(response.confidence || 0.5, 0), 1),
       disease: {
         issue: response.disease?.issue || null,

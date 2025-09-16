@@ -110,7 +110,9 @@ router.get('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                         plant: {
                             select: {
                                 id: true,
-                                name: true,
+                                petName: true,
+                                botanicalName: true,
+                                commonName: true,
                                 type: true,
                             },
                         },

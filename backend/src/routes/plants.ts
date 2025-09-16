@@ -92,7 +92,9 @@ router.get('/', authenticateJWT, async (req, res) => {
     if (search) {
       const searchTerm = search.toString();
       whereClause.OR = [
-        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { petName: { contains: searchTerm, mode: 'insensitive' } },
+        { botanicalName: { contains: searchTerm, mode: 'insensitive' } },
+        { commonName: { contains: searchTerm, mode: 'insensitive' } },
         { type: { contains: searchTerm, mode: 'insensitive' } },
       ];
     }
@@ -260,7 +262,9 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
     const plant = await prisma.plant.create({
       data: {
         userId: userId,
-        name: validatedData.name as string,
+        petName: (validatedData.petName as string) || null,
+        botanicalName: validatedData.botanicalName as string,
+        commonName: validatedData.commonName as string,
         type: (validatedData.type as string) || null,
         acquisitionDate: (validatedData.acquisitionDate as string) ? new Date(validatedData.acquisitionDate as string) : null,
         city: (validatedData.city as string) || null,
@@ -413,7 +417,9 @@ router.put('/:id', authenticateJWT, validate(updatePlantSchema), async (req, res
     }
     
     const updateData: any = {};
-    if (validatedData.name !== undefined) updateData.name = validatedData.name;
+    if (validatedData.petName !== undefined) updateData.petName = validatedData.petName || null;
+    if (validatedData.botanicalName !== undefined) updateData.botanicalName = validatedData.botanicalName;
+    if (validatedData.commonName !== undefined) updateData.commonName = validatedData.commonName;
     if (validatedData.type !== undefined) updateData.type = validatedData.type || null;
     if (validatedData.acquisitionDate !== undefined) updateData.acquisitionDate = validatedData.acquisitionDate ? new Date(validatedData.acquisitionDate) : null;
     if (validatedData.city !== undefined) updateData.city = validatedData.city || null;

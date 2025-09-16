@@ -14,7 +14,9 @@ interface PlantTask {
 
 interface Plant {
     id: string;
-    name: string;
+    petName: string | null;
+    botanicalName: string | null;
+    commonName: string | null;
     type: string | null;
     tasks: PlantTask[];
 }

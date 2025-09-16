@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.plantResponseSchema = exports.updatePlantSchema = exports.createPlantSchema = void 0;
 const zod_1 = require("zod");
 exports.createPlantSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1, 'Plant name is required'),
+    petName: zod_1.z.string().optional(),
+    botanicalName: zod_1.z.string().min(1, 'Botanical name is required'),
+    commonName: zod_1.z.string().min(1, 'Common name is required'),
     type: zod_1.z.string().optional(),
     acquisitionDate: zod_1.z.string().optional().refine((val) => {
         if (!val)
@@ -17,7 +19,9 @@ exports.updatePlantSchema = exports.createPlantSchema.partial();
 exports.plantResponseSchema = zod_1.z.object({
     id: zod_1.z.string(),
     userId: zod_1.z.string(),
-    name: zod_1.z.string(),
+    petName: zod_1.z.string().nullable(),
+    botanicalName: zod_1.z.string().nullable(),
+    commonName: zod_1.z.string().nullable(),
     type: zod_1.z.string().nullable(),
     acquisitionDate: zod_1.z.date().nullable(),
     city: zod_1.z.string().nullable(),

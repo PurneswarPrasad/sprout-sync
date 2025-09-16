@@ -9,7 +9,9 @@ import { authAPI } from '../services/api';
 
 interface Plant {
   id: string;
-  name: string;
+  petName: string | null;
+  botanicalName: string | null;
+  commonName: string | null;
   type: string | null;
   acquisitionDate: string | null;
   city: string | null;
@@ -56,6 +58,21 @@ interface User {
   name: string;
   avatarUrl: string;
 }
+
+// Helper function to get display name for plant
+const getPlantDisplayName = (plant: Plant): string => {
+  if (plant.petName && plant.commonName) {
+    return `${plant.petName} (${plant.commonName})`;
+  } else if (plant.petName) {
+    return plant.petName;
+  } else if (plant.commonName) {
+    return plant.commonName;
+  } else if (plant.botanicalName) {
+    return plant.botanicalName;
+  } else {
+    return 'Unknown Plant';
+  }
+};
 
 export function PlantsPage() {
   const navigate = useNavigate();
@@ -169,7 +186,7 @@ export function PlantsPage() {
   };
 
   const filteredPlants = plants.filter(plant =>
-    plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getPlantDisplayName(plant).toLowerCase().includes(searchTerm.toLowerCase()) ||
     (plant.type && plant.type.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -305,14 +322,6 @@ export function PlantsPage() {
               <p className="text-gray-500 mb-4">
                 {searchTerm ? 'Try adjusting your search terms.' : 'Start by adding your first plant!'}
               </p>
-              {!searchTerm && (
-                <button
-                  onClick={() => navigate('/add-plant')}
-                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                >
-                  Add Your First Plant
-                </button>
-              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -331,7 +340,7 @@ export function PlantsPage() {
                         <div className="w-full rounded-lg overflow-hidden">
                           <img
                             src={plant.photos[0].secureUrl}
-                            alt={plant.name}
+                            alt={getPlantDisplayName(plant)}
                             className="w-full h-auto max-h-32 object-contain"
                           />
                         </div>
@@ -346,7 +355,7 @@ export function PlantsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          openDeleteDialog(plant.id, plant.name);
+                          openDeleteDialog(plant.id, getPlantDisplayName(plant));
                         }}
                         className="absolute top-2 left-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-red-50 hover:text-red-600 transition-colors text-gray-500"
                         title="Delete plant"
@@ -357,7 +366,7 @@ export function PlantsPage() {
 
                     <div className="space-y-3">
                       <div>
-                        <h3 className="font-semibold text-gray-800 truncate" title={plant.name}>{plant.name}</h3>
+                        <h3 className="font-semibold text-gray-800 truncate" title={getPlantDisplayName(plant)}>{getPlantDisplayName(plant)}</h3>
                         <p className="text-sm text-gray-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
                       </div>
 

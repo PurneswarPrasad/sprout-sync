@@ -60,7 +60,9 @@ router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res)
                     plant: {
                         select: {
                             id: true,
-                            name: true,
+                            petName: true,
+                            botanicalName: true,
+                            commonName: true,
                             type: true,
                         },
                     },
@@ -109,7 +111,9 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
                 plant: {
                     select: {
                         id: true,
-                        name: true,
+                        petName: true,
+                        botanicalName: true,
+                        commonName: true,
                         type: true,
                     },
                 },
@@ -148,7 +152,9 @@ router.get('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (re
                 plant: {
                     select: {
                         id: true,
-                        name: true,
+                        petName: true,
+                        botanicalName: true,
+                        commonName: true,
                         type: true,
                     },
                 },
@@ -206,7 +212,9 @@ router.put('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, valid
                 plant: {
                     select: {
                         id: true,
-                        name: true,
+                        petName: true,
+                        botanicalName: true,
+                        commonName: true,
                         type: true,
                     },
                 },
@@ -245,7 +253,9 @@ router.delete('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async 
                 plant: {
                     select: {
                         id: true,
-                        name: true,
+                        petName: true,
+                        botanicalName: true,
+                        commonName: true,
                         type: true,
                     },
                 },
@@ -302,7 +312,9 @@ router.post('/:taskId/complete', jwtAuth_1.authenticateJWT, checkPlantOwnership,
                 plant: {
                     select: {
                         id: true,
-                        name: true,
+                        petName: true,
+                        botanicalName: true,
+                        commonName: true,
                         type: true,
                     },
                 },
@@ -353,7 +365,9 @@ router.post('/:taskId/reschedule', jwtAuth_1.authenticateJWT, checkPlantOwnershi
                 plant: {
                     select: {
                         id: true,
-                        name: true,
+                        petName: true,
+                        botanicalName: true,
+                        commonName: true,
                         type: true,
                     },
                 },

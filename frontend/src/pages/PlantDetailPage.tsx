@@ -34,7 +34,9 @@ interface PlantTrackingUpdate {
 
 interface Plant {
   id: string;
-  name: string;
+  petName: string | null;
+  botanicalName: string | null;
+  commonName: string | null;
   type: string | null;
   acquisitionDate: string | null;
   city: string | null;
@@ -57,6 +59,21 @@ interface PlantPhoto {
   takenAt: string;
   pointsAwarded: number;
 }
+
+// Helper function to get display name for plant
+const getPlantDisplayName = (plant: Plant): string => {
+  if (plant.petName && plant.commonName) {
+    return `${plant.petName} (${plant.commonName})`;
+  } else if (plant.petName) {
+    return plant.petName;
+  } else if (plant.commonName) {
+    return plant.commonName;
+  } else if (plant.botanicalName) {
+    return plant.botanicalName;
+  } else {
+    return 'Unknown Plant';
+  }
+};
 
 export function PlantDetailPage() {
   const { plantId } = useParams<{ plantId: string }>();
@@ -417,7 +434,7 @@ export function PlantDetailPage() {
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex-shrink-0">
                 <img
                   src={plant.photos[0].secureUrl}
-                  alt={plant.name}
+                  alt={getPlantDisplayName(plant)}
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -427,7 +444,7 @@ export function PlantDetailPage() {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate" title={plant.name}>{plant.name}</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate" title={getPlantDisplayName(plant)}>{getPlantDisplayName(plant)}</h1>
               <p className="text-sm sm:text-base text-emerald-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
             </div>
           </div>
@@ -836,7 +853,7 @@ export function PlantDetailPage() {
             {/* Action Buttons - Centered in remaining space */}
             <div className={`flex items-center justify-center ${trackingUpdates.length > 0 ? 'py-8' : 'min-h-[60vh]'}`}>
               <PlantActionButtons
-                plantName={plant?.name || 'Plant'}
+                plantName={getPlantDisplayName(plant!)}
                 onTrackPlant={handleTrackPlant}
                 onMonitorHealth={handleMonitorHealth}
               />
@@ -878,7 +895,7 @@ export function PlantDetailPage() {
       <TaskCompletionDialog
         isOpen={showTaskDialog}
         task={{
-          plantName: plant?.name || '',
+          plantName: getPlantDisplayName(plant!),
           taskId: selectedTask?.id || '',
           plantId: plant?.id || ''
         }}
@@ -891,7 +908,7 @@ export function PlantDetailPage() {
       />
       <PlantTrackingModal
         isOpen={showTrackingModal}
-        plantName={plant?.name || ''}
+        plantName={getPlantDisplayName(plant!)}
         plantId={plant?.id || ''}
         onClose={() => setShowTrackingModal(false)}
         onSubmit={async (data: PlantTrackingData) => {
@@ -908,7 +925,7 @@ export function PlantDetailPage() {
       />
       <PlantHealthModal
         isOpen={showMonitorHealthModal}
-        plantName={plant?.name || ''}
+        plantName={getPlantDisplayName(plant!)}
         plantId={plant?.id || ''}
         onClose={() => setShowMonitorHealthModal(false)}
         onSubmit={async (data: PlantTrackingData) => {

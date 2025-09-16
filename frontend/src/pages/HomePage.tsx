@@ -27,7 +27,9 @@ interface PlantTask {
 
 interface Plant {
   id: string;
-  name: string;
+  petName: string | null;
+  botanicalName: string | null;
+  commonName: string | null;
   type: string | null;
   acquisitionDate: string | null;
   city: string | null;
@@ -50,6 +52,21 @@ interface PlantPhoto {
   takenAt: string;
   pointsAwarded: number;
 }
+
+// Helper function to get display name for plant
+const getPlantDisplayName = (plant: Plant): string => {
+  if (plant.petName && plant.commonName) {
+    return `${plant.petName} (${plant.commonName})`;
+  } else if (plant.petName) {
+    return plant.petName;
+  } else if (plant.commonName) {
+    return plant.commonName;
+  } else if (plant.botanicalName) {
+    return plant.botanicalName;
+  } else {
+    return 'Unknown Plant';
+  }
+};
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -275,7 +292,7 @@ const HomePage: React.FC = () => {
     setConfirmDialog({
       isOpen: true,
       task: {
-        plantName: plant.name,
+        plantName: getPlantDisplayName(plant),
         taskId: task.id,
         plantId: plant.id,
       },
@@ -515,7 +532,7 @@ const HomePage: React.FC = () => {
                       ref={(el) => {
                         swipeCardRefs.current[plant.id] = el;
                       }}
-                      onDelete={() => openDeleteDialog(plant.id, plant.name)}
+                      onDelete={() => openDeleteDialog(plant.id, getPlantDisplayName(plant))}
                       threshold={100}
                     >
                       <div 
@@ -529,7 +546,7 @@ const HomePage: React.FC = () => {
                                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
                                   <img
                                     src={plant.photos[0].secureUrl}
-                                    alt={plant.name}
+                                    alt={getPlantDisplayName(plant)}
                                     className="w-full h-full object-contain"
                                   />
                                 </div>
@@ -541,7 +558,7 @@ const HomePage: React.FC = () => {
                               <div className={`absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 ${health.color} rounded-full`}></div>
                             </div>
                             <div className="min-w-0 flex-1">
-                              <h4 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{plant.name}</h4>
+                              <h4 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{getPlantDisplayName(plant)}</h4>
                               <p className="text-xs sm:text-sm text-gray-600 truncate">{plant.type || 'Unknown type'}</p>
                             </div>
                           </div>
@@ -658,7 +675,7 @@ const HomePage: React.FC = () => {
                             {getTaskDisplayName(task.taskKey)}
                           </p>
                           <p className={`text-xs sm:text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'} truncate`}>
-                            {plant.name}
+                            {getPlantDisplayName(plant)}
                           </p>
                         </div>
                       </div>
@@ -733,7 +750,7 @@ const HomePage: React.FC = () => {
                             {getTaskDisplayName(task.taskKey)}
                           </p>
                           <p className={`text-xs sm:text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'} truncate`}>
-                            {plant.name}
+                            {getPlantDisplayName(plant)}
                           </p>
                         </div>
                       </div>

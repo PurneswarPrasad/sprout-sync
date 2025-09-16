@@ -48,7 +48,9 @@ router.get('/', authenticateJWT, async (req, res) => {
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -96,7 +98,9 @@ router.get('/:id', authenticateJWT, async (req, res) => {
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -155,7 +159,9 @@ router.post('/', authenticateJWT, validate(createPlantTaskSchema), async (req, r
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -229,7 +235,9 @@ router.put('/:id', authenticateJWT, validate(updatePlantTaskSchema), async (req,
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -282,7 +290,9 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -357,7 +367,9 @@ router.post('/:id/complete', authenticateJWT, async (req, res) => {
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -404,7 +416,9 @@ router.get('/upcoming', authenticateJWT, async (req, res) => {
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },
@@ -449,7 +463,9 @@ router.get('/overdue', authenticateJWT, async (req, res) => {
         plant: {
           select: {
             id: true,
-            name: true,
+            petName: true,
+            botanicalName: true,
+            commonName: true,
             type: true,
           },
         },

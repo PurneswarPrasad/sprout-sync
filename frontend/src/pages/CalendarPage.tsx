@@ -24,7 +24,9 @@ interface PlantTask {
 
 interface Plant {
   id: string;
-  name: string;
+  petName: string | null;
+  botanicalName: string | null;
+  commonName: string | null;
   type: string | null;
   acquisitionDate: string | null;
   city: string | null;
@@ -59,6 +61,21 @@ interface CalendarTask {
   color: string;
   taskId: string;
 }
+
+// Helper function to get display name for plant
+const getPlantDisplayName = (plant: Plant): string => {
+  if (plant.petName && plant.commonName) {
+    return `${plant.petName} (${plant.commonName})`;
+  } else if (plant.petName) {
+    return plant.petName;
+  } else if (plant.commonName) {
+    return plant.commonName;
+  } else if (plant.botanicalName) {
+    return plant.botanicalName;
+  } else {
+    return 'Unknown Plant';
+  }
+};
 
 export function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -131,7 +148,7 @@ export function CalendarPage() {
             
             calendarTasks.push({
               id: `${task.id}-daily`,
-              plantName: plant.name,
+              plantName: getPlantDisplayName(plant),
               plantId: plant.id,
               taskKey: task.taskKey,
               scheduledDate: scheduledDate,
@@ -164,7 +181,7 @@ export function CalendarPage() {
               // Use the actual task date with its time preserved
               calendarTasks.push({
                 id: `${task.id}-${i}`,
-                plantName: plant.name,
+                plantName: getPlantDisplayName(plant),
                 plantId: plant.id,
                 taskKey: task.taskKey,
                 scheduledDate: taskDate,

@@ -28,7 +28,9 @@ model Plant {
   id              String        @id @default(uuid())
   userId          String
   user            User          @relation(fields: [userId], references: [id])
-  name            String
+  petName         String?
+  botanicalName   String?
+  commonName      String?
   type            String?
   acquisitionDate DateTime?
   city            String?

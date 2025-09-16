@@ -78,11 +78,14 @@ export const AddPlantPage: React.FC = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
+    petName: '',
+    botanicalName: '',
+    commonName: '',
     type: '',
     acquisitionDate: '',
     city: '',
   });
+
 
   // Image upload state
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -100,7 +103,25 @@ export const AddPlantPage: React.FC = () => {
   const [showConfidenceNotification, setShowConfidenceNotification] = useState(false);
   const [isImageFromAI, setIsImageFromAI] = useState(false);
   const [isAutoPopulatingImage, setIsAutoPopulatingImage] = useState(false);
+  const [aiData, setAiData] = useState<any>(null);
   const [hasProcessedAI, setHasProcessedAI] = useState(false);
+
+  // Helper function to generate AI tag message
+  const getAITagMessage = () => {
+    if (!aiData?.commonName || aiData.commonName.trim() === '') {
+      return "✨ Looks like you found a plant buddy!";
+    }
+    
+    // Get the first common name if multiple are provided (comma-separated)
+    const firstCommonName = aiData.commonName.split(',')[0].trim();
+    
+    // If the first common name is empty after trimming, fall back to default
+    if (firstCommonName === '') {
+      return "✨ Looks like you found a plant buddy!";
+    }
+    
+    return `✨ Looks like you found a ${firstCommonName}!`;
+  };
 
   // Fetch task templates on component mount
   useEffect(() => {
@@ -331,11 +352,17 @@ export const AddPlantPage: React.FC = () => {
     setImagePreview(null);
     setImageUploadResult(null);
     setIsImageFromAI(false);
+    setAiData(null); // Clear AI data when image is deleted
   };
 
   // Function to handle AI identification data
   const handleAIIdentification = async (aiData: any) => {
-    console.log('handleAIIdentification: Processing AI data', { hasImageInfo: !!aiData.imageInfo });
+    console.log('handleAIIdentification: Processing AI data', { 
+      hasImageInfo: !!aiData.imageInfo,
+      botanicalName: aiData.botanicalName,
+      commonName: aiData.commonName,
+      plantType: aiData.plantType
+    });
 
     // Prevent multiple executions
     if (aiProcessedRef.current && hasProcessedAI) {
@@ -343,10 +370,14 @@ export const AddPlantPage: React.FC = () => {
       return;
     }
 
-    // Set plant name and type from AI identification
+    // Store AI data for later use (e.g., for the tag message)
+    setAiData(aiData);
+
+    // Set plant names and type from AI identification
     setFormData(prev => ({
       ...prev,
-      name: aiData.speciesGuess || '',
+      botanicalName: aiData.botanicalName || '',
+      commonName: aiData.commonName || '',
       type: aiData.plantType || '',
     }));
 
@@ -471,8 +502,12 @@ export const AddPlantPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
-      alert('Plant name is required');
+    if (!formData.botanicalName.trim()) {
+      alert('Botanical name is required');
+      return;
+    }
+    if (!formData.commonName.trim()) {
+      alert('Common name is required');
       return;
     }
 
@@ -567,14 +602,41 @@ export const AddPlantPage: React.FC = () => {
                   <div className="flex-1 space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Plant Name *
+                        Your plant's pet name
                       </label>
                       <input
                         type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        value={formData.petName}
+                        onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                        placeholder="e.g., Snake Plant, Monstera"
+                        placeholder="e.g., My Little Green Friend"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Botanical name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.botanicalName}
+                        onChange={(e) => setFormData({ ...formData, botanicalName: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                        placeholder="e.g., Sansevieria trifasciata"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Common name *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.commonName}
+                        onChange={(e) => setFormData({ ...formData, commonName: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                        placeholder="e.g., Snake Plant"
                         required
                       />
                     </div>
@@ -601,7 +663,7 @@ export const AddPlantPage: React.FC = () => {
                       </label>
                       {isImageFromAI && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          ✨ AI Auto-filled
+                          {getAITagMessage()}
                         </span>
                       )}
                     </div>
@@ -877,7 +939,7 @@ export const AddPlantPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading || !formData.name.trim()}
+                disabled={loading || !formData.botanicalName.trim() || !formData.commonName.trim()}
                 className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
