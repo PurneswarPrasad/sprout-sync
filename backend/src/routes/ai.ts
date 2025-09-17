@@ -77,6 +77,7 @@ router.post('/identify/file', authenticateJWT, upload.single('image'), async (re
     });
   } catch (error) {
     console.error('AI identification error:', error);
+    console.log('Error message:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to identify plant',
@@ -101,19 +102,22 @@ router.post('/identify/url', authenticateJWT, validate(identifyByUrlSchema), asy
   } catch (error) {
     console.error('AI identification error:', error);
     
-         // Provide more specific error messages
-     let errorMessage = 'Failed to identify plant';
-     if (error instanceof Error) {
-       if (error.message.includes('fetch')) {
-         errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
-       } else if (error.message.includes('Invalid content type')) {
-         errorMessage = 'The URL does not point to a valid image file. Please use a direct image URL (ending in .jpg, .png, etc.) instead of a search engine page.';
-       } else if (error.message.includes('GEMINI_API_KEY')) {
-         errorMessage = 'AI service is not properly configured.';
-       } else {
-         errorMessage = error.message;
-       }
-     }
+    // Provide more specific error messages
+    let errorMessage = 'Failed to identify plant';
+    if (error instanceof Error) {
+      console.log('Error message:', error.message);
+      if (error.message.includes('fetch')) {
+        errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
+      } else if (error.message.includes('Invalid content type')) {
+        errorMessage = 'The URL does not point to a valid image file. Please use a direct image URL (ending in .jpg, .png, etc.) instead of a search engine page.';
+      } else if (error.message.includes('GEMINI_API_KEY')) {
+        errorMessage = 'AI service is not properly configured.';
+      } else if (error.message.includes('does not appear to contain a plant')) {
+        errorMessage = error.message; // Pass through the plant validation error
+      } else {
+        errorMessage = error.message;
+      }
+    }
     
     res.status(500).json({
       success: false,
@@ -168,12 +172,15 @@ router.post('/identify/issue/url', authenticateJWT, validate(analyzeHealthByUrlS
     // Provide more specific error messages
     let errorMessage = 'Failed to analyze plant health';
     if (error instanceof Error) {
+      console.log('Health analysis error message:', error.message);
       if (error.message.includes('fetch')) {
         errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
       } else if (error.message.includes('Invalid content type')) {
         errorMessage = 'The URL does not point to a valid image file. Please use a direct image URL (ending in .jpg, .png, etc.) instead of a search engine page.';
       } else if (error.message.includes('GEMINI_API_KEY')) {
         errorMessage = 'AI service is not properly configured.';
+      } else if (error.message.includes('does not appear to contain a plant')) {
+        errorMessage = error.message; // Pass through the plant validation error
       } else {
         errorMessage = error.message;
       }

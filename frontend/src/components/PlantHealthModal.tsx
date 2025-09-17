@@ -3,6 +3,7 @@ import { X, Camera, Loader2, Upload, Image } from 'lucide-react';
 import { format } from 'date-fns';
 import { CloudinaryService } from '../services/cloudinaryService';
 import { api, aiAPI } from '../services/api';
+import PlantImageErrorModal from './PlantImageErrorModal';
 
 export interface PlantHealthData {
   plantId: string;
@@ -37,6 +38,7 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
   const [analysisError, setAnalysisError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showPlantImageErrorModal, setShowPlantImageErrorModal] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentDate = format(new Date(), 'EEEE, MMM dd, yy');
@@ -61,6 +63,7 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setAnalysisError('');
     setCapturedImage(null);
     setActiveTab('camera');
+    setShowPlantImageErrorModal(false);
   };
 
   useEffect(() => {
@@ -170,9 +173,17 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
       } else {
         setAnalysisError('Failed to analyze image. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing image:', error);
-      setAnalysisError('Failed to analyze image. Please try again.');
+      const errorMessage = error.response?.data?.error || 'Failed to analyze image. Please try again.';
+      
+      // Check if it's a plant image validation error
+      if (errorMessage.includes('does not appear to contain a plant')) {
+        setShowPlantImageErrorModal(true);
+        setAnalysisError(''); // Clear the regular error since we're showing the modal
+      } else {
+        setAnalysisError(errorMessage);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -204,6 +215,18 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setAnalysisError('');
     setCapturedImage(null);
     onClose();
+  };
+
+  const handleClosePlantImageErrorModal = async () => {
+    setShowPlantImageErrorModal(false);
+    // Clean up the uploaded image and reset state
+    await handleDeleteImage();
+  };
+
+  const handleRetryPlantImage = async () => {
+    setShowPlantImageErrorModal(false);
+    // Clean up the uploaded image and reset state
+    await handleDeleteImage();
   };
 
   // Handle back button and escape key
@@ -474,6 +497,13 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Plant Image Error Modal */}
+      <PlantImageErrorModal
+        isOpen={showPlantImageErrorModal}
+        onClose={handleClosePlantImageErrorModal}
+        onRetry={handleRetryPlantImage}
+      />
     </div>
   );
 };

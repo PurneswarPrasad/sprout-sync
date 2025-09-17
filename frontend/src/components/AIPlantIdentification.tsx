@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, ArrowLeft, Loader2, AlertCircle, Image } from 'lucide-react';
 import { aiAPI } from '../services/api';
 import { TipsModal } from './TipsModal';
+import PlantImageErrorModal from './PlantImageErrorModal';
 
 interface AIPlantIdentificationProps {
   onBack: () => void;
@@ -42,6 +43,9 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   
+  // Plant image error modal state
+  const [showPlantImageErrorModal, setShowPlantImageErrorModal] = useState(false);
+  
   // Create refs for the hidden file inputs
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +82,22 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   const handleCloseTips = () => {
     setShowTipsModal(false);
     setCurrentTipIndex(0);
+  };
+
+  const handleClosePlantImageErrorModal = () => {
+    setShowPlantImageErrorModal(false);
+    // Clear the captured image and reset state
+    setCapturedImage(null);
+    setImageUrl('');
+    setError(null);
+  };
+
+  const handleRetryPlantImage = () => {
+    setShowPlantImageErrorModal(false);
+    // Clear the captured image and reset state
+    setCapturedImage(null);
+    setImageUrl('');
+    setError(null);
   };
 
   const handleFileUpload = (file: File) => {
@@ -139,7 +159,15 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
       }
     } catch (error: any) {
       console.error('AI identification error:', error);
-      setError(error.response?.data?.error || 'Failed to identify plant. Please try again.');
+      const errorMessage = error.response?.data?.error || 'Failed to identify plant. Please try again.';
+      
+      // Check if it's a plant image validation error
+      if (errorMessage.includes('does not appear to contain a plant')) {
+        setShowPlantImageErrorModal(true);
+        setError(null); // Clear the regular error since we're showing the modal
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -376,6 +404,13 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
         currentTipIndex={currentTipIndex}
         onNext={handleNextTip}
         onClose={handleCloseTips}
+      />
+
+      {/* Plant Image Error Modal */}
+      <PlantImageErrorModal
+        isOpen={showPlantImageErrorModal}
+        onClose={handleClosePlantImageErrorModal}
+        onRetry={handleRetryPlantImage}
       />
     </div>
   );
