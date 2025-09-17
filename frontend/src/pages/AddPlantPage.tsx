@@ -657,10 +657,10 @@ export const AddPlantPage: React.FC = () => {
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
 
-              <div className="space-y-4">
-                {/* Plant Name/Type and Image Upload - Side by Side */}
+              <div className="space-y-6">
+                {/* Row 1: Pet Name + Botanical Name + Plant Image */}
                 <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Plant Name and Type Fields */}
+                  {/* Left side: Pet Name and Botanical Name */}
                   <div className="flex-1 space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -688,36 +688,9 @@ export const AddPlantPage: React.FC = () => {
                         required
                       />
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Common name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.commonName}
-                        onChange={(e) => setFormData({ ...formData, commonName: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                        placeholder="e.g., Snake Plant"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Plant Type
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.type}
-                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                        placeholder="e.g., Succulent, Tropical"
-                      />
-                    </div>
                   </div>
 
-                  {/* Plant Image Upload */}
+                  {/* Right side: Plant Image Upload */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <label className="block text-sm font-medium text-gray-700">
@@ -850,6 +823,37 @@ export const AddPlantPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Row 2: Common Name + Plant Type */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Common name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.commonName}
+                      onChange={(e) => setFormData({ ...formData, commonName: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      placeholder="e.g., Snake Plant"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Plant Type
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      placeholder="e.g., Succulent, Tropical"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Acquisition Date + City/Location */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -877,8 +881,8 @@ export const AddPlantPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Plant Care Information Cards */}
-            {(formData.careLevel || formData.sunRequirements || formData.toxicityLevel || selectedTasks.length > 0) && (
+            {/* Plant Care Information Cards - Only show if coming from AI identification */}
+            {hasProcessedAI && (formData.careLevel || formData.sunRequirements || formData.toxicityLevel || selectedTasks.length > 0) && (
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4">Plant Care Information</h2>
                 <PlantCareCards
