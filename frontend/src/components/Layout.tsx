@@ -45,19 +45,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowProfileDropdown(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = async (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
     console.log('🔄 Logout initiated');
     try {
       // Call backend logout (optional, for server-side cleanup)
@@ -140,7 +143,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       </p>
                     </div>
                     <button
-                      onClick={handleLogout}
+                      onTouchStart={handleLogout}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                     >
                       <LogOut className="w-4 h-4" />
@@ -196,6 +199,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     onClick={handleLogout}
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    // onClick={handleLogoutClick}
+                    // onMouseDown={handleLogoutClick}
+                    // onTouchStart={handleLogoutClick}
+                    // onTouchEnd={handleLogoutClick}
+                    // className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center space-x-2 touch-manipulation"
+                    // style={{ minHeight: '44px' }}
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>

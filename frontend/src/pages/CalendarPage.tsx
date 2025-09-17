@@ -4,7 +4,6 @@ import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, is
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
-import { DayDetailsModal } from '../components/DayDetailsModal';
 
 // Helper function to set time to 00:00 for daily tasks
 const setTimeToMidnight = (date: Date) => {
@@ -105,9 +104,6 @@ export function CalendarPage() {
     dayTasks: [],
   });
 
-  // Calendar expansion state
-  const [calendarExpanded, setCalendarExpanded] = useState(false);
-  const [expandedHeight, setExpandedHeight] = useState(64); // Default hour height
 
   // Overlapping tasks modal state
   const [overlappingTasksModal, setOverlappingTasksModal] = useState<{
@@ -416,8 +412,8 @@ export function CalendarPage() {
     const hour = task.scheduledDate.getHours();
     const minutes = task.scheduledDate.getMinutes();
     
-    // Calculate top position (each hour is expandedHeight px, each minute is ~1px)
-    const topPosition = hour * expandedHeight + (minutes * expandedHeight / 60);
+    // Calculate top position (each hour is 64px, each minute is ~1px)
+    const topPosition = hour * 64 + (minutes * 64 / 60);
     
     // Default height for tasks (32px)
     const height = 32;
@@ -439,40 +435,6 @@ export function CalendarPage() {
     return getTasksAtExactTime(date, time).length > 1;
   };
 
-  // Handle calendar drag to expand
-  const handleCalendarDrag = (event: React.TouchEvent) => {
-    if (event.touches.length === 1) {
-      const touch = event.touches[0];
-      const startY = touch.clientY;
-      
-      const handleTouchMove = (moveEvent: TouchEvent) => {
-        const currentY = moveEvent.touches[0].clientY;
-        const deltaY = startY - currentY; // Negative delta means dragging up (expanding)
-        
-        if (deltaY > 0) {
-          // Dragging up - expand calendar
-          const newHeight = Math.min(128, 64 + deltaY * 0.5); // Max 128px per hour
-          setExpandedHeight(newHeight);
-          setCalendarExpanded(true);
-        } else {
-          // Dragging down - contract calendar
-          const newHeight = Math.max(64, 64 + deltaY * 0.5); // Min 64px per hour
-          setExpandedHeight(newHeight);
-          if (newHeight === 64) {
-            setCalendarExpanded(false);
-          }
-        }
-      };
-
-      const handleTouchEnd = () => {
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      };
-
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-    }
-  };
 
   // Handle swipe gestures for week navigation
   const handleSwipeStart = (event: React.TouchEvent) => {
@@ -484,8 +446,7 @@ export function CalendarPage() {
   };
 
   const handleSwipeMove = (event: React.TouchEvent) => {
-    // Prevent default to avoid scrolling during swipe
-    event.preventDefault();
+    // No need to prevent default - let the browser handle scrolling naturally
   };
 
   const handleSwipeEnd = (event: React.TouchEvent) => {
@@ -810,7 +771,7 @@ export function CalendarPage() {
           {/* Time Column */}
           <div className="w-16">
             {generateTimeSlots().map((hour) => (
-              <div key={hour} className="border-b border-gray-200 py-1" style={{ height: `${expandedHeight}px` }}>
+              <div key={hour} className="h-16 border-b border-gray-200 py-1">
                 <div className="text-xs text-gray-500 text-right pr-2">
                   {format(setHours(new Date(), hour), 'HH:mm')}
                 </div>
@@ -823,8 +784,8 @@ export function CalendarPage() {
             {weekDays.map((day) => (
               <div key={day.toString()} className="relative border-r border-gray-200">
                 {/* Hour lines */}
-                {generateTimeSlots().map((hour) => (
-                  <div key={hour} className="border-b border-gray-100 relative" style={{ height: `${expandedHeight}px` }}>
+                  {generateTimeSlots().map((hour) => (
+                    <div key={hour} className="h-16 border-b border-gray-100 relative">
                     {/* Tasks for this hour */}
                     {getTasksForDayAndHour(day, hour).map((task, index) => {
                 const Icon = task.icon;
@@ -902,15 +863,6 @@ export function CalendarPage() {
         cancelText="Not yet"
         icon="🌿"
       />
-
-      {/* Day Details Modal */}
-      {/* <DayDetailsModal
-        isOpen={dayDetailsModal.isOpen}
-        onClose={closeDayDetailsModal}
-        selectedDate={dayDetailsModal.selectedDate}
-        dayTasks={dayDetailsModal.dayTasks}
-        onTaskComplete={handleTaskCompleteFromModal}
-      /> */}
 
       {/* Overlapping Tasks Modal */}
       {overlappingTasksModal.isOpen && (

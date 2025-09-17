@@ -76,6 +76,10 @@
     @apply bg-plant-500 hover:bg-plant-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
   }
   
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
   .scrollbar-hide {
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
