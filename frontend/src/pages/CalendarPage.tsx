@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, Droplets, Sun, Scissors, Zap } from 'lucide-react';
-import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, Droplets, Sun, Scissors, Zap, Calendar as CalendarIcon } from 'lucide-react';
+import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval as eachMonthDay, setHours } from 'date-fns';
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
@@ -104,6 +104,25 @@ export function CalendarPage() {
     selectedDate: null,
     dayTasks: [],
   });
+
+  // Calendar expansion state
+  const [calendarExpanded, setCalendarExpanded] = useState(false);
+  const [expandedHeight, setExpandedHeight] = useState(64); // Default hour height
+
+  // Overlapping tasks modal state
+  const [overlappingTasksModal, setOverlappingTasksModal] = useState<{
+    isOpen: boolean;
+    selectedTime: Date | null;
+    overlappingTasks: CalendarTask[];
+  }>({
+    isOpen: false,
+    selectedTime: null,
+    overlappingTasks: [],
+  });
+
+  // Swipe gesture state
+  const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
+  const [swipeStartY, setSwipeStartY] = useState<number | null>(null);
   
 
 
@@ -311,6 +330,14 @@ export function CalendarPage() {
     });
   };
 
+  const closeOverlappingTasksModal = () => {
+    setOverlappingTasksModal({
+      isOpen: false,
+      selectedTime: null,
+      overlappingTasks: [],
+    });
+  };
+
   const handleTaskCompleteFromModal = async (taskId: string, plantId: string) => {
     try {
       await plantsAPI.completeTask(plantId, taskId);
@@ -325,13 +352,167 @@ export function CalendarPage() {
     }
   };
 
+  const handleTaskClick = (task: CalendarTask, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    // Check if there are overlapping tasks at the same exact time
+    if (hasOverlappingTasks(task.scheduledDate, task.scheduledDate)) {
+      const overlappingTasks = getTasksAtExactTime(task.scheduledDate, task.scheduledDate);
+      setOverlappingTasksModal({
+        isOpen: true,
+        selectedTime: task.scheduledDate,
+        overlappingTasks,
+      });
+      return;
+    }
+    
+    // Only allow completion for overdue tasks and today's tasks
+    const today = new Date();
+    const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isOverdue = (taskDate < todayDate || (taskDate.getTime() === todayDate.getTime() && isTaskOverdue(task))) && !task.completed;
+    const isToday = isSameDay(task.scheduledDate, today);
+    
+    if (isOverdue || isToday) {
+      openConfirmDialog(task);
+    }
+  };
+
   const weekDays = eachDayOfInterval({
     start: startOfWeek(currentDate),
     end: endOfWeek(currentDate),
   });
 
+  // Get month days for mini calendar
+  const monthDays = eachMonthDay({
+    start: startOfMonth(currentDate),
+    end: endOfMonth(currentDate),
+  });
+
   const getTasksForDate = (date: Date) => {
     return tasks.filter(task => isSameDay(task.scheduledDate, date));
+  };
+
+  // Generate time slots from 0 to 23 (24-hour timeline)
+  const generateTimeSlots = () => {
+    const timeSlots = [];
+    for (let hour = 0; hour <= 23; hour++) {
+      timeSlots.push(hour);
+    }
+    return timeSlots;
+  };
+
+  // Get tasks for a specific day and hour
+  const getTasksForDayAndHour = (date: Date, hour: number) => {
+    return tasks.filter(task => {
+      if (!isSameDay(task.scheduledDate, date)) return false;
+      const taskHour = task.scheduledDate.getHours();
+      return taskHour === hour;
+    });
+  };
+
+  // Calculate task position and height based on time
+  const getTaskPosition = (task: CalendarTask) => {
+    const hour = task.scheduledDate.getHours();
+    const minutes = task.scheduledDate.getMinutes();
+    
+    // Calculate top position (each hour is expandedHeight px, each minute is ~1px)
+    const topPosition = hour * expandedHeight + (minutes * expandedHeight / 60);
+    
+    // Default height for tasks (32px)
+    const height = 32;
+    
+    return { top: topPosition, height };
+  };
+
+  // Get tasks at the exact same time
+  const getTasksAtExactTime = (date: Date, time: Date) => {
+    return tasks.filter(task => {
+      if (!isSameDay(task.scheduledDate, date)) return false;
+      return task.scheduledDate.getHours() === time.getHours() && 
+             task.scheduledDate.getMinutes() === time.getMinutes();
+    });
+  };
+
+  // Check if there are multiple tasks at the same exact time
+  const hasOverlappingTasks = (date: Date, time: Date) => {
+    return getTasksAtExactTime(date, time).length > 1;
+  };
+
+  // Handle calendar drag to expand
+  const handleCalendarDrag = (event: React.TouchEvent) => {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const startY = touch.clientY;
+      
+      const handleTouchMove = (moveEvent: TouchEvent) => {
+        const currentY = moveEvent.touches[0].clientY;
+        const deltaY = startY - currentY; // Negative delta means dragging up (expanding)
+        
+        if (deltaY > 0) {
+          // Dragging up - expand calendar
+          const newHeight = Math.min(128, 64 + deltaY * 0.5); // Max 128px per hour
+          setExpandedHeight(newHeight);
+          setCalendarExpanded(true);
+        } else {
+          // Dragging down - contract calendar
+          const newHeight = Math.max(64, 64 + deltaY * 0.5); // Min 64px per hour
+          setExpandedHeight(newHeight);
+          if (newHeight === 64) {
+            setCalendarExpanded(false);
+          }
+        }
+      };
+
+      const handleTouchEnd = () => {
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
+    }
+  };
+
+  // Handle swipe gestures for week navigation
+  const handleSwipeStart = (event: React.TouchEvent) => {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      setSwipeStartX(touch.clientX);
+      setSwipeStartY(touch.clientY);
+    }
+  };
+
+  const handleSwipeMove = (event: React.TouchEvent) => {
+    // Prevent default to avoid scrolling during swipe
+    event.preventDefault();
+  };
+
+  const handleSwipeEnd = (event: React.TouchEvent) => {
+    if (event.changedTouches.length === 1 && swipeStartX !== null && swipeStartY !== null) {
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - swipeStartX;
+      const deltaY = touch.clientY - swipeStartY;
+      
+      // Only process horizontal swipes (ignore vertical swipes for calendar expansion)
+      const absDeltaX = Math.abs(deltaX);
+      const absDeltaY = Math.abs(deltaY);
+      
+      // Minimum swipe distance and ensure it's more horizontal than vertical
+      if (absDeltaX > 50 && absDeltaX > absDeltaY * 2) {
+        if (deltaX > 0) {
+          // Swipe right - go to previous week
+          setCurrentDate(subDays(currentDate, 7));
+        } else {
+          // Swipe left - go to next week
+          setCurrentDate(addDays(currentDate, 7));
+        }
+      }
+    }
+    
+    // Reset swipe state
+    setSwipeStartX(null);
+    setSwipeStartY(null);
   };
 
   const isTaskOverdue = (task: CalendarTask) => {
@@ -394,43 +575,115 @@ export function CalendarPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex flex-col lg:flex-row gap-4 h-full">
+        {/* Left Sidebar - Mini Calendar */}
+        <div className="w-full lg:w-80 bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-white/20 order-2 lg:order-1">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Calendar</h1>
-            <p className="text-sm sm:text-base text-gray-600">Track your plant care schedule</p>
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+              Calendar
+            </h1>
           </div>
-          <div className="flex items-center justify-center sm:justify-end space-x-2">
+
+          {/* Mini Calendar */}
+          <div className="mb-4 sm:mb-6">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <h2 className="text-sm sm:text-lg font-semibold text-gray-800">
+                {format(currentDate, 'MMMM yyyy')}
+              </h2>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCurrentDate(subDays(currentDate, 30))}
+                  className="p-1 hover:bg-emerald-100 rounded transition-colors"
+                >
+                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
+                </button>
+                <button
+                  onClick={() => setCurrentDate(addDays(currentDate, 30))}
+                  className="p-1 hover:bg-emerald-100 rounded transition-colors"
+                >
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Days of week */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
+                <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+                  {day}
+                </div>
+              ))}
+            </div>
+            
+            {/* Calendar days */}
+            <div className="grid grid-cols-7 gap-1">
+              {monthDays.map((day) => {
+                const isToday = isSameDay(day, new Date());
+                const isCurrentWeek = weekDays.some(weekDay => isSameDay(weekDay, day));
+                const hasTasks = getTasksForDate(day).length > 0;
+                
+                return (
+                  <button
+                    key={day.toString()}
+                    onClick={() => setCurrentDate(day)}
+                    className={`w-6 h-6 sm:w-8 sm:h-8 text-xs rounded transition-colors ${
+                      isToday
+                        ? 'bg-emerald-600 text-white font-semibold'
+                        : isCurrentWeek
+                        ? 'bg-emerald-100 text-emerald-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="relative">
+                      {format(day, 'd')}
+                      {hasTasks && (
+                        <div className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full ${
+                          isToday ? 'bg-white' : 'bg-emerald-600'
+                        }`} />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Week Navigation */}
+          <div className="flex items-center justify-between">
             <button
               onClick={() => setCurrentDate(subDays(currentDate, 7))}
-              className="p-2 hover:bg-emerald-100 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-emerald-100 rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-4 h-4 text-emerald-600" />
+              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
             </button>
-            <span className="font-medium text-gray-800 text-sm sm:text-base">
-              {format(currentDate, 'MMM yyyy')}
+            <span className="font-medium text-gray-800 text-xs sm:text-sm">
+              {format(startOfWeek(currentDate), 'MMM d')} - {format(endOfWeek(currentDate), 'MMM d')}
             </span>
             <button
               onClick={() => setCurrentDate(addDays(currentDate, 7))}
-              className="p-2 hover:bg-emerald-100 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-emerald-100 rounded-lg transition-colors"
             >
-              <ChevronRight className="w-4 h-4 text-emerald-600" />
+              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
             </button>
           </div>
         </div>
 
-        {/* Week View */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4">
+        {/* Main Calendar View - Desktop */}
+        <div className="flex-1 bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-white/20 order-1 lg:order-2">
+          {/* Week Header */}
+          <div className="grid grid-cols-7 gap-1 mb-2 sm:mb-4">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-600 py-2">
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-600 py-1 sm:py-2">
                 {day}
               </div>
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {/* Week Grid */}
+          <div className="grid grid-cols-7 gap-1">
             {weekDays.map((day) => {
               const dayTasks = getTasksForDate(day);
               const isToday = isSameDay(day, new Date());
@@ -438,199 +691,199 @@ export function CalendarPage() {
               return (
                 <div
                   key={day.toString()}
-                  className={`min-h-20 sm:min-h-24 p-1 sm:p-2 rounded-lg border cursor-pointer transition-colors ${
+                  className={`min-h-24 sm:min-h-32 p-1 sm:p-2 rounded-lg border cursor-pointer transition-colors ${
                     isToday
                       ? 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100'
                       : 'bg-white border-gray-200 hover:bg-gray-50'
                   }`}
                   onClick={() => handleDayClick(day)}
                 >
-                  <div className={`text-sm font-medium mb-2 ${
+                  <div className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 ${
                     isToday ? 'text-gray-800' : 'text-gray-600'
                   }`}>
                     {format(day, 'd')}
                   </div>
                   
-                  <div className="space-y-1">
-                    {(() => {
-                      const dayTasks = getTasksForDate(day);
-                      const visibleTasks = dayTasks.slice(0, 3);
-                      const remainingCount = dayTasks.length - 3;
-                      
-                      return (
-                        <>
-                          {visibleTasks.map((task) => {
+                  <div className="space-y-0.5 sm:space-y-1">
+                    {dayTasks.map((task) => {
                             const Icon = task.icon;
-                            // Check if task is overdue - only show red if it's actually overdue
                             const today = new Date();
                             const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
                             const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                             const isOverdue = (taskDate < todayDate || (taskDate.getTime() === todayDate.getTime() && isTaskOverdue(task))) && !task.completed;
+                      const isTaskToday = isSameDay(task.scheduledDate, today);
                             
                             return (
                               <div
                                 key={task.id}
-                                className={`flex items-center space-x-1 p-1 rounded text-xs ${
+                          onClick={(e) => handleTaskClick(task, e)}
+                          className={`flex items-center space-x-0.5 sm:space-x-1 p-0.5 sm:p-1 rounded text-xs cursor-pointer transition-colors ${
                                   task.completed
                                     ? 'bg-green-100 text-green-700'
                                     : isOverdue
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'bg-emerald-100 text-emerald-700'
-                                }`}
-                                title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}
-                              >
-                                <Icon className="w-3 h-3" />
-                                <span className="truncate" title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}>{getTaskTypeLabel(task.taskKey)}</span>
-                              </div>
-                            );
-                          })}
-                          
-                          {remainingCount > 0 && (
-                            <div className="text-xs text-gray-500 text-center py-1">
-                              +{remainingCount}
-                            </div>
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : isTaskToday
+                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                          } ${(isOverdue || isTaskToday) && !task.completed ? 'cursor-pointer' : 'cursor-default'}`}
+                          title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}${(isOverdue || isTaskToday) && !task.completed ? ' (Click to complete)' : ''}`}
+                        >
+                          <Icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
+                          <span className="truncate flex-1 text-xs" title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}`}>
+                            <span className="hidden sm:inline">{getTaskTypeLabel(task.taskKey)}</span>
+                            <span className="sm:hidden">{getTaskTypeLabel(task.taskKey).charAt(0)}</span>
+                          </span>
+                          {task.completed && (
+                            <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-600 flex-shrink-0" />
                           )}
-                        </>
+                        </div>
                       );
-                    })()}
+                    })}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Overdue Tasks */}
-        {getOverdueTasks().length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-red-600">Overdue Tasks</h2>
-            
-            <div className="space-y-3">
-              {getOverdueTasks().map((task) => {
-                const Icon = task.icon;
-                return (
-                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-red-200">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-800 truncate text-sm sm:text-base" title={task.plantName}>{task.plantName}</h3>
-                          <p className="text-xs sm:text-sm text-red-600 truncate">
-                            {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
-                          </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center flex-shrink-0">
-                        <button
-                          onClick={() => openConfirmDialog(task)}
-                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
-                        >
-                          <Clock className="w-4 h-4" />
-                          <span className="text-xs sm:text-sm hidden sm:inline">Mark Complete</span>
-                          <span className="text-xs sm:text-sm sm:hidden">Complete</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+
+      {/* Mobile Time Grid View */}
+      <div 
+        className="block lg:hidden bg-white/70 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/20 relative"
+        onTouchStart={handleSwipeStart}
+        onTouchMove={handleSwipeMove}
+        onTouchEnd={handleSwipeEnd}
+      >
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between mb-3 px-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentDate(subDays(currentDate, 7))}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-600" />
+            </button>
+            <span className="font-medium text-gray-800 text-sm">
+              {format(startOfWeek(currentDate), 'MMM d')} - {format(endOfWeek(currentDate), 'MMM d')}
+            </span>
+            <button
+              onClick={() => setCurrentDate(addDays(currentDate, 7))}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-600" />
+            </button>
           </div>
-        )}
-
-        {/* Today's Tasks */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Today's Tasks</h2>
-          
-          {getTodaysTasks().length === 0 ? (
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20 text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📋</span>
-              </div>
-              <p className="text-gray-600 mb-2">No tasks for today</p>
-              <p className="text-sm text-gray-500">Enjoy your day off from plant care!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {getTodaysTasks().map((task) => {
-                const Icon = task.icon;
-                return (
-                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-white/20">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+              {format(new Date(), 'd')}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-800 truncate text-sm sm:text-base" title={task.plantName}>{task.plantName}</h3>
-                          <p className="text-xs sm:text-sm text-gray-600 truncate">
-                            {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'h:mm a')}
-                          </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center flex-shrink-0">
-                        {task.completed ? (
-                          <div className="flex items-center space-x-1 text-green-600">
-                            <CheckCircle className="w-4 h-4" />
-                            <span className="text-xs sm:text-sm">Done</span>
+        {/* Week Header */}
+        <div className="flex mb-2">
+          <div className="w-16 text-xs font-medium text-gray-500 py-2"></div>
+          <div className="flex-1 grid grid-cols-7 gap-1">
+            {weekDays.map((day) => {
+              const isToday = isSameDay(day, new Date());
+              return (
+                <div key={day.toString()} className="text-center">
+                  <div className="text-xs font-medium text-gray-500 py-1">
+                    {format(day, 'EEE')}
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => openConfirmDialog(task)}
-                            className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 transition-colors"
-                          >
-                            <Clock className="w-4 h-4" />
-                            <span className="text-xs sm:text-sm hidden sm:inline">Mark Complete</span>
-                            <span className="text-xs sm:text-sm sm:hidden">Complete</span>
-                          </button>
-                        )}
-                      </div>
+                  <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-xs font-medium ${
+                    isToday
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {format(day, 'd')}
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
         </div>
 
-        {/* Upcoming Tasks */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Upcoming</h2>
-          
-          {getUpcomingTasks().length === 0 ? (
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📅</span>
+        {/* Time Grid */}
+        <div className="flex">
+          {/* Time Column */}
+          <div className="w-16">
+            {generateTimeSlots().map((hour) => (
+              <div key={hour} className="border-b border-gray-200 py-1" style={{ height: `${expandedHeight}px` }}>
+                <div className="text-xs text-gray-500 text-right pr-2">
+                  {format(setHours(new Date(), hour), 'HH:mm')}
+                </div>
               </div>
-              <p className="text-gray-600 mb-2">No upcoming tasks</p>
-              <p className="text-sm text-gray-500">All caught up with your plant care!</p>
+            ))}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {getUpcomingTasks().map((task) => {
+          
+          {/* Calendar Grid */}
+          <div className="flex-1 grid grid-cols-7 gap-1">
+            {weekDays.map((day) => (
+              <div key={day.toString()} className="relative border-r border-gray-200">
+                {/* Hour lines */}
+                {generateTimeSlots().map((hour) => (
+                  <div key={hour} className="border-b border-gray-100 relative" style={{ height: `${expandedHeight}px` }}>
+                    {/* Tasks for this hour */}
+                    {getTasksForDayAndHour(day, hour).map((task, index) => {
                 const Icon = task.icon;
+                      const today = new Date();
+                      const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
+                      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                      const isOverdue = (taskDate < todayDate || (taskDate.getTime() === todayDate.getTime() && isTaskOverdue(task))) && !task.completed;
+                      const isTaskToday = isSameDay(task.scheduledDate, today);
+                      const position = getTaskPosition(task);
+                      const hasOverlapping = hasOverlappingTasks(day, task.scheduledDate);
+                      
+                      // Stack overlapping tasks vertically
+                      const stackedOffset = hasOverlapping ? index * 36 : 0;
+                      
                 return (
-                  <div key={task.id} className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border border-white/20">
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className={`w-8 h-8 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                        <Icon className="w-4 h-4 text-white" />
+                        <div
+                          key={task.id}
+                          onClick={(e) => handleTaskClick(task, e)}
+                          className={`absolute left-1 right-1 rounded px-2 py-1 text-xs cursor-pointer transition-colors ${
+                            task.completed
+                              ? 'bg-green-100 text-green-700 border-l-2 border-green-500'
+                              : isOverdue
+                              ? 'bg-red-100 text-red-700 border-l-2 border-red-500 hover:bg-red-200'
+                              : isTaskToday
+                              ? 'bg-yellow-100 text-yellow-700 border-l-2 border-yellow-500 hover:bg-yellow-200'
+                              : 'bg-blue-100 text-blue-700 border-l-2 border-blue-500 hover:bg-blue-200'
+                          } ${(isOverdue || isTaskToday) && !task.completed ? 'cursor-pointer' : 'cursor-default'}`}
+                          style={{ 
+                            top: `${position.top + stackedOffset}px`, 
+                            height: `${position.height}px`,
+                            zIndex: hasOverlapping ? 10 + index : 1
+                          }}
+                          title={`${task.plantName} - ${getTaskTypeLabel(task.taskKey)}${hasOverlapping ? ' (Multiple tasks at this time - click to see all)' : (isOverdue || isTaskToday) && !task.completed ? ' (Click to complete)' : ''}`}
+                        >
+                          <div className="flex items-center gap-1">
+                            <Icon className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate flex-1 font-medium">
+                              {getTaskTypeLabel(task.taskKey)}
+                              {hasOverlapping && (
+                                <span className="ml-1 text-xs opacity-75">
+                                  ({getTasksAtExactTime(day, task.scheduledDate).length})
+                                </span>
+                              )}
+                            </span>
+                            {task.completed && (
+                              <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                            )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-800 truncate text-sm sm:text-base" title={task.plantName}>{task.plantName}</h3>
-                        <p className="text-xs sm:text-sm text-gray-600 truncate">
-                          {getTaskTypeLabel(task.taskKey)} • {format(task.scheduledDate, 'MMM d, h:mm a')}
-                        </p>
-                      </div>
+                          <div className="text-xs opacity-75 truncate">
+                            {task.plantName}
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -651,13 +904,87 @@ export function CalendarPage() {
       />
 
       {/* Day Details Modal */}
-      <DayDetailsModal
+      {/* <DayDetailsModal
         isOpen={dayDetailsModal.isOpen}
         onClose={closeDayDetailsModal}
         selectedDate={dayDetailsModal.selectedDate}
         dayTasks={dayDetailsModal.dayTasks}
         onTaskComplete={handleTaskCompleteFromModal}
-      />
+      /> */}
+
+      {/* Overlapping Tasks Modal */}
+      {overlappingTasksModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Tasks at {overlappingTasksModal.selectedTime ? format(overlappingTasksModal.selectedTime, 'h:mm a') : ''}
+              </h3>
+              <button
+                onClick={closeOverlappingTasksModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {overlappingTasksModal.overlappingTasks.map((task) => {
+                const Icon = task.icon;
+                const today = new Date();
+                const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
+                const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const isOverdue = (taskDate < todayDate || (taskDate.getTime() === todayDate.getTime() && isTaskOverdue(task))) && !task.completed;
+                const isTaskToday = isSameDay(task.scheduledDate, today);
+                
+                return (
+                  <div key={task.id} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 ${task.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-800">{task.plantName}</h4>
+                          <p className="text-sm text-gray-600">{getTaskTypeLabel(task.taskKey)}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        {task.completed ? (
+                          <div className="flex items-center space-x-1 text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm">Done</span>
+                          </div>
+                        ) : (isOverdue || isTaskToday) ? (
+                          <button
+                            onClick={() => {
+                              closeOverlappingTasksModal();
+                              openConfirmDialog(task);
+                            }}
+                            className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm transition-colors ${
+                              isOverdue
+                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                            }`}
+                          >
+                            <Clock className="w-4 h-4" />
+                            <span>Complete</span>
+                          </button>
+                        ) : (
+                          <span className="text-sm text-gray-500">Future</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
