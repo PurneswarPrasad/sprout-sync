@@ -168,8 +168,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
+            {/* Profile Section - Right Side */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 {user?.avatarUrl && (
                   <img
                     src={user.avatarUrl}
@@ -177,21 +181,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     className="w-10 h-10 rounded-full border-2 border-emerald-200"
                   />
                 )}
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-800">
-                    🌱 Welcome, {user?.name}
-                  </p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
-                </div>
-              </div>
-              
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white/70 hover:bg-white/90 rounded-lg border border-gray-200 transition-colors duration-200 flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
               </button>
+              
+              {/* Dropdown Menu */}
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-800">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-gray-500">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                  {/* Additional buttons can be added here in the future */}
+                </div>
+              )}
             </div>
           </div>
         </div>
