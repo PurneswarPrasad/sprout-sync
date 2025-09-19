@@ -55,6 +55,12 @@ export const Footer: React.FC = () => {
               <a href="#" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Team
               </a>
+              <a href="https://www.shopify.com/tools/policy-generator/show/lI01k7CHGjj8--RgMaxAm3FbHwCnWr--h9uxBgTrohkgPwIlc6Pt8w==.pdf?syclid=d36rv17o360c73c8qqrg" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
+                Privacy Policy
+              </a>
+              <a href="https://www.termsfeed.com/live/677caff8-8c00-4736-b1e2-3ef1a42b4937" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
+                Terms and Conditions
+              </a>
             </div>
           </div>
 
