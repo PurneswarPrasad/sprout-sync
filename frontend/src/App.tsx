@@ -7,6 +7,7 @@ import { AddPlantPage } from './pages/AddPlantPage';
 import { AIIdentificationPage } from './pages/AIIdentificationPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { PlantDetailPage } from './pages/PlantDetailPage';
+import { TermsPage } from './pages/TermsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth-callback" element={<AuthCallbackPage />} />
+          <Route path="/terms-and-conditions" element={<TermsPage />} />
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/plants" element={<ProtectedRoute><PlantsPage /></ProtectedRoute>} />
           <Route path="/add-plant" element={<ProtectedRoute><AddPlantPage /></ProtectedRoute>} />
