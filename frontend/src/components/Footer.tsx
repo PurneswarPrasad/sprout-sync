@@ -56,9 +56,9 @@ export const Footer: React.FC = () => {
               <a href="#" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Team
               </a>
-              <a href="/privacy-policy.pdf" target="_blank" rel="noopener noreferrer" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
+              <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Privacy Policy
-              </a>
+              </Link>
               <Link to="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Terms and Conditions
               </Link>
