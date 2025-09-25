@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantSchema, updatePlantSchema } from '../dtos';
 import { CloudinaryService } from '../services/cloudinaryService';
+import { taskSyncService } from '../services/taskSyncService';
 
 const router = Router();
 
@@ -365,6 +366,18 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
         },
       },
     });
+    
+    // Sync all tasks to Google Calendar if sync is enabled
+    if (plant.tasks && plant.tasks.length > 0) {
+      for (const task of plant.tasks) {
+        try {
+          await taskSyncService.syncTaskToCalendar(task.id);
+        } catch (syncError) {
+          console.error(`Error syncing task ${task.id} to Google Calendar:`, syncError);
+          // Don't fail the request if sync fails
+        }
+      }
+    }
     
     res.status(201).json({
       success: true,

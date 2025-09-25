@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown } from 'lucide-react';
+import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
 import PlantHealthCheckModal from './PlantHealthCheckModal';
+import { GoogleCalendarSyncModal } from './GoogleCalendarSyncModal';
 import { Footer } from './Footer';
-import { authAPI } from '../services/api';
+import { authAPI, api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
 interface User {
@@ -26,6 +27,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [showHealthCheckModal, setShowHealthCheckModal] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showGoogleCalendarSync, setShowGoogleCalendarSync] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{syncEnabled: boolean} | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,7 +43,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       }
     };
 
+    const fetchSyncStatus = async () => {
+      try {
+        const response = await api.get('/api/google-calendar/status');
+        if (response.data.success) {
+          setSyncStatus(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching sync status:', error);
+      }
+    };
+
     fetchUserProfile();
+    fetchSyncStatus();
   }, []);
 
   // Close dropdown when clicking outside
@@ -110,8 +125,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
               </div>
               
-              {/* Profile Section - Right Side */}
-              <div className="relative" ref={dropdownRef}>
+              {/* Right Side - Sync Button and Profile */}
+              <div className="flex items-center space-x-2">
+                {/* Google Calendar Sync Button */}
+                <button
+                  onClick={() => setShowGoogleCalendarSync(true)}
+                  className="flex items-center space-x-1 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-colors"
+                  title="Sync with Google Calendar"
+                >
+                  <CalendarIcon className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs text-emerald-600 font-medium hidden xs:block">
+                    {syncStatus?.syncEnabled ? 'Sync successful!' : 'Sync'}
+                  </span>
+                </button>
+
+                {/* Profile Section */}
+                <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                   className="flex items-center space-x-2 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
@@ -151,6 +180,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </div>
@@ -171,8 +201,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
             </div>
             
-            {/* Profile Section - Right Side */}
-            <div className="relative" ref={dropdownRef}>
+            {/* Right Side - Sync Button and Profile */}
+            <div className="flex items-center space-x-3">
+              {/* Google Calendar Sync Button */}
+              <button
+                onClick={() => setShowGoogleCalendarSync(true)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors"
+                title="Sync with Google Calendar"
+              >
+                <CalendarIcon className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm text-emerald-600 font-medium">
+                  {syncStatus?.syncEnabled ? 'Sync successful!' : 'Sync Calendar'}
+                </span>
+              </button>
+
+              {/* Profile Section */}
+              <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
@@ -212,6 +256,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {/* Additional buttons can be added here in the future */}
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
@@ -309,6 +354,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         isOpen={showHealthCheckModal}
         onClose={() => setShowHealthCheckModal(false)}
       />
+
+      {/* Google Calendar Sync Modal */}
+      {showGoogleCalendarSync && (
+        <GoogleCalendarSyncModal
+          isOpen={showGoogleCalendarSync}
+          onClose={() => setShowGoogleCalendarSync(false)}
+          onSyncStatusChange={(syncEnabled) => {
+            setSyncStatus(prev => prev ? { ...prev, syncEnabled } : { syncEnabled });
+          }}
+        />
+      )}
     </div>
   );
 };

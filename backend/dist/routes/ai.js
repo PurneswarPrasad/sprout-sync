@@ -72,6 +72,7 @@ router.post('/identify/file', jwtAuth_1.authenticateJWT, upload.single('image'),
     }
     catch (error) {
         console.error('AI identification error:', error);
+        console.log('Error message:', error instanceof Error ? error.message : 'Unknown error');
         res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Failed to identify plant',
@@ -93,6 +94,7 @@ router.post('/identify/url', jwtAuth_1.authenticateJWT, (0, validate_1.validate)
         console.error('AI identification error:', error);
         let errorMessage = 'Failed to identify plant';
         if (error instanceof Error) {
+            console.log('Error message:', error.message);
             if (error.message.includes('fetch')) {
                 errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
             }
@@ -101,6 +103,9 @@ router.post('/identify/url', jwtAuth_1.authenticateJWT, (0, validate_1.validate)
             }
             else if (error.message.includes('GEMINI_API_KEY')) {
                 errorMessage = 'AI service is not properly configured.';
+            }
+            else if (error.message.includes('does not appear to contain a plant')) {
+                errorMessage = error.message;
             }
             else {
                 errorMessage = error.message;
@@ -127,6 +132,7 @@ router.post('/identify/issue/url', jwtAuth_1.authenticateJWT, (0, validate_1.val
         console.error('AI health analysis error:', error);
         let errorMessage = 'Failed to analyze plant health';
         if (error instanceof Error) {
+            console.log('Health analysis error message:', error.message);
             if (error.message.includes('fetch')) {
                 errorMessage = 'Failed to fetch image from URL. Please check the URL and try again.';
             }
@@ -135,6 +141,9 @@ router.post('/identify/issue/url', jwtAuth_1.authenticateJWT, (0, validate_1.val
             }
             else if (error.message.includes('GEMINI_API_KEY')) {
                 errorMessage = 'AI service is not properly configured.';
+            }
+            else if (error.message.includes('does not appear to contain a plant')) {
+                errorMessage = error.message;
             }
             else {
                 errorMessage = error.message;

@@ -56,14 +56,15 @@ model TaskTemplate {
 }
 
 model PlantTask {
-  id              String   @id @default(uuid())
-  plantId         String
-  plant           Plant    @relation(fields: [plantId], references: [id])
-  taskKey         String
-  frequencyDays   Int
-  nextDueOn       DateTime
-  lastCompletedOn DateTime?
-  active          Boolean   @default(true)
+  id                     String   @id @default(uuid())
+  plantId                String
+  plant                  Plant    @relation(fields: [plantId], references: [id])
+  taskKey                String
+  frequencyDays          Int
+  nextDueOn              DateTime
+  lastCompletedOn        DateTime?
+  active                 Boolean   @default(true)
+  googleCalendarEventId  String?   // Store Google Calendar event ID for updates
 }
 
 model Tag {
@@ -145,6 +146,14 @@ model UserSettings {
   persona          Persona
   timezone         String
   onesignalPlayerId String?
+  
+  // Google Calendar sync settings
+  googleCalendarSyncEnabled Boolean @default(false)
+  googleCalendarAccessToken String?
+  googleCalendarRefreshToken String?
+  googleCalendarTokenExpiry DateTime?
+  googleCalendarReminderMinutes Int @default(30) // Default 30 minutes before
+  syncedPlantIds String[] @default([]) // Array of plant IDs to sync
 }
 
 enum Persona {

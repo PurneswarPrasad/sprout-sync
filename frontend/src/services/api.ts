@@ -63,7 +63,7 @@ export const plantsAPI = {
   delete: (id: string) => api.delete(`/api/plants/${id}`),
   getTaskTemplates: () => api.get('/api/plants/task-templates'),
   completeTask: (plantId: string, taskId: string) => 
-    api.post(`/api/plants/${plantId}/tasks/${taskId}/complete`, {}),
+    api.post(`/api/tasks/${taskId}/complete`, {}),
   // Plant tracking endpoints
   getTrackingUpdates: (plantId: string, page?: number, limit?: number) => 
     api.get(`/api/plants/${plantId}/tracking`, { params: { page, limit } }),
@@ -97,6 +97,33 @@ export const aiAPI = {
   
   // For plant health analysis by URL
   analyzeHealthByUrl: (imageUrl: string) => api.post('/api/ai/identify/issue/url', { imageUrl }),
+};
+
+export const googleCalendarAPI = {
+  // Get authorization URL
+  getAuthUrl: () => api.get('/api/google-calendar/auth-url'),
+  
+  // Handle authorization callback
+  handleCallback: (code: string) => api.post('/api/google-calendar/callback', { code }),
+  
+  // Get sync status and settings
+  getStatus: () => api.get('/api/google-calendar/status'),
+  
+  // Update sync settings
+  updateSettings: (data: {
+    enabled: boolean;
+    reminderMinutes?: number;
+    syncedPlantIds?: string[];
+  }) => api.put('/api/google-calendar/settings', data),
+  
+  // Sync specific tasks
+  syncTasks: (data: {
+    taskIds: string[];
+    reminderMinutes: number;
+  }) => api.post('/api/google-calendar/sync-tasks', data),
+  
+  // Revoke access
+  revokeAccess: () => api.delete('/api/google-calendar/revoke'),
 };
 
 export default api;

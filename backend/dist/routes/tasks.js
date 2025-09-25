@@ -7,6 +7,7 @@ const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
+const taskSyncService_1 = require("../services/taskSyncService");
 const router = (0, express_1.Router)();
 exports.tasksRouter = router;
 router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
@@ -150,6 +151,9 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.crea
                 },
             },
         });
+        taskSyncService_1.taskSyncService.syncTaskToCalendar(task.id).catch(error => {
+            console.error('Error syncing task to calendar:', error);
+        });
         res.status(201).json({
             success: true,
             data: task,
@@ -221,6 +225,9 @@ router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.up
                 },
             },
         });
+        taskSyncService_1.taskSyncService.updateTaskInCalendar(updatedTask.id).catch(error => {
+            console.error('Error updating task in calendar:', error);
+        });
         res.json({
             success: true,
             data: updatedTask,
@@ -277,6 +284,9 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                 error: 'Task not found',
             });
         }
+        taskSyncService_1.taskSyncService.removeTaskFromCalendar(taskId).catch(error => {
+            console.error('Error removing task from calendar:', error);
+        });
         await prisma_1.prisma.plantTask.delete({
             where: { id: taskId },
         });
@@ -296,6 +306,7 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
 });
 router.post('/:id/complete', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
+        console.log(`🎯 TASK COMPLETION ENDPOINT CALLED for task: ${req.params['id']}`);
         const taskId = req.params['id'];
         if (!taskId) {
             return res.status(400).json({
@@ -338,6 +349,14 @@ router.post('/:id/complete', jwtAuth_1.authenticateJWT, async (req, res) => {
                 },
             },
         });
+        try {
+            console.log(`🔄 Task completion sync: Starting sync for task ${taskId}`);
+            await taskSyncService_1.taskSyncService.updateTaskInCalendar(taskId);
+            console.log(`✅ Task completion sync: Completed sync for task ${taskId}`);
+        }
+        catch (syncError) {
+            console.error(`❌ Task completion sync: Error syncing completed task ${taskId} to Google Calendar:`, syncError);
+        }
         res.json({
             success: true,
             data: updatedTask,

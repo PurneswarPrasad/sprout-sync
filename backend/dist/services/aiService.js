@@ -12,6 +12,50 @@ class AIService {
         }
         this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
     }
+    async validatePlantImage(imagePart) {
+        try {
+            const validationPrompt = `
+You are a plant image validator. Your ONLY job is to determine if the provided image contains a plant (any type of plant, tree, flower, shrub, etc.).
+
+Return ONLY a JSON response with this exact structure:
+{
+  "isPlant": true/false,
+  "confidence": 0.0-1.0,
+  "reason": "Brief explanation of what you see in the image"
+}
+
+Rules:
+- Return "isPlant": true ONLY if you can clearly see a plant, tree, flower, shrub, or any botanical subject
+- Return "isPlant": false for animals, people, objects, food, buildings, landscapes without plants, etc.
+- Be strict: if you're unsure whether it's a plant, return false
+- Keep the reason brief and factual
+- Return ONLY valid JSON, no additional text`;
+            console.log('Validating if image contains a plant...');
+            const result = await this.model.generateContent([validationPrompt, imagePart]);
+            const response = await result.response;
+            const text = response.text();
+            console.log('Plant validation response:', text.substring(0, 200) + '...');
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                console.error('No JSON found in plant validation response:', text);
+                return false;
+            }
+            let validationResult;
+            try {
+                validationResult = JSON.parse(jsonMatch[0]);
+            }
+            catch (parseError) {
+                console.error('Failed to parse plant validation JSON:', parseError);
+                return false;
+            }
+            console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
+            return validationResult.isPlant && validationResult.confidence >= 0.7;
+        }
+        catch (error) {
+            console.error('Error during plant validation:', error);
+            return false;
+        }
+    }
     async identifyPlantFromImage(imageData) {
         try {
             console.log(`Starting AI plant identification. Input type: ${typeof imageData}`);
@@ -96,6 +140,12 @@ Important guidelines:
                     }
                 };
             }
+            const isValidPlant = await this.validatePlantImage(imagePart);
+            if (!isValidPlant) {
+                console.log('Plant validation failed in identifyPlantFromImage - throwing error');
+                throw new Error('The uploaded image does not appear to contain a plant. Please upload an image of a plant, tree, flower, or other botanical subject.');
+            }
+            console.log('Plant validation passed, proceeding with identification...');
             console.log('Sending request to Gemini AI...');
             const result = await this.model.generateContent([prompt, imagePart]);
             const response = await result.response;
@@ -122,7 +172,12 @@ Important guidelines:
         }
         catch (error) {
             console.error('AI identification error:', error);
-            throw new Error('Failed to identify plant. Please try again.');
+            if (error instanceof Error) {
+                throw error;
+            }
+            else {
+                throw new Error('Failed to identify plant. Please try again.');
+            }
         }
     }
     async fetchImageFromUrl(url, maxRedirects = 3) {
@@ -400,28 +455,6 @@ Important guidelines:
             else {
                 console.log(`Processing buffer input. Size: ${imageData.length} bytes`);
             }
-            const prompt = `You are a plant health assistant. Analyze the provided plant image and return results strictly in JSON format. 
-Do not include explanations or extra text outside the JSON.
-
-The JSON schema must look like this:
-
-{
-  "botanicalName": string,            // Botanical (scientific) name of the plant
-  "commonName": string,               // Common name of the plant (or empty string if unknown)
-  "confidence": number,               // 0–1, model confidence
-  "disease": {
-    "issue": string | null,           // Name of the detected issue (e.g., "Powdery mildew") or null if none
-    "description": string | null,     // Short summary of the issue
-    "affected": string | null,        // What kinds of plants are typically affected
-    "steps": string | null,           // Actionable care/prevention steps
-    "issueConfidence": number | null       // 0–1 confidence for disease detection, null if healthy
-  }
-}
-
-Rules:
-- If the plant looks healthy, set "disease.issue" to null and provide no disease details.
-- Keep text concise and user-friendly.
-- Do not invent diseases; respond "null" if unsure.`;
             let imagePart;
             if (typeof imageData === 'string') {
                 if (!imageData.startsWith('http')) {
@@ -460,6 +493,34 @@ Rules:
                     }
                 };
             }
+            const isValidPlant = await this.validatePlantImage(imagePart);
+            if (!isValidPlant) {
+                console.log('Plant validation failed in analyzePlantHealth - throwing error');
+                throw new Error('The uploaded image does not appear to contain a plant. Please upload an image of a plant, tree, flower, or other botanical subject.');
+            }
+            console.log('Plant validation passed, proceeding with health analysis...');
+            const prompt = `You are a plant health assistant. Analyze the provided plant image and return results strictly in JSON format. 
+Do not include explanations or extra text outside the JSON.
+
+The JSON schema must look like this:
+
+{
+  "botanicalName": string,            // Botanical (scientific) name of the plant
+  "commonName": string,               // Common name of the plant (or empty string if unknown)
+  "confidence": number,               // 0–1, model confidence
+  "disease": {
+    "issue": string | null,           // Name of the detected issue (e.g., "Powdery mildew") or null if none
+    "description": string | null,     // Short summary of the issue
+    "affected": string | null,        // What kinds of plants are typically affected
+    "steps": string | null,           // Actionable care/prevention steps
+    "issueConfidence": number | null       // 0–1 confidence for disease detection, null if healthy
+  }
+}
+
+Rules:
+- If the plant looks healthy, set "disease.issue" to null and provide no disease details.
+- Keep text concise and user-friendly.
+- Do not invent diseases; respond "null" if unsure.`;
             const result = await this.model.generateContent([prompt, imagePart]);
             const response = await result.response;
             const text = response.text();

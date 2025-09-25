@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantTaskSchema, updatePlantTaskSchema } from '../dtos';
+import { taskSyncService } from '../services/taskSyncService';
 
 const router = Router();
 
@@ -168,6 +169,11 @@ router.post('/', authenticateJWT, validate(createPlantTaskSchema), async (req, r
       },
     });
     
+    // Trigger Google Calendar sync if enabled
+    taskSyncService.syncTaskToCalendar(task.id).catch(error => {
+      console.error('Error syncing task to calendar:', error);
+    });
+    
     res.status(201).json({
       success: true,
       data: task,
@@ -244,6 +250,11 @@ router.put('/:id', authenticateJWT, validate(updatePlantTaskSchema), async (req,
       },
     });
     
+    // Trigger Google Calendar sync if enabled
+    taskSyncService.updateTaskInCalendar(updatedTask.id).catch(error => {
+      console.error('Error updating task in calendar:', error);
+    });
+    
     res.json({
       success: true,
       data: updatedTask,
@@ -306,6 +317,11 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
       });
     }
     
+    // Trigger Google Calendar sync removal if enabled
+    taskSyncService.removeTaskFromCalendar(taskId).catch(error => {
+      console.error('Error removing task from calendar:', error);
+    });
+    
     await prisma.plantTask.delete({
       where: { id: taskId },
     });
@@ -327,6 +343,7 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
 // POST /api/tasks/:id/complete - Mark task as completed
 router.post('/:id/complete', authenticateJWT, async (req, res) => {
   try {
+    console.log(`🎯 TASK COMPLETION ENDPOINT CALLED for task: ${req.params['id']}`);
     const taskId = req.params['id'];
     if (!taskId) {
       return res.status(400).json({
@@ -375,6 +392,16 @@ router.post('/:id/complete', authenticateJWT, async (req, res) => {
         },
       },
     });
+    
+    // Sync the updated task to Google Calendar
+    try {
+      console.log(`🔄 Task completion sync: Starting sync for task ${taskId}`);
+      await taskSyncService.updateTaskInCalendar(taskId);
+      console.log(`✅ Task completion sync: Completed sync for task ${taskId}`);
+    } catch (syncError) {
+      console.error(`❌ Task completion sync: Error syncing completed task ${taskId} to Google Calendar:`, syncError);
+      // Don't fail the request if sync fails
+    }
     
     res.json({
       success: true,

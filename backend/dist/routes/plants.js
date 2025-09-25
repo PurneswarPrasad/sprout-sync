@@ -8,6 +8,7 @@ const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const cloudinaryService_1 = require("../services/cloudinaryService");
+const taskSyncService_1 = require("../services/taskSyncService");
 const router = (0, express_1.Router)();
 exports.plantsRouter = router;
 const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
@@ -339,6 +340,16 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                 },
             },
         });
+        if (plant.tasks && plant.tasks.length > 0) {
+            for (const task of plant.tasks) {
+                try {
+                    await taskSyncService_1.taskSyncService.syncTaskToCalendar(task.id);
+                }
+                catch (syncError) {
+                    console.error(`Error syncing task ${task.id} to Google Calendar:`, syncError);
+                }
+            }
+        }
         res.status(201).json({
             success: true,
             data: plant,
