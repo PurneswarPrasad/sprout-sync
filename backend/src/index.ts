@@ -89,7 +89,7 @@ app.use('/api/plants/:plantId/tracking', plantTrackingRouter);
 // Root endpoint
 app.get('/', (_req, res) => {
   res.json({
-    message: '🌱 Plant Care API is running!',
+    message: '🌱 SproutSync API is running!',
     version: '1.0.0',
     environment: process.env['NODE_ENV'] || 'development',
     timestamp: new Date().toISOString(),
@@ -116,7 +116,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🌱 Plant Care API server running on port ${PORT}`);
+  console.log(`🌱 SproutSync API server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env['NODE_ENV'] || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });

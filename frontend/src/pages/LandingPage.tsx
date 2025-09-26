@@ -76,25 +76,28 @@ const LandingPage: React.FC = () => {
       <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${showFloatingHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         }`}>
         <div className="bg-gradient-to-br from-emerald-50/80 via-green-50/80 to-amber-50/80 backdrop-blur-sm border-b border-emerald-200/30 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-14 sm:h-16">
               {/* Left side - Logo and Name */}
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-green-600 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🌱</span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br rounded-lg flex items-center justify-center">
+                  <span className="text-sm sm:text-lg"><img src="/SproutSync_logo.png" alt="SproutSync" className="w-6 h-6 sm:w-8 sm:h-8" /></span>
                 </div>
-                <span className="text-xl font-bold text-gray-800">SproutSync</span>
+                <span className="text-lg sm:text-xl font-bold text-gray-800">SproutSync</span>
               </div>
 
               {/* Center - Newsletter signup */}
-              <div className="flex-1 flex justify-center">
-                <button className="text-sm text-gray-600 hover:bg-emerald-100 hover:border-emerald-300 border border-transparent px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer">
-                  Newsletter coming soon! Click <span className="font-bold">here</span> to sign up.
+              <div className="flex-1 flex justify-center px-2">
+                <button className="text-xs sm:text-sm text-gray-600 hover:bg-emerald-100 hover:border-emerald-300 border border-transparent px-2 sm:px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer text-center whitespace-nowrap">
+                  <span className="hidden sm:inline">Newsletter coming soon! Click </span>
+                  <span className="sm:hidden">Newsletter coming soon! <br/>Click </span>
+                  <span className="font-bold">here</span>
+                  <span className="sm:inline"> to sign up.</span>
                 </button>
               </div>
 
               {/* Right side - Empty for balance */}
-              <div className="w-24"></div>
+              <div className="w-8 sm:w-24"></div>
             </div>
           </div>
         </div>

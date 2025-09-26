@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Plant Care App',
-        short_name: 'PlantCare',
+        name: 'SproutSync',
+        short_name: 'SproutSync',
         description: 'Track and care for your plants',
         theme_color: '#10b981',
         background_color: '#f0fdf4',

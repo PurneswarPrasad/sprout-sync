@@ -1,5 +1,5 @@
 {
-  "name": "plant-care-app",
+  "name": "sprout-sync",
   "version": "1.0.0",
   "description": "A beautiful, GenZ-friendly plant care application",
   "private": true,
@@ -31,7 +31,7 @@
     "express",
     "vite"
   ],
-  "author": "Plant Care Team",
+  "author": "SproutSync Team",
   "license": "MIT"
 }
 

@@ -9,8 +9,8 @@ export const Footer: React.FC = () => {
           {/* Brand Information and Social Media */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-lg">🌱</span>
+              <div className="w-12 h-12 bg-gradient-to-br rounded-lg flex items-center justify-center">
+                <span className="text-lg"><img src="/SproutSync_logo.png" alt="SproutSync" /></span>
               </div>
               <span className="text-xl font-bold text-emerald-600">SproutSync</span>
             </div>

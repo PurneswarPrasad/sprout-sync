@@ -137,7 +137,7 @@ export class CityService {
       {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'PlantCare-App/1.0'
+          'User-Agent': 'SproutSync/1.0'
         }
       }
     );

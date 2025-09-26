@@ -117,11 +117,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center justify-between py-4">
               {/* Logo and Title - Left Side */}
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center">
-                  <span className="text-xl">🌱</span>
+                <div className="w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center">
+                  <span className="text-xl"><img src="/SproutSync_logo.png" alt="SproutSync" /></span>
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-lg font-bold text-gray-800 leading-tight">PlantCare</h1>
+                  <h1 className="text-lg font-bold text-gray-800 leading-tight">SproutSync</h1>
                 </div>
               </div>
               
@@ -188,10 +188,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Desktop Layout */}
           <div className="hidden sm:flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center">
-                <span className="text-xl">🌱</span>
+              <div className="w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center">
+                <span className="text-xl"><img src="/SproutSync_logo.png" alt="SproutSync" /></span>
               </div>
-              <h1 className="text-2xl font-bold text-gray-800">PlantCare</h1>
+              <h1 className="text-2xl font-bold text-gray-800">SproutSync</h1>
             </div>
             
             {/* Center - Newsletter signup */}
