@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Calendar as CalendarIcon, AlertCircle, CheckCircle } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
 import PlantHealthCheckModal from './PlantHealthCheckModal';
 import { GoogleCalendarSyncModal } from './GoogleCalendarSyncModal';
@@ -96,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigationItems = [
     { path: '/home', icon: Home, label: 'Home' },
     { path: '/plants', icon: Leaf, label: 'Plants' },
-    { path: '/calendar', icon: Calendar, label: 'Calendar' },
+    { path: '/calendar', icon: Calendar, label: 'Calendar', showSyncStatus: true },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -130,11 +130,31 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {/* Google Calendar Sync Button */}
                 <button
                   onClick={() => setShowGoogleCalendarSync(true)}
-                  className="flex items-center space-x-1 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-colors"
+                  className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-colors ${
+                    syncStatus?.syncEnabled 
+                      ? 'hover:bg-emerald-50' 
+                      : 'hover:bg-yellow-50'
+                  }`}
                   title="Sync with Google Calendar"
                 >
-                  <CalendarIcon className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs text-emerald-600 font-medium hidden xs:block">
+                  <div className="relative">
+                    <CalendarIcon className={`w-4 h-4 ${
+                      syncStatus?.syncEnabled 
+                        ? 'text-emerald-600' 
+                        : 'text-yellow-600'
+                    }`} />
+                    {!syncStatus?.syncEnabled && (
+                      <AlertCircle className="absolute -top-2 -right-2 w-3 h-3 text-yellow-600" />
+                    )}
+                    {syncStatus?.syncEnabled && (
+                      <CheckCircle className="absolute -top-2 -right-2 w-3 h-3 text-emerald-600" />
+                    )}
+                  </div>
+                  <span className={`text-xs font-medium hidden xs:block ${
+                    syncStatus?.syncEnabled 
+                      ? 'text-emerald-600' 
+                      : 'text-yellow-600'
+                  }`}>
                     {syncStatus?.syncEnabled ? 'Sync successful!' : 'Sync'}
                   </span>
                 </button>
@@ -206,11 +226,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Google Calendar Sync Button */}
               <button
                 onClick={() => setShowGoogleCalendarSync(true)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-colors"
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                  syncStatus?.syncEnabled 
+                    ? 'hover:bg-emerald-50' 
+                    : 'hover:bg-yellow-50'
+                }`}
                 title="Sync with Google Calendar"
               >
-                <CalendarIcon className="w-5 h-5 text-emerald-600" />
-                <span className="text-sm text-emerald-600 font-medium">
+                <CalendarIcon className={`w-5 h-5 ${
+                  syncStatus?.syncEnabled 
+                    ? 'text-emerald-600' 
+                    : 'text-yellow-600'
+                }`} />
+                <span className={`text-sm font-medium ${
+                  syncStatus?.syncEnabled 
+                    ? 'text-emerald-600' 
+                    : 'text-yellow-600'
+                }`}>
                   {syncStatus?.syncEnabled ? 'Sync successful!' : 'Sync Calendar'}
                 </span>
               </button>
@@ -289,7 +321,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <div className="relative">
+                    <Icon className={`w-5 h-5 ${
+                      item.showSyncStatus && !syncStatus?.syncEnabled
+                        ? 'text-yellow-600'
+                        : item.showSyncStatus && syncStatus?.syncEnabled
+                        ? 'text-emerald-600'
+                        : ''
+                    }`} />
+                    {item.showSyncStatus && !syncStatus?.syncEnabled && (
+                      <AlertCircle className="absolute -top-2 -right-2 w-3 h-3 text-yellow-600" />
+                    )}
+                    {item.showSyncStatus && syncStatus?.syncEnabled && (
+                      <CheckCircle className="absolute -top-2 -right-2 w-3 h-3 text-emerald-600" />
+                    )}
+                  </div>
                   <span className="text-xs font-medium">{item.label}</span>
                 </button>
               );
