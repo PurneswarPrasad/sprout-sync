@@ -13,11 +13,9 @@ import { tasksRouter } from './routes/tasks';
 import { healthRouter } from './routes/health';
 import { testRouter } from './routes/test';
 import { authRouter } from './routes/auth';
-import { tagsRouter } from './routes/tags';
 import { plantTasksRouter } from './routes/plantTasks';
 import { plantNotesRouter } from './routes/plantNotes';
 import { plantPhotosRouter } from './routes/plantPhotos';
-import { plantTagsRouter } from './routes/plantTags';
 import { aiRouter } from './routes/ai';
 import plantTrackingRouter from './routes/plantTracking';
 import uploadRouter from './routes/upload';
@@ -69,7 +67,6 @@ app.use(passport.initialize());
 // Routes
 app.use('/api/health', healthRouter);
 app.use('/api/tasks', tasksRouter);
-app.use('/api/tags', tagsRouter);
 app.use('/api/test', testRouter);
 app.use('/auth', authRouter);
 app.use('/api/ai', aiRouter);
@@ -83,7 +80,6 @@ app.use('/api/plants', plantsRouter);
 app.use('/api/plants/:plantId/tasks', plantTasksRouter);
 app.use('/api/plants/:plantId/notes', plantNotesRouter);
 app.use('/api/plants/:plantId/photos', plantPhotosRouter);
-app.use('/api/plants/:plantId/tags', plantTagsRouter);
 app.use('/api/plants/:plantId/tracking', plantTrackingRouter);
 
 // Root endpoint

@@ -16,11 +16,9 @@ const tasks_1 = require("./routes/tasks");
 const health_1 = require("./routes/health");
 const test_1 = require("./routes/test");
 const auth_1 = require("./routes/auth");
-const tags_1 = require("./routes/tags");
 const plantTasks_1 = require("./routes/plantTasks");
 const plantNotes_1 = require("./routes/plantNotes");
 const plantPhotos_1 = require("./routes/plantPhotos");
-const plantTags_1 = require("./routes/plantTags");
 const ai_1 = require("./routes/ai");
 const plantTracking_1 = __importDefault(require("./routes/plantTracking"));
 const upload_1 = __importDefault(require("./routes/upload"));
@@ -43,7 +41,6 @@ app.use((0, cookie_parser_1.default)());
 app.use(passport_1.default.initialize());
 app.use('/api/health', health_1.healthRouter);
 app.use('/api/tasks', tasks_1.tasksRouter);
-app.use('/api/tags', tags_1.tagsRouter);
 app.use('/api/test', test_1.testRouter);
 app.use('/auth', auth_1.authRouter);
 app.use('/api/ai', ai_1.aiRouter);
@@ -53,7 +50,6 @@ app.use('/api/plants', plants_1.plantsRouter);
 app.use('/api/plants/:plantId/tasks', plantTasks_1.plantTasksRouter);
 app.use('/api/plants/:plantId/notes', plantNotes_1.plantNotesRouter);
 app.use('/api/plants/:plantId/photos', plantPhotos_1.plantPhotosRouter);
-app.use('/api/plants/:plantId/tags', plantTags_1.plantTagsRouter);
 app.use('/api/plants/:plantId/tracking', plantTracking_1.default);
 app.get('/', (_req, res) => {
     res.json({

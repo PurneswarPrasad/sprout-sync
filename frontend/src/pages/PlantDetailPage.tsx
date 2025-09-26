@@ -341,24 +341,6 @@ export function PlantDetailPage() {
     setShowMonitorHealthModal(true);
   };
 
-  // const handleHealthSubmit = async (data: PlantHealthData) => {
-  //   try {
-  //     await plantsAPI.createTrackingUpdate(data.plantId, {
-  //       date: data.date,
-  //       note: data.note,
-  //       photoUrl: data.photoUrl,
-  //       originalPhotoUrl: data.originalPhotoUrl,
-  //       cloudinaryPublicId: data.cloudinaryPublicId,
-  //     });
-
-  //     setShowMonitorHealthModal(false);  
-  //     // Refresh tracking updates
-  //     fetchTrackingUpdates();
-  //   } catch (error) {
-  //     console.error('Error creating health update:', error);
-  //   }
-  // };
-
   const handleOpenTracking = (tracking: PlantTrackingUpdate) => {
     setSelectedTracking(tracking);
     setShowViewModal(true);

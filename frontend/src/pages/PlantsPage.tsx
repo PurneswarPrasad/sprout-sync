@@ -371,7 +371,7 @@ export function PlantsPage() {
                       </div>
 
                       {/* Tags */}
-                      {plant.tags.length > 0 && (
+                      {/* {plant.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {plant.tags.map((plantTag) => (
                             <span
@@ -382,7 +382,7 @@ export function PlantsPage() {
                             </span>
                           ))}
                         </div>
-                      )}
+                      )} */}
 
                       {/* Tasks */}
                       {activeTasks.length > 0 && (

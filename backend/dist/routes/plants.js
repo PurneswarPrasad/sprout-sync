@@ -568,45 +568,4 @@ router.get('/task-templates', jwtAuth_1.authenticateJWT, async (req, res) => {
         });
     }
 });
-router.post('/identify', jwtAuth_1.authenticateJWT, async (req, res) => {
-    try {
-        const { image } = req.body;
-        if (!image) {
-            return res.status(400).json({
-                success: false,
-                error: 'Image is required for plant identification',
-            });
-        }
-        const taskTemplates = await prisma_1.prisma.taskTemplate.findMany();
-        const mockIdentification = {
-            name: 'Monstera Deliciosa',
-            type: 'Tropical',
-            confidence: 0.95,
-            careTips: {
-                watering: 'Water when top 2-3 inches of soil is dry',
-                sunlight: 'Bright, indirect light',
-                temperature: '65-85°F (18-29°C)',
-                humidity: 'High humidity preferred',
-            },
-            suggestedTasks: taskTemplates.map(template => ({
-                key: template.key,
-                label: template.label,
-                colorHex: template.colorHex,
-                frequency: template.defaultFrequencyDays,
-                description: `${template.label} every ${template.defaultFrequencyDays} days`,
-            })),
-        };
-        res.json({
-            success: true,
-            data: mockIdentification,
-        });
-    }
-    catch (error) {
-        console.error('Error identifying plant:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to identify plant',
-        });
-    }
-});
 //# sourceMappingURL=plants.js.map

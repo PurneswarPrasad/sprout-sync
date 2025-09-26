@@ -126,32 +126,6 @@ router.post('/identify/url', authenticateJWT, validate(identifyByUrlSchema), asy
   }
 });
 
-// POST /ai/identify/issue/file - Analyze plant health from image file
-// router.post('/identify/issue/file', authenticateJWT, upload.single('image'), async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'No image file provided',
-//       });
-//     }
-
-//     const analysis = await aiService.analyzePlantHealth(req.file.buffer);
-
-//     res.json({
-//       success: true,
-//       data: analysis,
-//       message: 'Plant health analysis completed successfully',
-//     });
-//   } catch (error) {
-//     console.error('AI health analysis error:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: error instanceof Error ? error.message : 'Failed to analyze plant health',
-//     });
-//   }
-// });
-
 // POST /ai/identify/issue/url - Analyze plant health from image URL
 router.post('/identify/issue/url', authenticateJWT, validate(analyzeHealthByUrlSchema), async (req, res) => {
   try {

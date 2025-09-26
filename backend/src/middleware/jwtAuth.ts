@@ -27,24 +27,3 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
   }
 };
 
-export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    return next();
-  }
-
-  const token = authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
-    : authHeader;
-
-  try {
-    const decoded = verifyToken(token);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    // Token is invalid but we continue without authentication
-    next();
-  }
-};
-

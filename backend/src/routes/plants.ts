@@ -401,7 +401,7 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
   }
 });
 
-// PUT /api/plants/:id - Update plant
+// PUT /api/plants/:id - Update plant(Not implemented yet)
 router.put('/:id', authenticateJWT, validate(updatePlantSchema), async (req, res) => {
   try {
     const plantId = req.params['id'];
@@ -624,55 +624,6 @@ router.get('/task-templates', authenticateJWT, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch task templates',
-    });
-  }
-});
-
-// POST /api/plants/identify - Identify plant from image
-router.post('/identify', authenticateJWT, async (req, res) => {
-  try {
-    const { image } = req.body;
-    
-    if (!image) {
-      return res.status(400).json({
-        success: false,
-        error: 'Image is required for plant identification',
-      });
-    }
-    
-    // Get task templates for suggested tasks
-    const taskTemplates = await prisma.taskTemplate.findMany();
-    
-    // Mock plant identification response
-    // In production, this would call Google Cloud Vision API or similar
-    const mockIdentification = {
-      name: 'Monstera Deliciosa',
-      type: 'Tropical',
-      confidence: 0.95,
-      careTips: {
-        watering: 'Water when top 2-3 inches of soil is dry',
-        sunlight: 'Bright, indirect light',
-        temperature: '65-85°F (18-29°C)',
-        humidity: 'High humidity preferred',
-      },
-      suggestedTasks: taskTemplates.map(template => ({
-        key: template.key,
-        label: template.label,
-        colorHex: template.colorHex,
-        frequency: template.defaultFrequencyDays,
-        description: `${template.label} every ${template.defaultFrequencyDays} days`,
-      })),
-    };
-    
-    res.json({
-      success: true,
-      data: mockIdentification,
-    });
-  } catch (error) {
-    console.error('Error identifying plant:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to identify plant',
     });
   }
 });
