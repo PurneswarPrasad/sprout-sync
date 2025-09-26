@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { plantsAPI } from '../services/api';
-import { Search, Filter, Plus, Camera, Leaf, Clock, CheckCircle, X } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
+import { SearchFilter } from '../components/SearchFilter';
+import { AddPlantSection } from '../components/AddPlantSection';
+import { PlantStats } from '../components/PlantStats';
+import { PlantGrid } from '../components/PlantGrid';
 import { authAPI } from '../services/api';
 
 interface Plant {
@@ -135,55 +138,6 @@ export function PlantsPage() {
     }
   };
 
-  // Fix the getTaskStatus function
-  const getTaskStatus = (task: PlantTask) => {
-    const now = new Date();
-    const nextDue = new Date(task.nextDueOn);
-    const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    // Check if task was completed today
-    const isCompletedToday = task.lastCompletedOn ?
-      Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-
-    // If task is due today and was completed today, show "Done"
-    if ((daysUntilDue === 0 || task.frequencyDays === 1) && isCompletedToday) {
-      return { status: 'completed', text: 'Done', color: 'text-green-600' };
-    }
-
-    // For daily tasks (frequency=1), always show "Due today" if not completed today
-    if (task.frequencyDays === 1) {
-      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
-    }
-
-    if (daysUntilDue < 0) {
-      return { status: 'overdue', text: 'Overdue', color: 'text-red-600' };
-    } else if (daysUntilDue === 0) {
-      return { status: 'due-today', text: 'Due today', color: 'text-blue-600' };
-    } else if (daysUntilDue === 1) {
-      return { status: 'due-tomorrow', text: 'Due tomorrow', color: 'text-yellow-600' };
-    } else if (daysUntilDue <= 2) {
-      return { status: 'due-soon', text: `Due in ${daysUntilDue} days`, color: 'text-yellow-600' };
-    } else {
-      return { status: 'upcoming', text: `Due in ${daysUntilDue} days`, color: 'text-gray-600' };
-    }
-  };
-
-  const getTaskIcon = (taskKey: string) => {
-    switch (taskKey) {
-      case 'watering':
-        return '💧';
-      case 'fertilizing':
-        return '🌱';
-      case 'pruning':
-        return '✂️';
-      case 'spraying':
-        return '💨';
-      case 'sunlightRotation':
-        return '☀️';
-      default:
-        return '📋';
-    }
-  };
 
   const filteredPlants = plants.filter(plant =>
     getPlantDisplayName(plant).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -229,18 +183,6 @@ export function PlantsPage() {
     }
   };
 
-  const getPlantHealth = (plant: Plant) => {
-    const overdueTasks = plant.tasks.filter(task => {
-      const now = new Date();
-      const nextDue = new Date(task.nextDueOn);
-      return nextDue < now && task.active;
-    });
-
-    if (overdueTasks.length > 0) {
-      return { status: 'needs-care', color: 'bg-yellow-500' };
-    }
-    return { status: 'healthy', color: 'bg-green-500' };
-  };
 
   if (loading) {
     return (
@@ -265,203 +207,26 @@ export function PlantsPage() {
         </div>
 
         {/* Search and Filter */}
-        <div className="flex space-x-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search plants..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            />
-          </div>
-          <button className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Filter className="w-4 h-4 text-gray-600" />
-          </button>
-        </div>
+        <SearchFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
 
         {/* Add Plant Options */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Add New Plant</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => navigate('/ai-identification')}
-              className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
-            >
-              <Camera className="w-8 h-8 text-emerald-600 mb-2" />
-              <span className="font-medium text-gray-800">Camera ID</span>
-              <span className="text-sm text-gray-600">AI-powered</span>
-            </button>
-            <button
-              onClick={() => navigate('/add-plant')}
-              className="flex flex-col items-center p-4 border-2 border-dashed border-emerald-300 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-colors"
-            >
-              <Leaf className="w-8 h-8 text-emerald-600 mb-2" />
-              <span className="font-medium text-gray-800">Manual Entry</span>
-              <span className="text-sm text-gray-600">Custom details</span>
-            </button>
-          </div>
-        </div>
+        <AddPlantSection />
 
         {/* Plants Grid */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            {filteredPlants.length > 0 ? <h2 className="text-lg font-semibold text-gray-800">Hi {user?.name}, your garden has {filteredPlants.length} plants</h2> : <h2 className="text-lg font-semibold text-gray-800">Hi {user?.name}, your garden is empty!</h2>}
-            <select className="text-sm border border-gray-200 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option>All Plants</option>
-              <option>Healthy</option>
-              <option>Needs Care</option>
-            </select>
-          </div>
+          <PlantStats
+            user={user}
+            plantCount={filteredPlants.length}
+          />
 
-          {filteredPlants.length === 0 ? (
-            <div className="text-center py-12">
-              <Leaf className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">No plants found</h3>
-              <p className="text-gray-500 mb-4">
-                {searchTerm ? 'Try adjusting your search terms.' : 'Start by adding your first plant!'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredPlants.map((plant) => {
-                const health = getPlantHealth(plant);
-                const activeTasks = plant.tasks.filter(task => task.active);
-
-                return (
-                  <div
-                    key={plant.id}
-                    className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 hover:scale-105 transition-transform duration-200 cursor-pointer"
-                    onClick={() => navigate(`/plants/${plant.id}`)}
-                  >
-                    <div className="relative mb-3">
-                      {plant.photos && plant.photos.length > 0 ? (
-                        <div className="w-full rounded-lg overflow-hidden">
-                          <img
-                            src={plant.photos[0].secureUrl}
-                            alt={getPlantDisplayName(plant)}
-                            className="w-full h-auto max-h-32 object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full h-32 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <Leaf className="w-8 h-8 text-emerald-400" />
-                        </div>
-                      )}
-                      <div className={`absolute top-2 right-2 w-3 h-3 ${health.color} rounded-full`}></div>
-
-                      {/* Delete Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteDialog(plant.id, getPlantDisplayName(plant));
-                        }}
-                        className="absolute top-2 left-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-red-50 hover:text-red-600 transition-colors text-gray-500"
-                        title="Delete plant"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-800 truncate" title={getPlantDisplayName(plant)}>{getPlantDisplayName(plant)}</h3>
-                        <p className="text-sm text-gray-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
-                      </div>
-
-                      {/* Tags */}
-                      {/* {plant.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {plant.tags.map((plantTag) => (
-                            <span
-                              key={plantTag.tag.id}
-                              className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full"
-                            >
-                              {plantTag.tag.name}
-                            </span>
-                          ))}
-                        </div>
-                      )} */}
-
-                      {/* Tasks */}
-                      {activeTasks.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-gray-700">Active Tasks</h4>
-                          {(() => {
-                            // Sort tasks by priority: completed first, then by due date (most urgent first)
-                            const sortedTasks = [...activeTasks].sort((a, b) => {
-                              const aCompleted = a.lastCompletedOn !== null;
-                              const bCompleted = b.lastCompletedOn !== null;
-
-                              // Completed tasks appear first
-                              if (aCompleted && !bCompleted) return -1;
-                              if (!aCompleted && bCompleted) return 1;
-
-                              // If both are completed or both are pending, sort by due date
-                              if (aCompleted === bCompleted) {
-                                const now = new Date();
-                                const aDue = new Date(a.nextDueOn);
-                                const bDue = new Date(b.nextDueOn);
-                                const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                                const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-                                // Most urgent (smaller days until due) appears first
-                                return aDaysUntilDue - bDaysUntilDue;
-                              }
-
-                              return 0;
-                            });
-
-                            return sortedTasks.slice(0, 3).map((task) => {
-                              // Check if task was completed today, not just if it has ever been completed
-                              const now = new Date();
-                              const isCompleted = task.lastCompletedOn ?
-                                Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                              if (isCompleted) {
-                                return (
-                                  <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                                    <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                                    <span className="text-xs text-green-600">Done</span>
-                                  </div>
-                                );
-                              } else {
-                                const status = getTaskStatus(task);
-                                return (
-                                  <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-                                    <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                                    <span className={`text-xs ${status.color}`}>{status.text}</span>
-                                  </div>
-                                );
-                              }
-                            });
-                          })()}
-                          {activeTasks.length > 3 && (
-                            <p className="text-xs text-gray-500">+{activeTasks.length - 3} more tasks</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
-                        <div className="flex items-center gap-4">
-                          <span>{plant._count.notes} notes</span>
-                          <span>{plant._count.photos} photos</span>
-                        </div>
-                        <button
-                          onClick={() => navigate(`/plants/${plant.id}`)}
-                          className="text-emerald-600 hover:text-emerald-700 font-medium"
-                        >
-                          View Details
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <PlantGrid
+            plants={filteredPlants}
+            searchTerm={searchTerm}
+            onDeletePlant={openDeleteDialog}
+          />
         </div>
       </div>
 

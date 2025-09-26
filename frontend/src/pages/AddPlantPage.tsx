@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
-import { ArrowLeft, Plus, Check, X, Upload, Camera, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { ConfidenceNotification } from '../components/ConfidenceNotification';
-import { CityAutocomplete } from '../components/CityAutocomplete';
-import { PlantCareCards } from '../components/PlantCareCards';
 import { CloudinaryService, CloudinaryUploadResult } from '../services/cloudinaryService';
+import { BasicInfoSection } from '../components/BasicInfoSection';
+import { PlantCareInfoSection } from '../components/PlantCareInfoSection';
+import { CareTasksSection } from '../components/CareTasksSection';
 
 // Helper function to get today's date in YYYY-MM-DD format in local timezone
 const getTodayDateString = () => {
@@ -654,358 +655,48 @@ export const AddPlantPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
-
-              <div className="space-y-6">
-                {/* Row 1: Pet Name + Botanical Name + Plant Image */}
-                <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Left side: Pet Name and Botanical Name */}
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Your plant's pet name
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.petName}
-                        onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                        placeholder="e.g., My Little Green Friend"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Botanical name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.botanicalName}
-                        onChange={(e) => setFormData({ ...formData, botanicalName: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                        placeholder="e.g., Sansevieria trifasciata"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Right side: Plant Image Upload */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Plant Image
-                      </label>
-                      {isImageFromAI && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          {getAITagMessage()}
-                        </span>
-                      )}
-                    </div>
-
-                    {!imagePreview ? (
-                      <div className="space-y-3">
-                        {/* Auto-populating indicator */}
-                        {isAutoPopulatingImage && (
-                          <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4 text-center bg-emerald-50">
-                            <div className="flex flex-col items-center">
-                              <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
-                              <span className="text-sm text-emerald-700 font-medium">
-                                Auto-populating image from AI identification...
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Upload from device */}
-                        <div className={`border-2 border-dashed border-gray-300 rounded-lg p-4 text-center ${isAutoPopulatingImage ? 'opacity-50 pointer-events-none' : ''
-                          }`}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileInputChange}
-                            className="hidden"
-                            id="plant-image-upload"
-                            ref={fileInputRef}
-                            disabled={isUploadingImage}
-                          />
-                          <label
-                            htmlFor="plant-image-upload"
-                            className={`cursor-pointer flex flex-col items-center ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-                              }`}
-                          >
-                            {isUploadingImage ? (
-                              <div className="w-6 h-6 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mb-2"></div>
-                            ) : (
-                              <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                            )}
-                            <span className="text-sm text-gray-600">
-                              {isUploadingImage ? 'Uploading...' : 'Drag & drop or click to upload photo'}
-                            </span>
-                          </label>
-                        </div>
-
-                        {/* Take photo with camera */}
-                        <button
-                          type="button"
-                          onClick={startCamera}
-                          disabled={isUploadingImage || isAutoPopulatingImage}
-                          className={`w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${isUploadingImage || isAutoPopulatingImage ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <Camera className="w-5 h-5" />
-                            <span>Take photo with camera</span>
-                          </div>
-                        </button>
-                      </div>
-                    ) : (
-                      /* Image preview */
-                      <div className="relative">
-                        <img
-                          src={imagePreview}
-                          alt="Plant preview"
-                          className="w-full h-auto max-h-48 object-contain rounded-lg border border-gray-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={deleteImage}
-                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Camera view */}
-                    {showCamera && (
-                      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg p-4 w-full max-w-md">
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold">Take Photo</h3>
-                            <button
-                              type="button"
-                              onClick={stopCamera}
-                              className="p-2 hover:bg-gray-100 rounded-full"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </div>
-
-                          <div className="relative">
-                            <video
-                              ref={videoRef}
-                              autoPlay
-                              playsInline
-                              className="w-full h-64 bg-gray-900 rounded-lg"
-                            />
-                          </div>
-
-                          <div className="flex gap-3 mt-4">
-                            <button
-                              type="button"
-                              onClick={stopCamera}
-                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={capturePhoto}
-                              className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                            >
-                              Capture
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Row 2: Common Name + Plant Type */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Common name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.commonName}
-                      onChange={(e) => setFormData({ ...formData, commonName: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      placeholder="e.g., Snake Plant"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Plant Type
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      placeholder="e.g., Succulent, Tropical"
-                    />
-                  </div>
-                </div>
-
-                {/* Row 3: Acquisition Date + City/Location */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Acquisition Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.acquisitionDate}
-                      onChange={(e) => setFormData({ ...formData, acquisitionDate: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City/Location
-                    </label>
-                    <CityAutocomplete
-                      value={formData.city}
-                      onChange={(city) => setFormData({ ...formData, city })}
-                      placeholder="e.g., New York"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <BasicInfoSection
+              formData={formData}
+              onFormDataChange={(updates) => setFormData({ ...formData, ...updates })}
+              imageUploadProps={{
+                imagePreview,
+                isUploadingImage,
+                isAutoPopulatingImage,
+                isImageFromAI,
+                aiTagMessage: getAITagMessage(),
+                onImageUpload: handleImageUpload,
+                onDeleteImage: deleteImage,
+                onStartCamera: startCamera,
+                onStopCamera: stopCamera,
+                onCapturePhoto: capturePhoto,
+                showCamera,
+                stream,
+                videoRef,
+              }}
+            />
 
             {/* Plant Care Information Cards - Only show if coming from AI identification */}
-            {hasProcessedAI && (formData.careLevel || formData.sunRequirements || formData.toxicityLevel || selectedTasks.length > 0) && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Plant Care Information</h2>
-                <PlantCareCards
-                  careLevel={formData.careLevel as 'Easy' | 'Moderate' | 'Difficult' | undefined}
-                  waterFrequency={selectedTasks.find(task => task.key === 'watering')?.frequency}
-                  sunRequirements={formData.sunRequirements as 'No sun' | 'Part to Full' | 'Full sun' | undefined}
-                  toxicityLevel={formData.toxicityLevel as 'Low' | 'Medium' | 'High' | undefined}
-                />
-              </div>
-            )}
+            <PlantCareInfoSection
+              hasProcessedAI={hasProcessedAI}
+              careLevel={formData.careLevel}
+              sunRequirements={formData.sunRequirements}
+              toxicityLevel={formData.toxicityLevel}
+              selectedTasks={selectedTasks}
+            />
 
             {/* Care Tasks */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Care Tasks</h2>
-                {!taskTemplatesLoading && selectedTasks.length === 0 && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                    No tasks selected!
-                  </span>
-                )}
-              </div>
-              <p className="text-gray-600 mb-6">Select which care tasks you'd like to set up for this plant:</p>
-
-              {/* Available Task Templates */}
-              {taskTemplatesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-3"></div>
-                    <p className="text-gray-600">Loading care tasks...</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {taskTemplates.map((template) => {
-                    const isSelected = selectedTasks.some(task => task.key === template.key);
-                    const selectedTask = selectedTasks.find(task => task.key === template.key);
-
-                    return (
-                      <div key={template.key} className="space-y-3">
-                        {/* Task Selection Card with inline configuration */}
-                        <div className={`rounded-xl border-2 transition-all ${isSelected
-                            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                          }`}>
-                          <div className="flex flex-col lg:flex-row gap-4 p-4">
-                            {/* Task Selection Area */}
-                            <div
-                              onClick={() => toggleTaskSelection(template)}
-                              className={`flex items-center gap-3 cursor-pointer transition-all ${isSelected ? 'flex-1 lg:flex-none lg:w-64' : 'flex-1'
-                                }`}
-                            >
-                              <div
-                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'scale-110' : ''
-                                  }`}
-                                style={{ borderColor: template.colorHex }}
-                              >
-                                {isSelected && (
-                                  <div
-                                    className="w-2.5 h-2.5 rounded-full"
-                                    style={{ backgroundColor: template.colorHex }}
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-gray-800 truncate">{template.label}</h3>
-                                <p className="text-sm text-gray-600 truncate">
-                                  {getTaskFrequencyText(template, selectedTask)}
-                                </p>
-                              </div>
-                              {!isSelected && <div className="w-6 h-6 flex items-center justify-center text-lg flex-shrink-0">
-                                {getTaskIcon(template.key)}
-                              </div>}
-                            </div>
-
-                            {/* Task Configuration - appears beside selected task */}
-                            {isSelected && selectedTask && (
-                              <div className="flex-1 lg:flex-none lg:w-80 flex items-center gap-3 min-w-0">
-                                <div className="flex-1 min-w-0">
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Frequency (days)
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={selectedTask.frequency}
-                                    onChange={(e) => updateTaskFrequency(selectedTask.key, parseInt(e.target.value))}
-                                    className="w-full px-2 py-1.5 text-sm rounded-md border border-gray-200 focus:ring-1 focus:ring-emerald-500 focus:border-transparent"
-                                  />
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Last Completed
-                                  </label>
-                                  <input
-                                    type="date"
-                                    value={selectedTask.frequency === 1 ? getTodayDateString() : (selectedTask.lastCompleted || '')}
-                                    onChange={(e) => updateTaskLastCompleted(selectedTask.key, e.target.value)}
-                                    max={getTodayDateString()}
-                                    className={`w-full px-2 py-1.5 text-sm rounded-md border border-gray-200 focus:ring-1 focus:ring-emerald-500 focus:border-transparent ${selectedTask.frequency === 1 ? 'bg-gray-100 cursor-not-allowed' : ''
-                                      }`}
-                                    disabled={selectedTask.frequency === 1}
-                                  />
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => removeTask(selectedTask.key)}
-                                  className="p-2 rounded-full hover:bg-gray-100 transition-colors self-end flex-shrink-0"
-                                >
-                                  <X className="w-4 h-4 text-gray-500" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-            </div>
+            <CareTasksSection
+              taskTemplatesLoading={taskTemplatesLoading}
+              taskTemplates={taskTemplates}
+              selectedTasks={selectedTasks}
+              onToggleTaskSelection={toggleTaskSelection}
+              onUpdateTaskFrequency={updateTaskFrequency}
+              onUpdateTaskLastCompleted={updateTaskLastCompleted}
+              onRemoveTask={removeTask}
+              getTaskIcon={getTaskIcon}
+              getTaskFrequencyText={getTaskFrequencyText}
+              getTodayDateString={getTodayDateString}
+            />
 
             {/* Submit Button */}
             <div className="flex gap-4">

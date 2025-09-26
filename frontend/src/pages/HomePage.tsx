@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
 import { authAPI, plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
-import { SwipeToDeleteCard, SwipeToDeleteCardRef } from '../components/SwipeToDeleteCard';
+import { SwipeToDeleteCardRef } from '../components/SwipeToDeleteCard';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
+import { StatsCards } from '../components/StatsCards';
+import { PlantsSection } from '../components/PlantsSection';
+import { TasksSection } from '../components/TasksSection';
+import { OverdueSection } from '../components/OverdueSection';
 
 interface User {
   id: string;
@@ -446,340 +449,47 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Plants</p>
-                <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{totalPlants}</p>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <span className="text-lg sm:text-2xl">🌿</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Tasks</p>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600">{todaysTasksCount}</p>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <span className="text-lg sm:text-2xl">📋</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Overdue</p>
-                <p className="text-2xl sm:text-3xl font-bold text-red-600">{overdueTasksCount}</p>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <span className="text-lg sm:text-2xl">⚠️</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl sm:text-3xl font-bold text-green-600">{completedTasksCount}</p>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <span className="text-lg sm:text-2xl">✅</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCards
+          totalPlants={totalPlants}
+          todaysTasksCount={todaysTasksCount}
+          overdueTasksCount={overdueTasksCount}
+          completedTasksCount={completedTasksCount}
+        />
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
           {/* Plants Section */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Your Plants</h3>
-              <button 
-                onClick={() => setShowAddPlantModal(true)}
-                className="px-3 sm:px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors duration-200 text-sm sm:text-base"
-              >
-                Add Plant
-              </button>
-            </div>
-            
-            {plants.length === 0 ? (
-              <div className="text-center py-8 sm:py-12">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl sm:text-3xl">🌱</span>
-                </div>
-                <p className="text-gray-600 mb-4 text-sm sm:text-base">No plants yet</p>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  Start by adding your first plant to begin your care journey
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 sm:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
-                {plants.map((plant) => {
-                  const health = getPlantHealth(plant);
-                  const activeTasks = plant.tasks.filter(task => task.active);
-                  
-                  return (
-                    <SwipeToDeleteCard
-                      key={plant.id}
-                      ref={(el) => {
-                        swipeCardRefs.current[plant.id] = el;
-                      }}
-                      onDelete={() => openDeleteDialog(plant.id, getPlantDisplayName(plant))}
-                      threshold={100}
-                    >
-                      <div 
-                        className="p-3 sm:p-4 cursor-pointer"
-                        onClick={() => navigate(`/plants/${plant.id}`)}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="relative">
-                              {plant.photos && plant.photos.length > 0 ? (
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
-                                  <img
-                                    src={plant.photos[0].secureUrl}
-                                    alt={getPlantDisplayName(plant)}
-                                    className="w-full h-full object-contain"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                                  <span className="text-lg sm:text-xl">🌿</span>
-                                </div>
-                              )}
-                              <div className={`absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 ${health.color} rounded-full`}></div>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h4 className="font-semibold text-gray-800 text-sm sm:text-base truncate">{getPlantDisplayName(plant)}</h4>
-                              <p className="text-xs sm:text-sm text-gray-600 truncate">{plant.type || 'Unknown type'}</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {activeTasks.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-gray-700">Active Tasks:</p>
-                            <div className="flex flex-wrap gap-1 sm:gap-2">
-                              {(() => {
-                                // Sort tasks by priority: completed first, then by due date (most urgent first)
-                                const sortedTasks = [...activeTasks].sort((a, b) => {
-                                  const aCompleted = a.lastCompletedOn !== null;
-                                  const bCompleted = b.lastCompletedOn !== null;
-                                  
-                                  // Completed tasks appear first
-                                  if (aCompleted && !bCompleted) return -1;
-                                  if (!aCompleted && bCompleted) return 1;
-                                  
-                                  // If both are completed or both are pending, sort by due date
-                                  if (aCompleted === bCompleted) {
-                                    const now = new Date();
-                                    const aDue = new Date(a.nextDueOn);
-                                    const bDue = new Date(b.nextDueOn);
-                                    const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                                    const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                                    
-                                    // Most urgent (smaller days until due) appears first
-                                    return aDaysUntilDue - bDaysUntilDue;
-                                  }
-                                  
-                                  return 0;
-                                });
-                                
-                                return sortedTasks.slice(0, 2).map((task) => {
-                                  // Check if task was completed today, not just if it has ever been completed
-                                  const now = new Date();
-                                  const isCompleted = task.lastCompletedOn ? 
-                                    Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-                                  
-                                  if (isCompleted) {
-                                    return (
-                                      <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                                        <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                                        <span className="text-xs text-green-600">Done</span>
-                                      </div>
-                                    );
-                                  } else {
-                                    const status = getTaskStatus(task);
-                                    return (
-                                      <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-                                        <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                                        <span className={`text-xs ${status.color}`}>{status.text}</span>
-                                      </div>
-                                    );
-                                  }
-                                });
-                              })()}
-                              {activeTasks.length > 2 && (
-                                <span className="text-xs text-gray-500">+{activeTasks.length - 2} more</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </SwipeToDeleteCard>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <PlantsSection
+            plants={plants}
+            onAddPlant={() => setShowAddPlantModal(true)}
+            onPlantClick={(plantId) => navigate(`/plants/${plantId}`)}
+            onDeletePlant={openDeleteDialog}
+            getPlantDisplayName={getPlantDisplayName}
+            getPlantHealth={getPlantHealth}
+            getTaskIcon={getTaskIcon}
+            getTaskStatus={getTaskStatus}
+            swipeCardRefs={swipeCardRefs}
+          />
 
           {/* Tasks Section */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Today's Tasks</h3>
-              <button 
-                onClick={() => navigate('/calendar')}
-                className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm sm:text-base"
-              >
-                View All
-              </button>
-            </div>
-            
-            {(() => {
-              const todaysTasks = getTodaysTasks();
-              
-              if (todaysTasks.length === 0) {
-                return (
-                  <div className="text-center py-8 sm:py-12">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl sm:text-3xl">📋</span>
-                    </div>
-                    <p className="text-gray-600 mb-4 text-sm sm:text-base">No tasks for today</p>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      Add plants to start receiving care reminders
-                    </p>
-                  </div>
-                );
-              }
-              
-              return (
-                <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
-                  {todaysTasks.slice(0, 5).map(({ task, plant, status, isCompleted }) => (
-                    <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg border ${
-                      isCompleted 
-                        ? 'bg-green-50 border-green-200' 
-                        : 'bg-white border-gray-200'
-                    }`}>
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className={`text-base sm:text-lg ${isCompleted ? 'opacity-50' : ''}`}>{getTaskIcon(task.taskKey)}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className={`font-medium text-sm sm:text-base ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'} truncate`}>
-                            {getTaskDisplayName(task.taskKey)}
-                          </p>
-                          <p className={`text-xs sm:text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'} truncate`}>
-                            {getPlantDisplayName(plant)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2">
-                        {isCompleted ? (
-                          <div className="flex items-center space-x-1 text-green-600">
-                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="text-xs sm:text-sm">Done</span>
-                          </div>
-                        ) : (
-                          <>
-                            <span className={`text-xs sm:text-sm font-medium ${status.color} hidden sm:block`}>
-                              {status.text}
-                            </span>
-                            <button
-                              onClick={() => openConfirmDialog(task, plant)}
-                              className="px-2 sm:px-3 py-1 bg-emerald-500 text-white text-xs rounded-lg hover:bg-emerald-600 transition-colors"
-                            >
-                              Complete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
+          <TasksSection
+            tasks={getTodaysTasks()}
+            onViewAll={() => navigate('/calendar')}
+            onTaskComplete={openConfirmDialog}
+            getTaskIcon={getTaskIcon}
+            getTaskDisplayName={getTaskDisplayName}
+            getPlantDisplayName={getPlantDisplayName}
+          />
 
           {/* Overdue Tasks Section */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Overdue Tasks</h3>
-              <button 
-                onClick={() => navigate('/calendar')}
-                className="px-3 sm:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm sm:text-base"
-              >
-                View All
-              </button>
-            </div>
-            
-            {(() => {
-              const overdueTasks = getOverdueTasks();
-              
-              if (overdueTasks.length === 0) {
-                return (
-                  <div className="text-center py-8 sm:py-12">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl sm:text-3xl">⚠️</span>
-                    </div>
-                    <p className="text-gray-600 mb-4 text-sm sm:text-base">No overdue tasks</p>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      Great job keeping up with your plant care!
-                    </p>
-                  </div>
-                );
-              }
-              
-              return (
-                <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
-                  {overdueTasks.slice(0, 5).map(({ task, plant, status, isCompleted }) => (
-                    <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg border ${
-                      isCompleted 
-                        ? 'bg-green-50 border-green-200' 
-                        : 'bg-red-50 border-red-200'
-                    }`}>
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className={`text-base sm:text-lg ${isCompleted ? 'opacity-50' : ''}`}>{getTaskIcon(task.taskKey)}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className={`font-medium text-sm sm:text-base ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-800'} truncate`}>
-                            {getTaskDisplayName(task.taskKey)}
-                          </p>
-                          <p className={`text-xs sm:text-sm ${isCompleted ? 'text-gray-400' : 'text-gray-600'} truncate`}>
-                            {getPlantDisplayName(plant)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2">
-                        {isCompleted ? (
-                          <div className="flex items-center space-x-1 text-green-600">
-                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="text-xs sm:text-sm">Done</span>
-                          </div>
-                        ) : (
-                          <>
-                            <span className={`text-xs sm:text-sm font-medium ${status.color} hidden sm:block`}>
-                              {status.text}
-                            </span>
-                            <button
-                              onClick={() => openConfirmDialog(task, plant)}
-                              className="px-2 sm:px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
-                            >
-                              Complete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
+          <OverdueSection
+            tasks={getOverdueTasks()}
+            onViewAll={() => navigate('/calendar')}
+            onTaskComplete={openConfirmDialog}
+            getTaskIcon={getTaskIcon}
+            getTaskDisplayName={getTaskDisplayName}
+            getPlantDisplayName={getPlantDisplayName}
+          />
         </div>
       </div>
 

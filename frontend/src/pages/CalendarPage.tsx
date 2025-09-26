@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, Droplets, Sun, Scissors, Zap, Calendar as CalendarIcon, MoreVertical, Leaf } from 'lucide-react';
+import { Droplets, Sun, Scissors, Zap, Clock } from 'lucide-react';
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval as eachMonthDay, setHours, addMonths, subMonths } from 'date-fns';
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
 import { PlantTasksModal } from '../components/PlantTasksModal';
+import { CalendarHeader } from '../components/CalendarHeader';
+import { CalendarGrid } from '../components/CalendarGrid';
+import { TasksList } from '../components/TasksList';
 
 // Helper function to set time to 00:00 for daily tasks
 const setTimeToMidnight = (date: Date) => {
@@ -422,152 +425,36 @@ export function CalendarPage() {
     );
   }
 
-  const monthDays = getMonthDays();
   const selectedDateGroupedTasks = getTasksForSelectedDate();
   const selectedDateTaskType = getSelectedDateTaskType();
 
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50 p-4">
-          {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Calendar</h1>
-          <p className="text-sm text-gray-500 mb-4">Click on any date to view tasks for that day</p>
-          
-          {/* Month Navigation */}
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <button
-              onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-              className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
-            </button>
-            <h2 className="text-lg font-semibold text-gray-800">
-                {format(currentDate, 'MMMM yyyy')}
-              </h2>
-                <button
-              onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-              className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 text-gray-600" />
-                </button>
-            </div>
+        {/* Header */}
+        <CalendarHeader
+          currentDate={currentDate}
+          onPreviousMonth={() => setCurrentDate(subMonths(currentDate, 1))}
+          onNextMonth={() => setCurrentDate(addMonths(currentDate, 1))}
+        />
 
-          {/* Calendar Grid */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
-                <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar days */}
-            <div className="grid grid-cols-7 gap-1">
-              {monthDays.map((day) => {
-                const isToday = isSameDay(day, new Date());
-                const isSelected = isSameDay(day, selectedDate);
-                const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-                const plantPhotos = getPlantPhotosForDate(day);
-
-                return (
-                  <button
-                    key={day.toString()}
-                    onClick={() => handleDateClick(day)}
-                    className={`relative w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                      isSelected
-                        ? 'bg-emerald-600 text-white'
-                        : isToday
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : isCurrentMonth
-                        ? 'text-gray-800 hover:bg-gray-100'
-                        : 'text-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    {format(day, 'd')}
-                    
-                    {/* Plant photos */}
-                    {plantPhotos.length > 0 && (
-                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 flex gap-0.5">
-                        {plantPhotos.map((photo, index) => (
-                          <img
-                            key={index}
-                            src={photo.secureUrl}
-                            alt="Plant"
-                            className="w-3 h-3 rounded-full object-cover border border-white"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        {/* Calendar Grid */}
+        <CalendarGrid
+          currentDate={currentDate}
+          selectedDate={selectedDate}
+          onDateClick={handleDateClick}
+          getPlantPhotosForDate={getPlantPhotosForDate}
+        />
 
         {/* Selected Date Tasks */}
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
-              {selectedDateTaskType} - {format(selectedDate, 'MMM d, yyyy')}
-            </h3>
-            
-            {Object.keys(selectedDateGroupedTasks).length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Object.entries(selectedDateGroupedTasks).map(([plantId, group]) => {
-                  const plant = group.plant;
-                  const plantTasks = group.tasks;
-                  
-                  if (!plant) return null;
-
-                  return (
-                    <button
-                      key={plantId}
-                      onClick={() => openPlantTasksModal(plant, plantTasks)}
-                      className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow text-left w-full"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          {plant.photos.length > 0 ? (
-                            <img
-                              src={plant.photos[0].secureUrl}
-                              alt={getPlantDisplayName(plant)}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Leaf className="w-8 h-8 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-800 truncate">{getPlantDisplayName(plant)}</h4>
-                          <p className="text-sm text-gray-500 truncate">
-                            {plant.commonName && plant.petName ? plant.commonName : plant.botanicalName || 'Plant'}
-                          </p>
-                          <p className="text-xs text-emerald-600 font-medium mt-1">
-                            {plantTasks.length} task{plantTasks.length !== 1 ? 's' : ''} scheduled
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-500 mb-2">No tasks for this date</h3>
-                <p className="text-gray-400">Select a different date to view tasks.</p>
-              </div>
-            )}
-          </div>
+        <div className="mt-8">
+          <TasksList
+            selectedDate={selectedDate}
+            selectedDateTaskType={selectedDateTaskType}
+            selectedDateGroupedTasks={selectedDateGroupedTasks}
+            onPlantCardClick={openPlantTasksModal}
+            getPlantDisplayName={getPlantDisplayName}
+          />
         </div>
       </div>
 
