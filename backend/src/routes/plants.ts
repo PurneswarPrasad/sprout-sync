@@ -88,6 +88,7 @@ router.get('/', authenticateJWT, async (req, res) => {
     
     let whereClause: any = {
       userId: userId,
+      isGifted: false, // Exclude gifted plants from main list
     };
     
     if (search) {
@@ -151,6 +152,70 @@ router.get('/', authenticateJWT, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch plants',
+    });
+  }
+});
+
+// GET /api/plants/gifted - Get gifted plants
+router.get('/gifted', authenticateJWT, async (req, res) => {
+  try {
+    const userId = (req.user as any).userId;
+    
+    const plants = await prisma.plant.findMany({
+      where: {
+        userId: userId,
+        isGifted: true,
+      },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+        tasks: {
+          include: {
+            plant: true,
+          },
+        },
+        photos: {
+          orderBy: {
+            takenAt: 'desc',
+          },
+          take: 1, // Only get the most recent photo for the list view
+        },
+        gift: {
+          include: {
+            receiver: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            notes: true,
+            photos: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    
+    res.json({
+      success: true,
+      data: plants,
+      count: plants.length,
+    });
+  } catch (error) {
+    console.error('Error fetching gifted plants:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch gifted plants',
     });
   }
 });
@@ -555,6 +620,10 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
       }),
       // Delete tracking updates (health monitoring notes and photos)
       prisma.plantTracking.deleteMany({
+        where: { plantId: plantId },
+      }),
+      // Delete plant gifts (if any)
+      prisma.plantGift.deleteMany({
         where: { plantId: plantId },
       }),
       // Finally delete the plant

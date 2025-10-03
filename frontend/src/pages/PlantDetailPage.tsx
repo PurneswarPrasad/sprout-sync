@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Leaf } from 'lucide-react';
 import { Layout } from '../components/Layout';
-import { plantsAPI } from '../services/api';
+import { plantsAPI, plantGiftsAPI } from '../services/api';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
 import { PlantTrackingModal, PlantTrackingData } from '../components/PlantTrackingModal';
 import PlantHealthModal, { PlantHealthData } from '../components/PlantHealthModal';
@@ -11,6 +11,8 @@ import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog
 import { PlantCareTab } from '../components/PlantCareTab';
 import { PlantHealthTab } from '../components/PlantHealthTab';
 import { PlantAboutTab } from '../components/PlantAboutTab';
+import { GiftPlantModal } from '../components/GiftPlantModal';
+import { ShareGiftModal } from '../components/ShareGiftModal';
 
 interface PlantTask {
   id: string;
@@ -42,6 +44,7 @@ interface Plant {
   city: string | null;
   createdAt: string;
   updatedAt: string;
+  isGifted: boolean;
   tasks: PlantTask[];
   tags: any[];
   photos: PlantPhoto[];
@@ -91,6 +94,13 @@ export function PlantDetailPage() {
   const [trackingToDelete, setTrackingToDelete] = useState<string | null>(null);
   const [trackingUpdates, setTrackingUpdates] = useState<PlantTrackingUpdate[]>([]);
   const [loadingTracking, setLoadingTracking] = useState(false);
+  
+  // Gift modal states
+  const [showGiftModal, setShowGiftModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [giftToken, setGiftToken] = useState<string | null>(null);
+  const [giftLoading, setGiftLoading] = useState(false);
+  const [giftLinkCopied, setGiftLinkCopied] = useState(false);
 
   useEffect(() => {
     if (plantId) {
@@ -181,6 +191,37 @@ export function PlantDetailPage() {
     }
   };
 
+  const handleGiftPlant = () => {
+    setShowGiftModal(true);
+  };
+
+  const handleGiftConfirm = async (message?: string) => {
+    if (!plant) return;
+
+    setGiftLoading(true);
+    try {
+      const response = await plantGiftsAPI.createGift({
+        plantId: plant.id,
+        message,
+      });
+      
+      setGiftToken(response.data.data.giftToken);
+      setShowGiftModal(false);
+      setShowShareModal(true);
+    } catch (error) {
+      console.error('Error creating plant gift:', error);
+      // You could add a toast notification here to show the error to the user
+    } finally {
+      setGiftLoading(false);
+    }
+  };
+
+  const handleGiftLinkCopied = () => {
+    setGiftLinkCopied(true);
+    setShowShareModal(false);
+  };
+
+
   if (loading) {
     return (
       <Layout>
@@ -245,6 +286,20 @@ export function PlantDetailPage() {
               <p className="text-sm sm:text-base text-emerald-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
             </div>
           </div>
+          {giftLinkCopied ? (
+            <div className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium flex items-center gap-2">
+              <span>✓</span>
+              Plant gifted!
+            </div>
+          ) : (
+            <button
+              onClick={handleGiftPlant}
+              disabled={plant.isGifted || giftLoading}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {giftLoading ? 'Creating...' : 'Gift your plant'}
+            </button>
+          )}
         </div>
 
         {/* Navigation Tabs */}
@@ -376,6 +431,19 @@ export function PlantDetailPage() {
         message="Are you sure you want to delete this tracking update? This action cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
+      />
+      <GiftPlantModal
+        isOpen={showGiftModal}
+        onClose={() => setShowGiftModal(false)}
+        onConfirm={handleGiftConfirm}
+        plantName={getPlantDisplayName(plant!)}
+        plantImage={plant?.photos && plant.photos.length > 0 ? plant.photos[0].secureUrl : undefined}
+      />
+      <ShareGiftModal
+        isOpen={showShareModal}
+        onClose={handleGiftLinkCopied}
+        plantName={getPlantDisplayName(plant!)}
+        giftToken={giftToken || ''}
       />
     </Layout>
   );

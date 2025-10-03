@@ -57,6 +57,7 @@ export const authAPI = {
 
 export const plantsAPI = {
   getAll: () => api.get('/api/plants'),
+  getGifted: () => api.get('/api/plants/gifted'),
   getById: (id: string) => api.get(`/api/plants/${id}`),
   create: (data: any) => api.post('/api/plants', data),
   update: (id: string, data: any) => api.put(`/api/plants/${id}`, data),
@@ -124,6 +125,32 @@ export const googleCalendarAPI = {
   
   // Revoke access
   revokeAccess: () => api.delete('/api/google-calendar/revoke'),
+};
+
+export const plantGiftsAPI = {
+  // Create a plant gift
+  createGift: (data: { plantId: string; message?: string }) => 
+    api.post('/api/plant-gifts', data),
+  
+  // Get gift details by token (for accepting)
+  getGiftByToken: (token: string) => 
+    api.get(`/api/plant-gifts/gift/${token}`),
+  
+  // Accept a plant gift
+  acceptGift: (data: { giftToken: string }) => 
+    api.post('/api/plant-gifts/accept', data),
+  
+  // Get gifts sent by the user
+  getSentGifts: () => 
+    api.get('/api/plant-gifts/sent'),
+  
+  // Get gifts received by the user
+  getReceivedGifts: () => 
+    api.get('/api/plant-gifts/received'),
+  
+  // Cancel a gift
+  cancelGift: (giftId: string) => 
+    api.delete(`/api/plant-gifts/${giftId}`),
 };
 
 export default api;

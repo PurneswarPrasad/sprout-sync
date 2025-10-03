@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
@@ -8,6 +8,7 @@ import { SearchFilter } from '../components/SearchFilter';
 import { AddPlantSection } from '../components/AddPlantSection';
 import { PlantStats } from '../components/PlantStats';
 import { PlantGrid } from '../components/PlantGrid';
+import { GiftedPlantsSection, GiftedPlantsSectionRef } from '../components/GiftedPlantsSection';
 import { authAPI } from '../services/api';
 
 interface Plant {
@@ -85,6 +86,8 @@ export function PlantsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'your-plants' | 'gifted-plants'>('your-plants');
+  const giftedPlantsRef = useRef<GiftedPlantsSectionRef>(null);
 
   // Delete confirmation state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -139,10 +142,12 @@ export function PlantsPage() {
   };
 
 
+
   const filteredPlants = plants.filter(plant =>
     getPlantDisplayName(plant).toLowerCase().includes(searchTerm.toLowerCase()) ||
     (plant.type && plant.type.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
 
   // Delete plant functions
   const openDeleteDialog = (plantId: string, plantName: string) => {
@@ -174,6 +179,11 @@ export function PlantsPage() {
       // Remove the plant from the local state
       setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));
 
+      // Remove from gifted plants if it was there
+      if (giftedPlantsRef.current) {
+        giftedPlantsRef.current.removePlant(deleteDialog.plantId);
+      }
+
       closeDeleteDialog();
     } catch (error) {
       console.error('Error deleting plant:', error);
@@ -182,6 +192,7 @@ export function PlantsPage() {
       setDeleteDialog(prev => ({ ...prev, isLoading: false }));
     }
   };
+
 
 
   if (loading) {
@@ -217,16 +228,50 @@ export function PlantsPage() {
 
         {/* Plants Grid */}
         <div className="space-y-4">
-          <PlantStats
-            user={user}
-            plantCount={filteredPlants.length}
-          />
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab('your-plants')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'your-plants'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Your Plants
+            </button>
+            <button
+              onClick={() => setActiveTab('gifted-plants')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'gifted-plants'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Gifted Plants
+            </button>
+          </div>
 
-          <PlantGrid
-            plants={filteredPlants}
-            searchTerm={searchTerm}
-            onDeletePlant={openDeleteDialog}
-          />
+          {/* Tab Content */}
+          {activeTab === 'your-plants' ? (
+            <>
+              <PlantStats
+                user={user}
+                plantCount={filteredPlants.length}
+              />
+              <PlantGrid
+                plants={filteredPlants}
+                searchTerm={searchTerm}
+                onDeletePlant={openDeleteDialog}
+              />
+            </>
+          ) : (
+            <GiftedPlantsSection 
+              ref={giftedPlantsRef}
+              onDeletePlant={openDeleteDialog} 
+              userName={user?.name || undefined}
+            />
+          )}
         </div>
       </div>
 

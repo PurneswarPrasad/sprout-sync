@@ -96,6 +96,7 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
         const userId = req.user.userId;
         let whereClause = {
             userId: userId,
+            isGifted: false,
         };
         if (search) {
             const searchTerm = search.toString();
@@ -156,6 +157,67 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch plants',
+        });
+    }
+});
+router.get('/gifted', jwtAuth_1.authenticateJWT, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const plants = await prisma_1.prisma.plant.findMany({
+            where: {
+                userId: userId,
+                isGifted: true,
+            },
+            include: {
+                tags: {
+                    include: {
+                        tag: true,
+                    },
+                },
+                tasks: {
+                    include: {
+                        plant: true,
+                    },
+                },
+                photos: {
+                    orderBy: {
+                        takenAt: 'desc',
+                    },
+                    take: 1,
+                },
+                gift: {
+                    include: {
+                        receiver: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                    },
+                },
+                _count: {
+                    select: {
+                        notes: true,
+                        photos: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        res.json({
+            success: true,
+            data: plants,
+            count: plants.length,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching gifted plants:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch gifted plants',
         });
     }
 });
@@ -504,6 +566,9 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                 where: { plantId: plantId },
             }),
             prisma_1.prisma.plantTracking.deleteMany({
+                where: { plantId: plantId },
+            }),
+            prisma_1.prisma.plantGift.deleteMany({
                 where: { plantId: plantId },
             }),
             prisma_1.prisma.plant.delete({

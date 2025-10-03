@@ -20,6 +20,7 @@ import { aiRouter } from './routes/ai';
 import plantTrackingRouter from './routes/plantTracking';
 import uploadRouter from './routes/upload';
 import googleCalendarRouter from './routes/googleCalendar';
+import { plantGiftsRouter } from './routes/plantGifts';
 
 // Load environment variables
 dotenv.config();
@@ -75,6 +76,9 @@ app.use('/api/google-calendar', googleCalendarRouter);
 
 // Plants routes (must come before nested routes)
 app.use('/api/plants', plantsRouter);
+
+// Plant gifts routes
+app.use('/api/plant-gifts', plantGiftsRouter);
 
 // Plant-specific nested routes (must come after main plants routes)
 app.use('/api/plants/:plantId/tasks', plantTasksRouter);

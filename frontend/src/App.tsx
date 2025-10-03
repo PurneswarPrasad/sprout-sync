@@ -7,6 +7,7 @@ import { AddPlantPage } from './pages/AddPlantPage';
 import { AIIdentificationPage } from './pages/AIIdentificationPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { PlantDetailPage } from './pages/PlantDetailPage';
+import { AcceptGiftPage } from './pages/AcceptGiftPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
@@ -28,6 +29,7 @@ function App() {
           <Route path="/ai-identification" element={<ProtectedRoute><AIIdentificationPage /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
           <Route path="/plants/:plantId" element={<ProtectedRoute><PlantDetailPage /></ProtectedRoute>} />
+          <Route path="/accept-gift/:token" element={<ProtectedRoute><AcceptGiftPage /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>
