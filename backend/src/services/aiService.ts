@@ -55,7 +55,8 @@ export class AIService {
   private async validatePlantImage(imagePart: any): Promise<boolean> {
     try {
       const validationPrompt = `
-You are a plant image validator. Your ONLY job is to decide if the provided image is PRIMARILY focused on a plant, tree, or other botanical subject.
+You are a PLANT IMAGE VALIDATOR. 
+Your ONLY job is to decide if the provided image is CLEARLY and PRIMARILY focused on an identifiable plant subject.
 
 Return ONLY a JSON response with this exact structure:
 {
@@ -64,16 +65,19 @@ Return ONLY a JSON response with this exact structure:
   "reason": "Brief explanation of what you see in the image"
 }
 
-Strict Rules:
-1. Return "isPlant": true ONLY if a plant (tree, potted plant, flower, shrub, leaf close-up, etc.) is the CLEAR and PRIMARY subject of the image.
-2. Return "isPlant": false if:
-   - The main subject is a person, animal, object, or building, even if there is grass, trees, or plants in the background.
-   - The plant is only a small or background part of the scene.
-   - You cannot clearly identify a distinct plant subject.
-3. Be conservative: if unsure or partially obstructed, return false.
-4. Do NOT count lawns, grass fields, or distant background trees as valid plant subjects.
-5. Keep the reason brief and factual.
-6. Return ONLY valid JSON — no extra text or commentary.`;
+STRICT DECISION RULES:
+1. "isPlant": true ONLY IF the image’s main subject is a clearly visible, distinct plant or part of a plant (e.g. tree, potted plant, flower, leaf close-up, shrub).
+2. "isPlant": false IF:
+   - The main subject is a person, animal, object, building, or landscape.
+   - The image primarily shows grass, a lawn, or trees in the background — these do NOT count as plant subjects.
+   - The plants are secondary, distant, or only occupy the background or edges of the frame.
+   - The plant is not the clear focus or is visually dominated by non-plant elements.
+3. If the image contains people or man-made structures prominently, return false — even if some plants are visible.
+4. Be very strict: only return true if the plant is the center of attention or clearly intended as the photo’s subject.
+5. Do NOT count lawns, grassy fields, or forest scenery as valid plant subjects.
+6. Keep the reason factual and short.
+7. Return ONLY valid JSON — no extra text or commentary.
+`;
 
       console.log('Validating if image contains a plant...');
       const result = await this.model.generateContent([validationPrompt, imagePart]);
