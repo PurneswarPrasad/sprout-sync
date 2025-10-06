@@ -55,7 +55,7 @@ export class AIService {
   private async validatePlantImage(imagePart: any): Promise<boolean> {
     try {
       const validationPrompt = `
-You are a plant image validator. Your ONLY job is to determine if the provided image contains a plant (any type of plant, tree, flower, shrub, etc.).
+You are a plant image validator. Your ONLY job is to decide if the provided image is PRIMARILY focused on a plant, tree, or other botanical subject.
 
 Return ONLY a JSON response with this exact structure:
 {
@@ -64,12 +64,16 @@ Return ONLY a JSON response with this exact structure:
   "reason": "Brief explanation of what you see in the image"
 }
 
-Rules:
-- Return "isPlant": true ONLY if you can clearly see a plant, tree, flower, shrub, or any botanical subject
-- Return "isPlant": false for animals, people, objects, food, buildings, landscapes without plants, etc.
-- Be strict: if you're unsure whether it's a plant, return false
-- Keep the reason brief and factual
-- Return ONLY valid JSON, no additional text`;
+Strict Rules:
+1. Return "isPlant": true ONLY if a plant (tree, potted plant, flower, shrub, leaf close-up, etc.) is the CLEAR and PRIMARY subject of the image.
+2. Return "isPlant": false if:
+   - The main subject is a person, animal, object, or building, even if there is grass, trees, or plants in the background.
+   - The plant is only a small or background part of the scene.
+   - You cannot clearly identify a distinct plant subject.
+3. Be conservative: if unsure or partially obstructed, return false.
+4. Do NOT count lawns, grass fields, or distant background trees as valid plant subjects.
+5. Keep the reason brief and factual.
+6. Return ONLY valid JSON — no extra text or commentary.`;
 
       console.log('Validating if image contains a plant...');
       const result = await this.model.generateContent([validationPrompt, imagePart]);
@@ -95,7 +99,7 @@ Rules:
 
       console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
       
-      // Only consider it a plant if confidence is above 0.7 and isPlant is true
+      // Only consider it a plant if confidence is above 0.8 and isPlant is true
       return validationResult.isPlant && validationResult.confidence >= 0.8;
     } catch (error) {
       console.error('Error during plant validation:', error);
