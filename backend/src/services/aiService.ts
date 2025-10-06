@@ -96,7 +96,7 @@ Rules:
       console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
       
       // Only consider it a plant if confidence is above 0.7 and isPlant is true
-      return validationResult.isPlant && validationResult.confidence >= 0.7;
+      return validationResult.isPlant && validationResult.confidence >= 0.8;
     } catch (error) {
       console.error('Error during plant validation:', error);
       // If validation fails, err on the side of caution and reject the image
