@@ -1,6 +1,31 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { z } from 'zod';
 
 const genAI = new GoogleGenerativeAI(process.env['GEMINI_API_KEY']!);
+
+// Define the Zod schema for the plant image validation response
+const keywordsToReject = ['grass', 'lawn', 'background', 'trees in the distance', 'hedge'];
+
+const PlantImageValidationSchema = z.object({
+    isPlant: z.boolean(),
+    confidence: z.number().min(0).max(1),
+    reason: z.string(),
+  })
+  .refine(data => {
+    // If the model says it IS a plant, the reason must NOT contain forbidden keywords.
+    if (data.isPlant) {
+      const reasonHasRejectedKeyword = keywordsToReject.some(keyword =>
+        data.reason.toLowerCase().includes(keyword)
+      );
+      // If a rejected keyword is found, the refinement fails (returns false).
+      return !reasonHasRejectedKeyword;
+    }
+    // If isPlant is false, we don't need to check the reason.
+    return true;
+  }, {
+    // Custom error message if the refinement fails
+    message: "Logical validation failed: The reason mentions non-primary subjects like grass or background elements.",
+  });
 
 export interface AIPlantIdentification {
   botanicalName: string;
@@ -55,28 +80,22 @@ export class AIService {
   private async validatePlantImage(imagePart: any): Promise<boolean> {
     try {
       const validationPrompt = `
-You are a PLANT IMAGE VALIDATOR. 
-Your ONLY job is to decide if the provided image is CLEARLY and PRIMARILY focused on an identifiable plant subject.
+You are a strict PLANT IMAGE VALIDATOR. Your task is to determine if the image's PRIMARY and CENTRAL subject is a plant.
 
-Return ONLY a JSON response with this exact structure:
-{
-  "isPlant": true/false,
-  "confidence": 0.0-1.0,
-  "reason": "Brief explanation of what you see in the image"
-}
+Follow these steps precisely:
+1.  **Analyze Subject:** In one sentence, describe the main, central subject of the image. Is it a person, animal, building, or a plant?
+2.  **Apply Rules:** Based on your analysis, apply the following strict rules:
+    * **FAIL** if the main subject is a person, animal, or object.
+    * **FAIL** if the image is a landscape, or if plants are only in the background.
+    * **FAIL** if the most prominent plant element is a lawn, grass, or hedge. These do not count as a plant subject.
+    * **PASS** only if the clear, intended focus of the photo is a distinct plant (flower, potted plant, tree, leaf close-up).
+3.  **Final Decision:** Based on the rules, decide if "isPlant" is true or false.
+4.  **Output JSON:** Return ONLY a valid JSON object with your final decision. Do not include your step-by-step analysis in the final JSON output.
 
-STRICT DECISION RULES:
-1. "isPlant": true ONLY IF the image’s main subject is a clearly visible, distinct plant or part of a plant (e.g. tree, potted plant, flower, leaf close-up, shrub).
-2. "isPlant": false IF:
-   - The main subject is a person, animal, object, building, or landscape.
-   - The image primarily shows grass, a lawn, or trees in the background — these do NOT count as plant subjects.
-   - The plants are secondary, distant, or only occupy the background or edges of the frame.
-   - The plant is not the clear focus or is visually dominated by non-plant elements.
-3. If the image contains people or man-made structures prominently, return false — even if some plants are visible.
-4. Be very strict: only return true if the plant is the center of attention or clearly intended as the photo’s subject.
-5. Do NOT count lawns, grassy fields, or forest scenery as valid plant subjects.
-6. Keep the reason factual and short.
-7. Return ONLY valid JSON — no extra text or commentary.
+    { "isPlant": boolean, 
+      "confidence": number (0.0-1.0), 
+      "reason": "A brief explanation for your final decision." 
+    }
 `;
 
       console.log('Validating if image contains a plant...');
@@ -93,18 +112,32 @@ STRICT DECISION RULES:
         return false;
       }
 
-      let validationResult: { isPlant: boolean; confidence: number; reason: string };
+      // let validationResult: { isPlant: boolean; confidence: number; reason: string };
+      // try {
+      //   validationResult = JSON.parse(jsonMatch[0]);
+      // } catch (parseError) {
+      //   console.error('Failed to parse plant validation JSON:', parseError);
+      //   return false;
+      // }
+
+      // console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
+      
+      // // Only consider it a plant if confidence is above 0.8 and isPlant is true
+      // return validationResult.isPlant && validationResult.confidence >= 0.8;
       try {
-        validationResult = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('Failed to parse plant validation JSON:', parseError);
+        const llmOutput = JSON.parse(jsonMatch[0]);
+        // Use Zod to parse, validate types, and run our custom refinement logic
+        const validationResult = PlantImageValidationSchema.parse(llmOutput);
+
+        console.log(`Zod validation passed. Result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
+        
+        // Only consider it a plant if confidence is above 0.8 and isPlant is true
+        return validationResult.isPlant && validationResult.confidence >= 0.8;
+
+      } catch (validationError) {
+        console.error('Failed to parse or validate plant validation JSON:', validationError);
         return false;
       }
-
-      console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
-      
-      // Only consider it a plant if confidence is above 0.8 and isPlant is true
-      return validationResult.isPlant && validationResult.confidence >= 0.8;
     } catch (error) {
       console.error('Error during plant validation:', error);
       // If validation fails, err on the side of caution and reject the image
