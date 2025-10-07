@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { Footer } from '../components/Footer';
+import { InstallPromptBanner } from '../components/InstallPromptBanner';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -72,6 +73,9 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-amber-50">
+      {/* Install Prompt Banner */}
+      <InstallPromptBanner />
+      
       {/* Floating Header */}
       <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${showFloatingHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         }`}>
