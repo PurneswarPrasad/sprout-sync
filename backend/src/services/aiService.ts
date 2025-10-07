@@ -111,19 +111,7 @@ Follow these steps precisely:
         console.error('No JSON found in plant validation response:', text);
         return false;
       }
-
-      // let validationResult: { isPlant: boolean; confidence: number; reason: string };
-      // try {
-      //   validationResult = JSON.parse(jsonMatch[0]);
-      // } catch (parseError) {
-      //   console.error('Failed to parse plant validation JSON:', parseError);
-      //   return false;
-      // }
-
-      // console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
       
-      // // Only consider it a plant if confidence is above 0.8 and isPlant is true
-      // return validationResult.isPlant && validationResult.confidence >= 0.8;
       try {
         const llmOutput = JSON.parse(jsonMatch[0]);
         // Use Zod to parse, validate types, and run our custom refinement logic
