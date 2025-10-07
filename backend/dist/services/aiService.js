@@ -2,7 +2,23 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiService = exports.AIService = void 0;
 const generative_ai_1 = require("@google/generative-ai");
+const zod_1 = require("zod");
 const genAI = new generative_ai_1.GoogleGenerativeAI(process.env['GEMINI_API_KEY']);
+const keywordsToReject = ['grass', 'lawn', 'background', 'trees in the distance', 'hedge'];
+const PlantImageValidationSchema = zod_1.z.object({
+    isPlant: zod_1.z.boolean(),
+    confidence: zod_1.z.number().min(0).max(1),
+    reason: zod_1.z.string(),
+})
+    .refine(data => {
+    if (data.isPlant) {
+        const reasonHasRejectedKeyword = keywordsToReject.some(keyword => data.reason.toLowerCase().includes(keyword));
+        return !reasonHasRejectedKeyword;
+    }
+    return true;
+}, {
+    message: "Logical validation failed: The reason mentions non-primary subjects like grass or background elements.",
+});
 class AIService {
     constructor() {
         const apiKey = process.env['GEMINI_API_KEY'];
@@ -15,21 +31,23 @@ class AIService {
     async validatePlantImage(imagePart) {
         try {
             const validationPrompt = `
-You are a plant image validator. Your ONLY job is to determine if the provided image contains a plant (any type of plant, tree, flower, shrub, etc.).
+You are a strict PLANT IMAGE VALIDATOR. Your task is to determine if the image's PRIMARY and CENTRAL subject is a plant.
 
-Return ONLY a JSON response with this exact structure:
-{
-  "isPlant": true/false,
-  "confidence": 0.0-1.0,
-  "reason": "Brief explanation of what you see in the image"
-}
+Follow these steps precisely:
+1.  **Analyze Subject:** In one sentence, describe the main, central subject of the image. Is it a person, animal, building, or a plant?
+2.  **Apply Rules:** Based on your analysis, apply the following strict rules:
+    * **FAIL** if the main subject is a person, animal, or object.
+    * **FAIL** if the image is a landscape, or if plants are only in the background.
+    * **FAIL** if the most prominent plant element is a lawn, grass, or hedge. These do not count as a plant subject.
+    * **PASS** only if the clear, intended focus of the photo is a distinct plant (flower, potted plant, tree, leaf close-up).
+3.  **Final Decision:** Based on the rules, decide if "isPlant" is true or false.
+4.  **Output JSON:** Return ONLY a valid JSON object with your final decision. Do not include your step-by-step analysis in the final JSON output.
 
-Rules:
-- Return "isPlant": true ONLY if you can clearly see a plant, tree, flower, shrub, or any botanical subject
-- Return "isPlant": false for animals, people, objects, food, buildings, landscapes without plants, etc.
-- Be strict: if you're unsure whether it's a plant, return false
-- Keep the reason brief and factual
-- Return ONLY valid JSON, no additional text`;
+    { "isPlant": boolean, 
+      "confidence": number (0.0-1.0), 
+      "reason": "A brief explanation for your final decision." 
+    }
+`;
             console.log('Validating if image contains a plant...');
             const result = await this.model.generateContent([validationPrompt, imagePart]);
             const response = await result.response;
@@ -40,16 +58,16 @@ Rules:
                 console.error('No JSON found in plant validation response:', text);
                 return false;
             }
-            let validationResult;
             try {
-                validationResult = JSON.parse(jsonMatch[0]);
+                const llmOutput = JSON.parse(jsonMatch[0]);
+                const validationResult = PlantImageValidationSchema.parse(llmOutput);
+                console.log(`Zod validation passed. Result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
+                return validationResult.isPlant && validationResult.confidence >= 0.8;
             }
-            catch (parseError) {
-                console.error('Failed to parse plant validation JSON:', parseError);
+            catch (validationError) {
+                console.error('Failed to parse or validate plant validation JSON:', validationError);
                 return false;
             }
-            console.log(`Plant validation result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
-            return validationResult.isPlant && validationResult.confidence >= 0.7;
         }
         catch (error) {
             console.error('Error during plant validation:', error);
