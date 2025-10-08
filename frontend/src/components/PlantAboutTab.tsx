@@ -82,19 +82,6 @@ export function PlantAboutTab({ plant }: PlantAboutTabProps) {
               <label className="text-sm font-medium text-gray-600">Type</label>
               <p className="text-gray-800">{plant.type || 'Not set'}</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Acquisition Date</label>
-              <p className="text-gray-800">
-                {plant.acquisitionDate 
-                  ? new Date(plant.acquisitionDate).toLocaleDateString()
-                  : 'Not set'
-                }
-              </p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Location</label>
-              <p className="text-gray-800">{plant.city || 'Not set'}</p>
-            </div>
           </div>
         </div>
 

@@ -1,9 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Loader2, Upload, Image } from 'lucide-react';
+import { X, Camera, Loader2, Upload, Heart } from 'lucide-react';
 import { format } from 'date-fns';
 import { CloudinaryService } from '../services/cloudinaryService';
 import { api, aiAPI } from '../services/api';
 import PlantImageErrorModal from './PlantImageErrorModal';
+
+interface HealthAnalysis {
+  botanicalName: string;
+  commonName: string;
+  confidence: number;
+  disease: {
+    issue: string | null;
+    description: string | null;
+    affected: string | null;
+    steps: string | null;
+    issueConfidence: number | null;
+  };
+}
 
 export interface PlantHealthData {
   plantId: string;
@@ -34,6 +47,7 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
   const [originalPhotoUrl, setOriginalPhotoUrl] = useState<string>('');
   const [cloudinaryPublicId, setCloudinaryPublicId] = useState<string>('');
   const [note, setNote] = useState<string>('');
+  const [analysis, setAnalysis] = useState<HealthAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
@@ -59,6 +73,7 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setOriginalPhotoUrl('');
     setCloudinaryPublicId('');
     setNote('');
+    setAnalysis(null);
     setIsAnalyzing(false);
     setAnalysisError('');
     setCapturedImage(null);
@@ -92,7 +107,8 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setPhotoUrl('');
     setOriginalPhotoUrl('');
     setCloudinaryPublicId('');
-    setNote(''); // Clear analysis note when image is deleted
+    setNote(''); // Clear note when image is deleted
+    setAnalysis(null); // Clear analysis when image is deleted
     setCapturedImage(null);
   };
 
@@ -154,22 +170,8 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
       const response = await aiAPI.analyzeHealthByUrl(imageUrl);
 
       if (response.data.success && response.data.data) {
-        const analysis = response.data.data;
-        
-        // Format the analysis into a user-friendly note
-        let analysisNote = '';
-        
-        if (analysis.disease?.issue) {
-          analysisNote = `🔍 **Issue Detected: ${analysis.disease.issue}**\n\n`;
-          analysisNote += `**Description:** ${analysis.disease.description}\n\n`;
-          analysisNote += `**Affected Plants:** ${analysis.disease.affected}\n\n`;
-          analysisNote += `**Care Steps:** ${analysis.disease.steps}`;
-        } else {
-          analysisNote = `✅ **Plant appears healthy!**\n\n`;
-          analysisNote += `No significant issues detected. Continue with regular care routine.`;
-        }
-
-        setNote(analysisNote);
+        const analysisData = response.data.data;
+        setAnalysis(analysisData);
       } else {
         setAnalysisError('Failed to analyze image. Please try again.');
       }
@@ -190,16 +192,34 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!photoUrl || !note.trim()) {
+    if (!photoUrl || !analysis) {
       setAnalysisError('Please upload a photo and ensure analysis is complete');
       return;
+    }
+
+    // Format the analysis into a note for submission
+    let finalNote = '';
+    
+    if (analysis.disease?.issue) {
+      finalNote = `🔍 **Issue Detected: ${analysis.disease.issue}**\n\n`;
+      finalNote += `**Description:** ${analysis.disease.description}\n\n`;
+      finalNote += `**Affected Plants:** ${analysis.disease.affected}\n\n`;
+      finalNote += `**Care Steps:** ${analysis.disease.steps}`;
+    } else {
+      finalNote = `✅ **Plant appears healthy!**\n\n`;
+      finalNote += `No significant issues detected. Continue with regular care routine.`;
+    }
+
+    // Append additional notes if provided
+    if (note.trim()) {
+      finalNote += `\n\n**Additional Notes:**\n${note.trim()}`;
     }
 
     const healthData: PlantHealthData = {
       plantId,
       plantName,
       date: currentDate,
-      note: note.trim(),
+      note: finalNote,
       photoUrl,
       originalPhotoUrl,
       cloudinaryPublicId,
@@ -211,6 +231,7 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
     setOriginalPhotoUrl('');
     setCloudinaryPublicId('');
     setNote('');
+    setAnalysis(null);
     setIsAnalyzing(false);
     setAnalysisError('');
     setCapturedImage(null);
@@ -453,21 +474,62 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
               )}
             </div>
 
-            {/* Analysis Note */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Analysis Result
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Analysis will appear here after photo upload..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
-                rows={4}
-                disabled={isAnalyzing}
-                style={{ maxHeight: '200px' }}
-              />
-            </div>
+            {/* Analysis Results */}
+            {analysis && (
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-emerald-600" />
+                    Analysis Results
+                  </h3>
+
+                  {/* Health Status */}
+                  <div>
+                    <p className="text-sm text-gray-600">Health Status:</p>
+                    {analysis.disease.issue ? (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="font-medium text-red-800">⚠️ Issue Detected: {analysis.disease.issue}</p>
+                        {analysis.disease.description && (
+                          <p className="text-sm text-red-700 mt-1">{analysis.disease.description}</p>
+                        )}
+                        {analysis.disease.affected && (
+                          <p className="text-sm text-red-700 mt-1"><strong>Affected:</strong> {analysis.disease.affected}</p>
+                        )}
+                        {analysis.disease.steps && (
+                          <p className="text-sm text-red-700 mt-1"><strong>Care Steps:</strong> {analysis.disease.steps}</p>
+                        )}
+                        {analysis.disease.issueConfidence && (
+                          <p className="text-xs text-red-600 mt-1">Confidence: {Math.round(analysis.disease.issueConfidence * 100)}%</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="font-medium text-green-800">✅ Plant appears healthy!</p>
+                        <p className="text-sm text-green-700 mt-1">No significant issues detected. Continue with regular care routine.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Additional Notes (Optional) */}
+            {analysis && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional Notes (Optional)
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Add any additional observations or notes..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
+                  rows={3}
+                  disabled={isAnalyzing}
+                  style={{ maxHeight: '150px' }}
+                />
+              </div>
+            )}
 
             {/* Error Message */}
             {analysisError && (
@@ -489,7 +551,7 @@ const PlantHealthModal: React.FC<PlantHealthModalProps> = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!photoUrl || !note.trim() || isAnalyzing}
+              disabled={!photoUrl || !analysis || isAnalyzing}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Submit Health Update
