@@ -1,31 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { z } from 'zod';
+import { validatePlantImage } from './plantImageValidator';
 
 const genAI = new GoogleGenerativeAI(process.env['GEMINI_API_KEY']!);
-
-// Define the Zod schema for the plant image validation response
-const keywordsToReject = ['grass', 'lawn', 'background', 'trees in the distance', 'hedge'];
-
-const PlantImageValidationSchema = z.object({
-    isPlant: z.boolean(),
-    confidence: z.number().min(0).max(1),
-    reason: z.string(),
-  })
-  .refine(data => {
-    // If the model says it IS a plant, the reason must NOT contain forbidden keywords.
-    if (data.isPlant) {
-      const reasonHasRejectedKeyword = keywordsToReject.some(keyword =>
-        data.reason.toLowerCase().includes(keyword)
-      );
-      // If a rejected keyword is found, the refinement fails (returns false).
-      return !reasonHasRejectedKeyword;
-    }
-    // If isPlant is false, we don't need to check the reason.
-    return true;
-  }, {
-    // Custom error message if the refinement fails
-    message: "Logical validation failed: The reason mentions non-primary subjects like grass or background elements.",
-  });
 
 export interface AIPlantIdentification {
   botanicalName: string;
@@ -79,65 +55,6 @@ export class AIService {
     this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
   }
 
-  /**
-   * Validates if the image contains a plant before processing
-   * This acts as a guardrail to prevent processing non-plant images
-   */
-  private async validatePlantImage(imagePart: any): Promise<boolean> {
-    try {
-      const validationPrompt = `
-You are a strict PLANT IMAGE VALIDATOR. Your task is to determine if the image's PRIMARY and CENTRAL subject is a plant.
-
-Follow these steps precisely:
-1.  **Analyze Subject:** In one sentence, describe the main, central subject of the image. Is it a person, animal, building, or a plant?
-2.  **Apply Rules:** Based on your analysis, apply the following strict rules:
-    * **FAIL** if the main subject is a person, animal, or object.
-    * **FAIL** if the image is a landscape, or if plants are only in the background.
-    * **FAIL** if the most prominent plant element is a lawn, grass, or hedge. These do not count as a plant subject.
-    * **PASS** only if the clear, intended focus of the photo is a distinct plant (flower, potted plant, tree, leaf close-up).
-3.  **Final Decision:** Based on the rules, decide if "isPlant" is true or false.
-4.  **Output JSON:** Return ONLY a valid JSON object with your final decision. Do not include your step-by-step analysis in the final JSON output.
-
-    { "isPlant": boolean, 
-      "confidence": number (0.0-1.0), 
-      "reason": "A brief explanation for your final decision." 
-    }
-`;
-
-      console.log('Validating if image contains a plant...');
-      const result = await this.model.generateContent([validationPrompt, imagePart]);
-      const response = await result.response;
-      const text = response.text();
-      
-      console.log('Plant validation response:', text.substring(0, 200) + '...');
-      
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error('No JSON found in plant validation response:', text);
-        return false;
-      }
-      
-      try {
-        const llmOutput = JSON.parse(jsonMatch[0]);
-        // Use Zod to parse, validate types, and run our custom refinement logic
-        const validationResult = PlantImageValidationSchema.parse(llmOutput);
-
-        console.log(`Zod validation passed. Result: isPlant=${validationResult.isPlant}, confidence=${validationResult.confidence}, reason="${validationResult.reason}"`);
-        
-        // Only consider it a plant if confidence is above 0.8 and isPlant is true
-        return validationResult.isPlant && validationResult.confidence >= 0.8;
-
-      } catch (validationError) {
-        console.error('Failed to parse or validate plant validation JSON:', validationError);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error during plant validation:', error);
-      // If validation fails, err on the side of caution and reject the image
-      return false;
-    }
-  }
 
   async identifyPlantFromImage(imageData: Buffer | string): Promise<AIPlantIdentification> {
     try {
@@ -245,7 +162,7 @@ Follow these steps precisely:
       }
 
       // GUARDRAIL: Validate that the image contains a plant before processing
-      const isValidPlant = await this.validatePlantImage(imagePart);
+      const isValidPlant = await validatePlantImage(this.model, imagePart);
       if (!isValidPlant) {
         console.log('Plant validation failed in identifyPlantFromImage - throwing error');
         throw new Error('The uploaded image does not appear to contain a plant. Please upload an image of a plant, tree, flower, or other botanical subject.');
@@ -697,7 +614,7 @@ Follow these steps precisely:
       }
 
       // GUARDRAIL: Validate that the image contains a plant before processing
-      const isValidPlant = await this.validatePlantImage(imagePart);
+      const isValidPlant = await validatePlantImage(this.model, imagePart);
       if (!isValidPlant) {
         console.log('Plant validation failed in analyzePlantHealth - throwing error');
         throw new Error('The uploaded image does not appear to contain a plant. Please upload an image of a plant, tree, flower, or other botanical subject.');

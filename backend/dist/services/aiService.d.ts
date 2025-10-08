@@ -39,7 +39,6 @@ export interface AIPlantHealthAnalysis {
 export declare class AIService {
     private model;
     constructor();
-    private validatePlantImage;
     identifyPlantFromImage(imageData: Buffer | string): Promise<AIPlantIdentification>;
     private fetchImageFromUrl;
     private attemptImageFetch;
