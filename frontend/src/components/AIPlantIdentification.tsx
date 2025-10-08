@@ -16,6 +16,15 @@ interface AIIdentificationResult {
   commonName: string;
   plantType: string;
   confidence: number;
+  careLevel?: string;
+  sunRequirements?: string;
+  toxicityLevel?: string;
+  petFriendliness?: {
+    isFriendly: boolean;
+    reason: string;
+  };
+  commonPestsAndDiseases?: string;
+  preventiveMeasures?: string;
   care: {
     watering: string;
     fertilizing: string;

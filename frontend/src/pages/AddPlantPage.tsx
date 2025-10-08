@@ -103,6 +103,9 @@ export const AddPlantPage: React.FC = () => {
     careLevel: '',
     sunRequirements: '',
     toxicityLevel: '',
+    petFriendliness: null as { isFriendly: boolean; reason: string } | null,
+    commonPestsAndDiseases: '',
+    preventiveMeasures: '',
   });
 
 
@@ -436,6 +439,9 @@ export const AddPlantPage: React.FC = () => {
       careLevel: aiData.careLevel || '',
       sunRequirements: aiData.sunRequirements || '',
       toxicityLevel: aiData.toxicityLevel || '',
+      petFriendliness: aiData.petFriendliness || null,
+      commonPestsAndDiseases: aiData.commonPestsAndDiseases || '',
+      preventiveMeasures: aiData.preventiveMeasures || '',
     }));
 
     // Convert AI suggested tasks to selected tasks
@@ -603,6 +609,10 @@ export const AddPlantPage: React.FC = () => {
       const plantData = {
         ...formData,
         careTasks: Object.keys(careTasks).length > 0 ? careTasks : undefined,
+        // Only include AI fields if they have values
+        petFriendliness: formData.petFriendliness || undefined,
+        commonPestsAndDiseases: formData.commonPestsAndDiseases || undefined,
+        preventiveMeasures: formData.preventiveMeasures || undefined,
       };
 
       console.log('plantData', plantData);

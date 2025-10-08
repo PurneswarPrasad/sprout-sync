@@ -334,6 +334,12 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
         type: (validatedData.type as string) || null,
         acquisitionDate: (validatedData.acquisitionDate as string) ? new Date(validatedData.acquisitionDate as string) : null,
         city: (validatedData.city as string) || null,
+        careLevel: validatedData.careLevel || null,
+        sunRequirements: validatedData.sunRequirements || null,
+        toxicityLevel: validatedData.toxicityLevel || null,
+        petFriendliness: validatedData.petFriendliness || null,
+        commonPestsAndDiseases: validatedData.commonPestsAndDiseases || null,
+        preventiveMeasures: validatedData.preventiveMeasures || null,
         tasks: {
           create: validatedData.careTasks ? Object.entries(validatedData.careTasks)
             .filter(([, taskData]) => taskData)
@@ -501,6 +507,12 @@ router.put('/:id', authenticateJWT, validate(updatePlantSchema), async (req, res
     if (validatedData.type !== undefined) updateData.type = validatedData.type || null;
     if (validatedData.acquisitionDate !== undefined) updateData.acquisitionDate = validatedData.acquisitionDate ? new Date(validatedData.acquisitionDate) : null;
     if (validatedData.city !== undefined) updateData.city = validatedData.city || null;
+    if (validatedData.careLevel !== undefined) updateData.careLevel = validatedData.careLevel || null;
+    if (validatedData.sunRequirements !== undefined) updateData.sunRequirements = validatedData.sunRequirements || null;
+    if (validatedData.toxicityLevel !== undefined) updateData.toxicityLevel = validatedData.toxicityLevel || null;
+    if (validatedData.petFriendliness !== undefined) updateData.petFriendliness = validatedData.petFriendliness || null;
+    if (validatedData.commonPestsAndDiseases !== undefined) updateData.commonPestsAndDiseases = validatedData.commonPestsAndDiseases || null;
+    if (validatedData.preventiveMeasures !== undefined) updateData.preventiveMeasures = validatedData.preventiveMeasures || null;
 
     const updatedPlant = await prisma.plant.update({
       where: { id: plantId },

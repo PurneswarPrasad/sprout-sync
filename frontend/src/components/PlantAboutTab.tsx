@@ -17,11 +17,20 @@ interface Plant {
   type: string | null;
   acquisitionDate: string | null;
   city: string | null;
+  careLevel?: string;
+  sunRequirements?: string;
+  toxicityLevel?: string;
   createdAt: string;
   updatedAt: string;
   tasks: any[];
   tags: any[];
   photos: PlantPhoto[];
+  petFriendliness?: {
+    isFriendly: boolean;
+    reason: string;
+  };
+  commonPestsAndDiseases?: string;
+  preventiveMeasures?: string;
   _count: {
     notes: number;
     photos: number;
@@ -89,33 +98,66 @@ export function PlantAboutTab({ plant }: PlantAboutTabProps) {
           </div>
         </div>
 
-        {/* Statistics */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-800 mb-3">Statistics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600">{plant.tasks.length}</div>
-              <div className="text-sm text-gray-600">Active Tasks</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600">{plant._count.notes}</div>
-              <div className="text-sm text-gray-600">Notes</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600">{plant._count.photos}</div>
-              <div className="text-sm text-gray-600">Photos</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600">
-                {plant.createdAt 
-                  ? Math.ceil((new Date().getTime() - new Date(plant.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-                  : 0
-                }
+        {/* Pet Friendliness */}
+        {plant.petFriendliness && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-3">Pet Safety</h3>
+            <div className={`rounded-lg p-4 border-l-4 ${
+              plant.petFriendliness.isFriendly 
+                ? 'bg-green-50 border-green-400' 
+                : 'bg-red-50 border-red-400'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  plant.petFriendliness.isFriendly ? 'bg-green-500' : 'bg-red-500'
+                }`}></div>
+                <span className={`font-medium ${
+                  plant.petFriendliness.isFriendly ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {plant.petFriendliness.isFriendly ? 'Pet Safe' : 'Not Pet Safe'}
+                </span>
               </div>
-              <div className="text-sm text-gray-600">Days in Garden</div>
+              <p className={`text-sm ${
+                plant.petFriendliness.isFriendly ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {plant.petFriendliness.reason}
+              </p>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Common Pests and Diseases */}
+        {plant.commonPestsAndDiseases && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-3">Common Issues</h3>
+            <div className="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-400">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                <span className="font-medium text-orange-800">Watch Out For</span>
+              </div>
+              <p className="text-sm text-orange-700">
+                {plant.commonPestsAndDiseases}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Preventive Measures */}
+        {plant.preventiveMeasures && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-3">Prevention Tips</h3>
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-400">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="font-medium text-blue-800">Keep Your Plant Healthy</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                {plant.preventiveMeasures}
+              </p>
+            </div>
+          </div>
+        )}
+
 
         {/* Tags */}
         {plant.tags && plant.tags.length > 0 && (

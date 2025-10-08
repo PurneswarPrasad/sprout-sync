@@ -6,6 +6,12 @@ export interface AIPlantIdentification {
     careLevel: 'Easy' | 'Moderate' | 'Difficult';
     sunRequirements: 'No sun' | 'Part to Full' | 'Full sun';
     toxicityLevel: 'Low' | 'Medium' | 'High';
+    petFriendliness: {
+        isFriendly: boolean;
+        reason: string;
+    };
+    commonPestsAndDiseases: string;
+    preventiveMeasures: string;
     care: {
         watering: string;
         fertilizing: string;

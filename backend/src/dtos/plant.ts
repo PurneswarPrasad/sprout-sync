@@ -15,6 +15,12 @@ export const createPlantSchema = z.object({
   careLevel: z.enum(['Easy', 'Moderate', 'Difficult']).optional(),
   sunRequirements: z.enum(['No sun', 'Part to Full', 'Full sun']).optional(),
   toxicityLevel: z.enum(['Low', 'Medium', 'High']).optional(),
+  petFriendliness: z.object({
+    isFriendly: z.boolean(),
+    reason: z.string(),
+  }).optional(),
+  commonPestsAndDiseases: z.string().optional(),
+  preventiveMeasures: z.string().optional(),
 });
 
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
@@ -37,6 +43,12 @@ export const plantResponseSchema = z.object({
   careLevel: z.enum(['Easy', 'Moderate', 'Difficult']).nullable(),
   sunRequirements: z.enum(['No sun', 'Part to Full', 'Full sun']).nullable(),
   toxicityLevel: z.enum(['Low', 'Medium', 'High']).nullable(),
+  petFriendliness: z.object({
+    isFriendly: z.boolean(),
+    reason: z.string(),
+  }).nullable().optional(),
+  commonPestsAndDiseases: z.string().nullable().optional(),
+  preventiveMeasures: z.string().nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
   _count: z.object({

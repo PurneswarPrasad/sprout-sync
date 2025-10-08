@@ -17,6 +17,12 @@ exports.createPlantSchema = zod_1.z.object({
     careLevel: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']).optional(),
     sunRequirements: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']).optional(),
     toxicityLevel: zod_1.z.enum(['Low', 'Medium', 'High']).optional(),
+    petFriendliness: zod_1.z.object({
+        isFriendly: zod_1.z.boolean(),
+        reason: zod_1.z.string(),
+    }).optional(),
+    commonPestsAndDiseases: zod_1.z.string().optional(),
+    preventiveMeasures: zod_1.z.string().optional(),
 });
 exports.updatePlantSchema = exports.createPlantSchema.partial();
 exports.plantResponseSchema = zod_1.z.object({
@@ -31,6 +37,12 @@ exports.plantResponseSchema = zod_1.z.object({
     careLevel: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']).nullable(),
     sunRequirements: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']).nullable(),
     toxicityLevel: zod_1.z.enum(['Low', 'Medium', 'High']).nullable(),
+    petFriendliness: zod_1.z.object({
+        isFriendly: zod_1.z.boolean(),
+        reason: zod_1.z.string(),
+    }).nullable().optional(),
+    commonPestsAndDiseases: zod_1.z.string().nullable().optional(),
+    preventiveMeasures: zod_1.z.string().nullable().optional(),
     createdAt: zod_1.z.date(),
     updatedAt: zod_1.z.date(),
     _count: zod_1.z.object({

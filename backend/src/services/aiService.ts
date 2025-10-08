@@ -35,6 +35,12 @@ export interface AIPlantIdentification {
   careLevel: 'Easy' | 'Moderate' | 'Difficult';
   sunRequirements: 'No sun' | 'Part to Full' | 'Full sun';
   toxicityLevel: 'Low' | 'Medium' | 'High';
+  petFriendliness: {
+    isFriendly: boolean;
+    reason: string;
+  };
+  commonPestsAndDiseases: string;
+  preventiveMeasures: string;
   care: {
     watering: string;
     fertilizing: string;
@@ -142,45 +148,60 @@ Follow these steps precisely:
       } else {
         console.log(`Processing buffer input. Size: ${imageData.length} bytes`);
       }
-             const prompt = `
-You are a plant identification expert. Analyze the provided image and return a JSON response with the following structure:
-
-{
-  "botanicalName": "Botanical (scientific) name of the plant — REQUIRED (use \"Unknown Plant\" if you cannot identify)",
-  "commonName": "Common name of the plant (or empty string if unknown)",
-  "plantType": "Category of the plant",
-  "confidence": 0.92,
-  "careLevel": "Easy" | "Moderate" | "Difficult",
-  "sunRequirements": "No sun" | "Part to Full" | "Full sun",
-  "toxicityLevel": "Low" | "Medium" | "High",
-  "care": {
-    "watering": "Detailed watering instructions",
-    "fertilizing": "Detailed fertilizing instructions", 
-    "pruning": "Detailed pruning instructions",
-    "spraying": "Detailed spraying/misting instructions",
-    "sunlightRotation": "Detailed sunlight and rotation instructions"
-  },
-  "suggestedTasks": [
-    { "name": "watering", "frequencyDays": 3 },
-    { "name": "fertilizing", "frequencyDays": 14 },
-    { "name": "pruning", "frequencyDays": 30 },
-    { "name": "spraying", "frequencyDays": 7 },
-    { "name": "sunlightRotation", "frequencyDays": 14 }
-  ]
-}
-
-Important guidelines:
-- Return ONLY valid JSON, no additional text.
-- The field \"botanicalName\" is REQUIRED. If you can't identify the plant clearly, set \"botanicalName\": \"Unknown Plant\" and lower the confidence.
-- \"commonName\" may be empty if unknown.
-- Use realistic confidence scores between 0.70 and 0.95.
-- Provide specific, actionable care instructions (how much, how often, environmental cues).
-- Use reasonable frequencyDays for suggestedTasks.
-- Ensure all task names match exactly: watering, fertilizing, pruning, spraying, sunlightRotation.
-- For careLevel: "Easy" for beginner-friendly plants, "Moderate" for plants needing some attention, "Difficult" for plants requiring expert care.
-- For sunRequirements: "No sun" for shade-loving plants, "Part to Full" for plants that tolerate partial shade, "Full sun" for sun-loving plants.
-- For toxicityLevel: "Low" for safe plants, "Medium" for plants with mild toxicity, "High" for plants that are highly toxic to humans/pets.
-`;
+      const prompt = `
+      You are a world-class botanist and AI assistant, an expert in plant identification and horticulture. Your primary function is to analyze an image of a plant and return a comprehensive data profile in a strict JSON format. Adhere to the schema and guidelines precisely.
+      
+      You must return a single JSON object with this exact structure:
+      
+      {
+        "botanicalName": "Botanical (scientific) name of the plant. REQUIRED.",
+        "commonName": "Common name of the plant. Can be an empty string.",
+        "plantType": "General category of the plant (e.g., 'Tropical Foliage', 'Succulent', 'Flowering Houseplant').",
+        "confidence": 0.95,
+        "careLevel": "'Easy' | 'Moderate' | 'Difficult'",
+        "sunRequirements": "'No sun' | 'Part to Full' | 'Full sun'",
+        "toxicityLevel": "'Low' | 'Medium' | 'High'",
+        "petFriendliness": {
+          "isFriendly": boolean,
+          "reason": "Briefly explain why (e.g., 'Non-toxic to cats and dogs' or 'Contains calcium oxalate crystals, toxic if ingested')."
+        },
+        "commonPestsAndDiseases": "A comma-separated string of common issues (e.g., 'Spider mites, Aphids, Root rot').",
+        "preventiveMeasures": "Actionable advice to prevent the common issues listed above.",
+        "care": {
+          "watering": "Detailed, specific watering instructions. Include frequency and signs to look for.",
+          "fertilizing": "Detailed, specific fertilizing instructions. Include type and frequency.",
+          "pruning": "Detailed, specific pruning instructions.",
+          "spraying": "Detailed, specific spraying/misting instructions for humidity or pest control.",
+          "sunlightRotation": "Detailed instructions on light exposure and plant rotation."
+        },
+        "suggestedTasks": [
+          { "name": "watering", "frequencyDays": 3 },
+          { "name": "fertilizing", "frequencyDays": 14 },
+          { "name": "pruning", "frequencyDays": 30 },
+          { "name": "spraying", "frequencyDays": 7 },
+          { "name": "sunlightRotation", "frequencyDays": 14 }
+        ]
+      }
+      
+      ## Detailed Field Guidelines
+      
+      ### 1. Identification & Confidence
+      - **botanicalName**: This field is REQUIRED. If you cannot identify the plant, you MUST return "Unknown Plant".
+      - **commonName**: Provide the most common name. If unknown, return an empty string \`""\`.
+      - **confidence**: Use a realistic score from 0.0 to 1.0. Lower the score significantly if identification is uncertain.
+      
+      ### 2. Classification
+      - **careLevel**, **sunRequirements**, **toxicityLevel**: You MUST use one of the exact string values specified in the schema.
+      - **petFriendliness**: Base your \`isFriendly\` decision on the plant's known toxicity to common pets like cats and dogs. The \`reason\` should be concise.
+      - **health**: Provide a concise list for \`commonPestsAndDiseases\` and actionable, clear \`preventiveMeasures\`.
+      
+      ### 3. Care & Tasks
+      - **care**: All instructions must be practical and easy for a plant owner to follow.
+      - **suggestedTasks**: The \`name\` field for each task MUST be one of the following: \`watering\`, \`fertilizing\`, \`pruning\`, \`spraying\`, \`sunlightRotation\`. The \`frequencyDays\` must be a reasonable integer.
+      
+      ## Final Output Constraint
+      **CRITICAL:** Your entire response must be ONLY the raw JSON object. Do not wrap it in markdown backticks (\\\`\\\`\\\`json), and do not include any text before or after the JSON.
+      `;
 
       let imagePart: any;
       
@@ -571,6 +592,12 @@ Important guidelines:
       careLevel: response.careLevel || 'Moderate',
       sunRequirements: response.sunRequirements || 'Part to Full',
       toxicityLevel: response.toxicityLevel || 'Low',
+      petFriendliness: response.petFriendliness || {
+        isFriendly: true,
+        reason: 'Plant safety information not available'
+      },
+      commonPestsAndDiseases: response.commonPestsAndDiseases || 'Common plant issues information not available',
+      preventiveMeasures: response.preventiveMeasures || 'General plant care recommendations not available',
       care: {
         watering: response.care?.watering || 'Water when soil is dry',
         fertilizing: response.care?.fertilizing || 'Fertilize monthly during growing season',

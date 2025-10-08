@@ -9,6 +9,18 @@ export declare const createPlantSchema: z.ZodObject<{
     careLevel: z.ZodOptional<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>;
     sunRequirements: z.ZodOptional<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>;
     toxicityLevel: z.ZodOptional<z.ZodEnum<["Low", "Medium", "High"]>>;
+    petFriendliness: z.ZodOptional<z.ZodObject<{
+        isFriendly: z.ZodBoolean;
+        reason: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        isFriendly: boolean;
+        reason: string;
+    }, {
+        isFriendly: boolean;
+        reason: string;
+    }>>;
+    commonPestsAndDiseases: z.ZodOptional<z.ZodString>;
+    preventiveMeasures: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     botanicalName: string;
     commonName: string;
@@ -19,6 +31,12 @@ export declare const createPlantSchema: z.ZodObject<{
     careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
     sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
     toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    petFriendliness?: {
+        isFriendly: boolean;
+        reason: string;
+    } | undefined;
+    commonPestsAndDiseases?: string | undefined;
+    preventiveMeasures?: string | undefined;
 }, {
     botanicalName: string;
     commonName: string;
@@ -29,6 +47,12 @@ export declare const createPlantSchema: z.ZodObject<{
     careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
     sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
     toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    petFriendliness?: {
+        isFriendly: boolean;
+        reason: string;
+    } | undefined;
+    commonPestsAndDiseases?: string | undefined;
+    preventiveMeasures?: string | undefined;
 }>;
 export type CreatePlantDTO = z.infer<typeof createPlantSchema>;
 export declare const updatePlantSchema: z.ZodObject<{
@@ -41,6 +65,18 @@ export declare const updatePlantSchema: z.ZodObject<{
     careLevel: z.ZodOptional<z.ZodOptional<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>>;
     sunRequirements: z.ZodOptional<z.ZodOptional<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>>;
     toxicityLevel: z.ZodOptional<z.ZodOptional<z.ZodEnum<["Low", "Medium", "High"]>>>;
+    petFriendliness: z.ZodOptional<z.ZodOptional<z.ZodObject<{
+        isFriendly: z.ZodBoolean;
+        reason: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        isFriendly: boolean;
+        reason: string;
+    }, {
+        isFriendly: boolean;
+        reason: string;
+    }>>>;
+    commonPestsAndDiseases: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    preventiveMeasures: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     type?: string | undefined;
     petName?: string | undefined;
@@ -51,6 +87,12 @@ export declare const updatePlantSchema: z.ZodObject<{
     careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
     sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
     toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    petFriendliness?: {
+        isFriendly: boolean;
+        reason: string;
+    } | undefined;
+    commonPestsAndDiseases?: string | undefined;
+    preventiveMeasures?: string | undefined;
 }, {
     type?: string | undefined;
     petName?: string | undefined;
@@ -61,6 +103,12 @@ export declare const updatePlantSchema: z.ZodObject<{
     careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
     sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
     toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    petFriendliness?: {
+        isFriendly: boolean;
+        reason: string;
+    } | undefined;
+    commonPestsAndDiseases?: string | undefined;
+    preventiveMeasures?: string | undefined;
 }>;
 export type UpdatePlantDTO = z.infer<typeof updatePlantSchema>;
 export declare const plantResponseSchema: z.ZodObject<{
@@ -75,6 +123,18 @@ export declare const plantResponseSchema: z.ZodObject<{
     careLevel: z.ZodNullable<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>;
     sunRequirements: z.ZodNullable<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>;
     toxicityLevel: z.ZodNullable<z.ZodEnum<["Low", "Medium", "High"]>>;
+    petFriendliness: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        isFriendly: z.ZodBoolean;
+        reason: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        isFriendly: boolean;
+        reason: string;
+    }, {
+        isFriendly: boolean;
+        reason: string;
+    }>>>;
+    commonPestsAndDiseases: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    preventiveMeasures: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     createdAt: z.ZodDate;
     updatedAt: z.ZodDate;
     _count: z.ZodOptional<z.ZodObject<{
@@ -101,6 +161,12 @@ export declare const plantResponseSchema: z.ZodObject<{
     toxicityLevel: "Low" | "Medium" | "High" | null;
     userId: string;
     updatedAt: Date;
+    petFriendliness?: {
+        isFriendly: boolean;
+        reason: string;
+    } | null | undefined;
+    commonPestsAndDiseases?: string | null | undefined;
+    preventiveMeasures?: string | null | undefined;
     _count?: {
         notes: number;
         photos: number;
@@ -119,6 +185,12 @@ export declare const plantResponseSchema: z.ZodObject<{
     toxicityLevel: "Low" | "Medium" | "High" | null;
     userId: string;
     updatedAt: Date;
+    petFriendliness?: {
+        isFriendly: boolean;
+        reason: string;
+    } | null | undefined;
+    commonPestsAndDiseases?: string | null | undefined;
+    preventiveMeasures?: string | null | undefined;
     _count?: {
         notes: number;
         photos: number;

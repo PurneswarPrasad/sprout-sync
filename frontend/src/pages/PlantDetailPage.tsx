@@ -48,6 +48,12 @@ interface Plant {
   tasks: PlantTask[];
   tags: any[];
   photos: PlantPhoto[];
+  petFriendliness?: {
+    isFriendly: boolean;
+    reason: string;
+  };
+  commonPestsAndDiseases?: string;
+  preventiveMeasures?: string;
   _count: {
     notes: number;
     photos: number;

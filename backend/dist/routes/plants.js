@@ -320,6 +320,12 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                 type: validatedData.type || null,
                 acquisitionDate: validatedData.acquisitionDate ? new Date(validatedData.acquisitionDate) : null,
                 city: validatedData.city || null,
+                careLevel: validatedData.careLevel || null,
+                sunRequirements: validatedData.sunRequirements || null,
+                toxicityLevel: validatedData.toxicityLevel || null,
+                petFriendliness: validatedData.petFriendliness || null,
+                commonPestsAndDiseases: validatedData.commonPestsAndDiseases || null,
+                preventiveMeasures: validatedData.preventiveMeasures || null,
                 tasks: {
                     create: validatedData.careTasks ? Object.entries(validatedData.careTasks)
                         .filter(([, taskData]) => taskData)
@@ -469,6 +475,18 @@ router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.up
             updateData.acquisitionDate = validatedData.acquisitionDate ? new Date(validatedData.acquisitionDate) : null;
         if (validatedData.city !== undefined)
             updateData.city = validatedData.city || null;
+        if (validatedData.careLevel !== undefined)
+            updateData.careLevel = validatedData.careLevel || null;
+        if (validatedData.sunRequirements !== undefined)
+            updateData.sunRequirements = validatedData.sunRequirements || null;
+        if (validatedData.toxicityLevel !== undefined)
+            updateData.toxicityLevel = validatedData.toxicityLevel || null;
+        if (validatedData.petFriendliness !== undefined)
+            updateData.petFriendliness = validatedData.petFriendliness || null;
+        if (validatedData.commonPestsAndDiseases !== undefined)
+            updateData.commonPestsAndDiseases = validatedData.commonPestsAndDiseases || null;
+        if (validatedData.preventiveMeasures !== undefined)
+            updateData.preventiveMeasures = validatedData.preventiveMeasures || null;
         const updatedPlant = await prisma_1.prisma.plant.update({
             where: { id: plantId },
             data: updateData,
