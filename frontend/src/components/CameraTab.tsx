@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { TipsModal } from './TipsModal';
+import ScannerAnimation from './animations/ScannerAnimation';
 
 interface CameraTabProps {
   capturedImage: string | null;
@@ -133,6 +134,8 @@ export const CameraTab: React.FC<CameraTabProps> = ({
                 alt="Captured plant"
                 className="w-full h-auto max-h-96 object-contain"
               />
+              {/* Scanner animation overlay when analyzing */}
+              <ScannerAnimation show={loading} />
             </div>
             <div className="flex space-x-3">
               <button
