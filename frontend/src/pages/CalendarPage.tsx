@@ -280,8 +280,8 @@ export function CalendarPage() {
     try {
       await plantsAPI.completeTask(plantId, taskId);
 
-      // Close dialog
-      closeConfirmDialog();
+      // Don't close dialog here - let TaskCompletionDialog handle it after animation
+      // The dialog will call onClose (closeConfirmDialog) when animation completes
 
       // Refresh plants data to ensure consistency
       fetchPlants();
@@ -465,6 +465,7 @@ export function CalendarPage() {
           plantName: confirmDialog.task.plantName,
           taskId: confirmDialog.task.taskId,
           plantId: confirmDialog.task.plantId,
+          taskType: confirmDialog.task.taskKey as 'watering' | 'fertilizing' | 'pruning' | 'spraying' | 'sunlightRotation',
         } : null}
         message={confirmDialog.message}
         onClose={closeConfirmDialog}

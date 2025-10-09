@@ -96,7 +96,7 @@ const HomePage: React.FC = () => {
   // Task completion confirmation state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
-    task: { plantName: string; taskId: string; plantId: string } | null;
+    task: { plantName: string; taskId: string; plantId: string; taskType: 'watering' | 'fertilizing' | 'pruning' | 'spraying' | 'sunlightRotation' } | null;
     message: string;
   }>({
     isOpen: false,
@@ -298,6 +298,7 @@ const HomePage: React.FC = () => {
         plantName: getPlantDisplayName(plant),
         taskId: task.id,
         plantId: plant.id,
+        taskType: task.taskKey as 'watering' | 'fertilizing' | 'pruning' | 'spraying' | 'sunlightRotation',
       },
       message: randomMessage,
     });
@@ -315,8 +316,8 @@ const HomePage: React.FC = () => {
     try {
       await plantsAPI.completeTask(plantId, taskId);
       
-      // Close dialog
-      closeConfirmDialog();
+      // Don't close dialog here - let TaskCompletionDialog handle it after animation
+      // The dialog will call onClose (closeConfirmDialog) when animation completes
       
       // Refresh plants data to ensure consistency
       fetchPlants();

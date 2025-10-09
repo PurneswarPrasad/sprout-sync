@@ -157,8 +157,9 @@ export function PlantDetailPage() {
     try {
       await plantsAPI.completeTask(plant.id, selectedTask.id);
       fetchPlant(); // Refresh plant data to update task status
-      setShowTaskDialog(false);
-      setSelectedTask(null);
+      // Don't close dialog here - let TaskCompletionDialog handle it after animation
+      // setShowTaskDialog(false);
+      // setSelectedTask(null);
     } catch (error) {
       console.error('Error marking task complete:', error);
     }
@@ -367,13 +368,17 @@ export function PlantDetailPage() {
       </div>
       <TaskCompletionDialog
         isOpen={showTaskDialog}
-        task={{
-          plantName: getPlantDisplayName(plant!),
-          taskId: selectedTask?.id || '',
-          plantId: plant?.id || ''
-        }}
+        task={selectedTask && plant ? {
+          plantName: getPlantDisplayName(plant),
+          taskId: selectedTask.id,
+          plantId: plant.id,
+          taskType: selectedTask.taskKey as 'watering' | 'fertilizing' | 'pruning' | 'spraying' | 'sunlightRotation'
+        } : null}
         message="Great job! Mark this as complete? 🌱"
-        onClose={() => setShowTaskDialog(false)}
+        onClose={() => {
+          setShowTaskDialog(false);
+          setSelectedTask(null);
+        }}
         onConfirm={(taskId, plantId) => handleTaskComplete()}
         confirmText="Yes, Complete!"
         cancelText="No, Cancel"
