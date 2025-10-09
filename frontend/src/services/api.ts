@@ -153,4 +153,13 @@ export const plantGiftsAPI = {
     api.delete(`/api/plant-gifts/${giftId}`),
 };
 
+export const userSettingsAPI = {
+  // Get user settings
+  getSettings: () => api.get('/api/user-settings'),
+  
+  // Update new user focus status
+  updateNewUserFocus: (hasSeenNewUserFocus: boolean) => 
+    api.put('/api/user-settings/new-user-focus', { hasSeenNewUserFocus }),
+};
+
 export default api;

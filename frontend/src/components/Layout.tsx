@@ -4,8 +4,9 @@ import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Calendar as Cale
 import { AddPlantModal } from './AddPlantModal';
 import PlantHealthCheckModal from './PlantHealthCheckModal';
 import { GoogleCalendarSyncModal } from './GoogleCalendarSyncModal';
+import { NewUserFocus } from './NewUserFocus';
 import { Footer } from './Footer';
-import { authAPI, api } from '../services/api';
+import { authAPI, api, userSettingsAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
 interface User {
@@ -29,6 +30,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showGoogleCalendarSync, setShowGoogleCalendarSync] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{syncEnabled: boolean} | null>(null);
+  const [showNewUserFocus, setShowNewUserFocus] = useState(false);
+  const [hasSeenNewUserFocus, setHasSeenNewUserFocus] = useState<boolean | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,9 +57,48 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       }
     };
 
+    const fetchUserSettings = async () => {
+      try {
+        const response = await userSettingsAPI.getSettings();
+        if (response.data.success) {
+          setHasSeenNewUserFocus(response.data.data.hasSeenNewUserFocus);
+        }
+      } catch (error) {
+        console.error('Error fetching user settings:', error);
+        // Default to false if there's an error
+        setHasSeenNewUserFocus(false);
+      }
+    };
+
     fetchUserProfile();
     fetchSyncStatus();
+    fetchUserSettings();
   }, []);
+
+  // Show new user focus for first-time users
+  useEffect(() => {
+    if (hasSeenNewUserFocus === false && location.pathname === '/home') {
+      // Show focus after a short delay to ensure the page is fully loaded
+      const timer = setTimeout(() => {
+        setShowNewUserFocus(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenNewUserFocus, location.pathname]);
+
+  const handleNewUserFocusDismiss = async () => {
+    setShowNewUserFocus(false);
+    setHasSeenNewUserFocus(true);
+    
+    // Update the database
+    try {
+      await userSettingsAPI.updateNewUserFocus(true);
+    } catch (error) {
+      console.error('Error updating new user focus status:', error);
+      // Revert the local state if the API call fails
+      setHasSeenNewUserFocus(false);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -376,6 +418,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Plus className="w-6 h-6" />
         </button>
       )}
+
+      {/* New User Focus Overlay */}
+      <NewUserFocus 
+        isVisible={showNewUserFocus && !shouldHideFloatingButton} 
+        onDismiss={handleNewUserFocusDismiss} 
+      />
 
       {/* Add Plant Modal */}
       <AddPlantModal
