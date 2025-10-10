@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { plantsAPI } from '../services/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { authAPI, plantsAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
 import { SearchFilter } from '../components/SearchFilter';
-import { AddPlantSection } from '../components/AddPlantSection';
-import { PlantStats } from '../components/PlantStats';
 import { PlantGrid } from '../components/PlantGrid';
-import { GiftedPlantsSection, GiftedPlantsSectionRef } from '../components/GiftedPlantsSection';
-import { authAPI } from '../services/api';
 
 interface Plant {
   id: string;
@@ -24,6 +20,17 @@ interface Plant {
   tasks: PlantTask[];
   tags: PlantTag[];
   photos: PlantPhoto[];
+  isGifted?: boolean;
+  gift?: {
+    id: string;
+    giftToken: string;
+    status: string;
+    receiver?: {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+  };
   petFriendliness?: {
     isFriendly: boolean;
     reason: string;
@@ -88,12 +95,12 @@ export function PlantsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [giftedPlants, setGiftedPlants] = useState<Plant[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'your-plants' | 'gifted-plants'>('your-plants');
-  const giftedPlantsRef = useRef<GiftedPlantsSectionRef>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'your-plants' | 'gifted-plants'>('all');
 
   // Delete confirmation state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -137,9 +144,25 @@ export function PlantsPage() {
   }, [location.state]);
 
   const fetchPlants = async () => {
+    setLoading(true);
     try {
-      const response = await plantsAPI.getAll();
-      setPlants(response.data.data);
+      const [yourPlantsResponse, giftedPlantsResponse] = await Promise.all([
+        plantsAPI.getAll(),
+        plantsAPI.getGifted(),
+      ]);
+
+      const yourPlants: Plant[] = (yourPlantsResponse.data.data || []).map((plant: Plant) => ({
+        ...plant,
+        isGifted: false,
+      }));
+
+      const gifted: Plant[] = (giftedPlantsResponse.data.data || []).map((plant: Plant) => ({
+        ...plant,
+        isGifted: true,
+      }));
+
+      setPlants(yourPlants);
+      setGiftedPlants(gifted);
     } catch (error) {
       console.error('Error fetching plants:', error);
     } finally {
@@ -147,12 +170,53 @@ export function PlantsPage() {
     }
   };
 
+  const combinedPlants = useMemo(() => {
+    switch (activeFilter) {
+      case 'your-plants':
+        return plants;
+      case 'gifted-plants':
+        return giftedPlants;
+      default:
+        return [...plants, ...giftedPlants];
+    }
+  }, [activeFilter, plants, giftedPlants]);
 
+  const filteredPlants = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return combinedPlants;
 
-  const filteredPlants = plants.filter(plant =>
-    getPlantDisplayName(plant).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (plant.type && plant.type.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    return combinedPlants.filter((plant) => {
+      const nameMatches = getPlantDisplayName(plant).toLowerCase().includes(term);
+      const typeMatches = plant.type?.toLowerCase().includes(term);
+      return Boolean(nameMatches || typeMatches);
+    });
+  }, [combinedPlants, searchTerm]);
+
+  const ownedCount = plants.length;
+  const giftedCount = giftedPlants.length;
+
+  const greetingMessage = useMemo(() => {
+    const name = (user?.name?.split(' ')[0]) || 'there';
+
+    if (activeFilter === 'your-plants') {
+      if (ownedCount === 0) {
+        return `Hi ${name}, your garden is ready for its first plant!`;
+      }
+      return `Hi ${name}, your garden has ${ownedCount === 1 ? '1 plant' : `${ownedCount} plants`}`;
+    }
+
+    if (activeFilter === 'gifted-plants') {
+      if (giftedCount === 0) {
+        return `Hi ${name}, you haven't gifted any plants yet!`;
+      }
+      return `Hi ${name}, you have gifted ${giftedCount === 1 ? '1 plant' : `${giftedCount} plants`}`;
+    }
+
+    const ownedText = ownedCount === 0 ? 'no plants in your garden' : `${ownedCount} ${ownedCount === 1 ? 'plant' : 'plants'} in your garden`;
+    const giftedText = giftedCount === 0 ? 'gifted none' : `gifted ${giftedCount === 1 ? '1 plant' : `${giftedCount} plants`}`;
+
+    return `Hi ${name}, you own ${ownedText} and have ${giftedText}`;
+  }, [user, activeFilter, ownedCount, giftedCount]);
 
 
   // Delete plant functions
@@ -185,10 +249,7 @@ export function PlantsPage() {
       // Remove the plant from the local state
       setPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));
 
-      // Remove from gifted plants if it was there
-      if (giftedPlantsRef.current) {
-        giftedPlantsRef.current.removePlant(deleteDialog.plantId);
-      }
+      setGiftedPlants(prev => prev.filter(plant => plant.id !== deleteDialog.plantId));
 
       closeDeleteDialog();
     } catch (error) {
@@ -218,67 +279,33 @@ export function PlantsPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">My Plants</h1>
-          <p className="text-gray-600">Manage your plant collection</p>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold text-gray-800">My Plants</h1>
+            <p className="text-sm text-gray-500">Manage your plant collection</p>
+          </div>
+          <p className="text-xl font-semibold text-gray-700 md:text-right">
+            {greetingMessage}
+          </p>
         </div>
 
         {/* Search and Filter */}
         <SearchFilter
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          activeFilter={activeFilter}
+          onFilterChange={(value) => setActiveFilter(value)}
         />
 
-        {/* Add Plant Options */}
-        <AddPlantSection />
-
         {/* Plants Grid */}
-        <div className="space-y-4">
-          {/* Tab Navigation */}
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-            <button
-              onClick={() => setActiveTab('your-plants')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'your-plants'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Your Plants
-            </button>
-            <button
-              onClick={() => setActiveTab('gifted-plants')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'gifted-plants'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Gifted Plants
-            </button>
-          </div>
-
-          {/* Tab Content */}
-          {activeTab === 'your-plants' ? (
-            <>
-              <PlantStats
-                user={user}
-                plantCount={filteredPlants.length}
-              />
-              <PlantGrid
-                plants={filteredPlants}
-                searchTerm={searchTerm}
-                onDeletePlant={openDeleteDialog}
-              />
-            </>
-          ) : (
-            <GiftedPlantsSection 
-              ref={giftedPlantsRef}
-              onDeletePlant={openDeleteDialog} 
-              userName={user?.name || undefined}
-            />
-          )}
-        </div>
+        <PlantGrid
+          plants={filteredPlants}
+          searchTerm={searchTerm}
+          onDeletePlant={openDeleteDialog}
+          onAddPlant={() => setShowAddPlantModal(true)}
+          emptyHeading={activeFilter === 'gifted-plants' ? 'No plants gifted yet' : undefined}
+          emptyDescription={activeFilter === 'gifted-plants' ? 'To gift a plant, click on the plant and make someone happy!' : undefined}
+        />
       </div>
 
       {/* Add Plant Modal */}

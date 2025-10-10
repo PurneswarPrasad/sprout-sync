@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, X } from 'lucide-react';
+import { Gift, Leaf, X } from 'lucide-react';
 
 interface PlantPhoto {
   id: string;
@@ -41,6 +41,7 @@ interface Plant {
   tasks: PlantTask[];
   tags: PlantTag[];
   photos: PlantPhoto[];
+  isGifted?: boolean;
   _count: {
     notes: number;
     photos: number;
@@ -136,24 +137,31 @@ export function PlantCard({ plant, onDelete }: PlantCardProps) {
 
   return (
     <div
-      className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 hover:scale-105 transition-transform duration-200 cursor-pointer"
+      className="relative flex h-full flex-col rounded-2xl border border-white/20 bg-white/70 p-3 shadow-md transition hover:-translate-y-1 hover:shadow-lg cursor-pointer"
       onClick={() => navigate(`/plants/${plant.id}`)}
     >
       <div className="relative mb-3">
         {plant.photos && plant.photos.length > 0 ? (
-          <div className="w-full rounded-lg overflow-hidden">
+          <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-white">
             <img
               src={plant.photos[0].secureUrl}
               alt={getPlantDisplayName(plant)}
-              className="w-full h-auto max-h-32 object-contain"
+              className="h-full w-full object-contain"
             />
           </div>
         ) : (
-          <div className="w-full h-32 bg-emerald-100 rounded-lg flex items-center justify-center">
-            <Leaf className="w-8 h-8 text-emerald-400" />
+          <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-emerald-100/80">
+            <Leaf className="h-8 w-8 text-emerald-400" />
           </div>
         )}
-        <div className={`absolute top-2 right-2 w-3 h-3 ${health.color} rounded-full`}></div>
+        <div className={`absolute right-2 top-2 h-3 w-3 rounded-full ${health.color}`}></div>
+
+        {plant.isGifted && (
+          <div className="absolute left-1/2 top-2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 shadow-sm">
+            <Gift className="h-3 w-3" />
+            Gifted
+          </div>
+        )}
 
         {/* Delete Button */}
         <button
@@ -161,95 +169,84 @@ export function PlantCard({ plant, onDelete }: PlantCardProps) {
             e.stopPropagation();
             onDelete(plant.id, getPlantDisplayName(plant));
           }}
-          className="absolute top-2 left-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-red-50 hover:text-red-600 transition-colors text-gray-500"
+          className="absolute left-2 top-2 rounded-full bg-white/80 p-1 text-gray-500 backdrop-blur-sm transition-colors hover:bg-red-50 hover:text-red-600"
           title="Delete plant"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="space-y-3">
-        <div>
-          <h3 className="font-semibold text-gray-800 truncate" title={getPlantDisplayName(plant)}>
+      <div className="flex flex-1 flex-col gap-3">
+        <div className="space-y-1 text-center">
+          <h3 className="truncate text-sm font-semibold text-gray-800" title={getPlantDisplayName(plant)}>
             {getPlantDisplayName(plant)}
           </h3>
-          <p className="text-sm text-gray-600 truncate" title={plant.type || 'Unknown type'}>
+          <p className="truncate text-xs text-gray-500" title={plant.type || 'Unknown type'}>
             {plant.type || 'Unknown type'}
           </p>
         </div>
 
-        {/* Tasks */}
-        {activeTasks.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Active Tasks</h4>
-            {(() => {
-              // Sort tasks by priority: completed first, then by due date (most urgent first)
-              const sortedTasks = [...activeTasks].sort((a, b) => {
-                const aCompleted = a.lastCompletedOn !== null;
-                const bCompleted = b.lastCompletedOn !== null;
+        <div className="hidden text-[10px] sm:block">
+          <h4 className="mb-1 font-semibold uppercase tracking-wide text-gray-500">Active Tasks</h4>
+          {activeTasks.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                // Sort tasks by priority: completed first, then by due date (most urgent first)
+                const sortedTasks = [...activeTasks].sort((a, b) => {
+                  const aCompleted = a.lastCompletedOn !== null;
+                  const bCompleted = b.lastCompletedOn !== null;
 
-                // Completed tasks appear first
-                if (aCompleted && !bCompleted) return -1;
-                if (!aCompleted && bCompleted) return 1;
+                  if (aCompleted && !bCompleted) return -1;
+                  if (!aCompleted && bCompleted) return 1;
 
-                // If both are completed or both are pending, sort by due date
-                if (aCompleted === bCompleted) {
+                  if (aCompleted === bCompleted) {
+                    const now = new Date();
+                    const aDue = new Date(a.nextDueOn);
+                    const bDue = new Date(b.nextDueOn);
+                    const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    return aDaysUntilDue - bDaysUntilDue;
+                  }
+
+                  return 0;
+                });
+
+                return sortedTasks.slice(0, 3).map((task) => {
                   const now = new Date();
-                  const aDue = new Date(a.nextDueOn);
-                  const bDue = new Date(b.nextDueOn);
-                  const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                  const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const isCompleted = task.lastCompletedOn ?
+                    Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
 
-                  // Most urgent (smaller days until due) appears first
-                  return aDaysUntilDue - bDaysUntilDue;
-                }
-
-                return 0;
-              });
-
-              return sortedTasks.slice(0, 3).map((task) => {
-                // Check if task was completed today, not just if it has ever been completed
-                const now = new Date();
-                const isCompleted = task.lastCompletedOn ?
-                  Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                if (isCompleted) {
-                  return (
-                    <div key={task.id} className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-                      <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                      <span className="text-xs text-green-600">Done</span>
-                    </div>
-                  );
-                } else {
-                  const status = getTaskStatus(task);
-                  return (
-                    <div key={task.id} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full">
-                      <span className="text-xs">{getTaskIcon(task.taskKey)}</span>
-                      <span className={`text-xs ${status.color}`}>{status.text}</span>
-                    </div>
-                  );
-                }
-              });
-            })()}
-            {activeTasks.length > 3 && (
-              <p className="text-xs text-gray-500">+{activeTasks.length - 3} more tasks</p>
-            )}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-4">
-            <span>{plant._count.notes} notes</span>
-            <span>{plant._count.photos} photos</span>
-          </div>
-          <button
-            onClick={() => navigate(`/plants/${plant.id}`)}
-            className="text-emerald-600 hover:text-emerald-700 font-medium"
-          >
-            View Details
-          </button>
+                  if (isCompleted) {
+                    return (
+                      <div key={task.id} className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-[2px]">
+                        <span className="text-[10px]">{getTaskIcon(task.taskKey)}</span>
+                        <span className="text-[10px] text-green-600">Done</span>
+                      </div>
+                    );
+                  } else {
+                    const status = getTaskStatus(task);
+                    return (
+                      <div key={task.id} className="flex items-center gap-1 rounded-full bg-gray-50 px-2 py-[2px]">
+                        <span className="text-[10px]">{getTaskIcon(task.taskKey)}</span>
+                        <span className={`text-[10px] ${status.color}`}>{status.text}</span>
+                      </div>
+                    );
+                  }
+                });
+              })()}
+              {activeTasks.length > 3 && (
+                <p className="text-[10px] text-gray-500">+{activeTasks.length - 3} more tasks</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-400">No active tasks</p>
+          )}
         </div>
+
+        <footer className="mt-auto flex items-center justify-between border-t border-gray-100 pt-2 text-[10px] text-gray-500">
+          <span>{plant._count.notes} notes <br/> {plant._count.photos} photos</span>
+          <span className="font-medium text-emerald-600">View</span>
+        </footer>
       </div>
     </div>
   );
