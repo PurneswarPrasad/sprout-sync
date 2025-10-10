@@ -458,39 +458,45 @@ const HomePage: React.FC = () => {
         />
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
+        <div className="flex xl:grid xl:grid-cols-3 gap-4 sm:gap-6 xl:gap-8 overflow-x-auto xl:overflow-visible scrollbar-hide snap-x snap-mandatory pb-2 px-4 sm:px-6 xl:px-0">
           {/* Plants Section */}
-          <PlantsSection
-            plants={plants}
-            onAddPlant={() => setShowAddPlantModal(true)}
-            onPlantClick={(plantId) => navigate(`/plants/${plantId}`)}
-            onDeletePlant={openDeleteDialog}
-            getPlantDisplayName={getPlantDisplayName}
-            getPlantHealth={getPlantHealth}
-            getTaskIcon={getTaskIcon}
-            getTaskStatus={getTaskStatus}
-            swipeCardRefs={swipeCardRefs}
-          />
+          <div className="flex-shrink-0 w-[85vw] sm:w-[70vw] md:w-[55vw] xl:w-auto xl:flex-shrink xl:min-w-0 snap-start">
+            <PlantsSection
+              plants={plants}
+              onAddPlant={() => setShowAddPlantModal(true)}
+              onPlantClick={(plantId) => navigate(`/plants/${plantId}`)}
+              onDeletePlant={openDeleteDialog}
+              getPlantDisplayName={getPlantDisplayName}
+              getPlantHealth={getPlantHealth}
+              getTaskIcon={getTaskIcon}
+              getTaskStatus={getTaskStatus}
+              swipeCardRefs={swipeCardRefs}
+            />
+          </div>
 
           {/* Tasks Section */}
-          <TasksSection
-            tasks={getTodaysTasks()}
-            onViewAll={() => navigate('/calendar')}
-            onTaskComplete={openConfirmDialog}
-            getTaskIcon={getTaskIcon}
-            getTaskDisplayName={getTaskDisplayName}
-            getPlantDisplayName={getPlantDisplayName}
-          />
+          <div className="flex-shrink-0 w-[85vw] sm:w-[70vw] md:w-[55vw] xl:w-auto xl:flex-shrink xl:min-w-0 snap-start">
+            <TasksSection
+              tasks={getTodaysTasks()}
+              onViewAll={() => navigate('/calendar')}
+              onTaskComplete={openConfirmDialog}
+              getTaskIcon={getTaskIcon}
+              getTaskDisplayName={getTaskDisplayName}
+              getPlantDisplayName={getPlantDisplayName}
+            />
+          </div>
 
           {/* Overdue Tasks Section */}
-          <OverdueSection
-            tasks={getOverdueTasks()}
-            onViewAll={() => navigate('/calendar')}
-            onTaskComplete={openConfirmDialog}
-            getTaskIcon={getTaskIcon}
-            getTaskDisplayName={getTaskDisplayName}
-            getPlantDisplayName={getPlantDisplayName}
-          />
+          <div className="flex-shrink-0 w-[85vw] sm:w-[70vw] md:w-[55vw] xl:w-auto xl:flex-shrink xl:min-w-0 snap-start">
+            <OverdueSection
+              tasks={getOverdueTasks()}
+              onViewAll={() => navigate('/calendar')}
+              onTaskComplete={openConfirmDialog}
+              getTaskIcon={getTaskIcon}
+              getTaskDisplayName={getTaskDisplayName}
+              getPlantDisplayName={getPlantDisplayName}
+            />
+          </div>
         </div>
       </div>
 

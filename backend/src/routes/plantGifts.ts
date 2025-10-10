@@ -253,9 +253,9 @@ router.post('/accept', authenticateJWT, validate(acceptGiftSchema), async (req, 
           type: gift.plant.type,
           acquisitionDate: gift.plant.acquisitionDate,
           city: gift.plant.city,
-          careLevel: gift.plant.careLevel,
-          sunRequirements: gift.plant.sunRequirements,
-          toxicityLevel: gift.plant.toxicityLevel,
+          careLevel: gift.plant.careLevel as any,
+          sunRequirements: gift.plant.sunRequirements as any,
+          toxicityLevel: gift.plant.toxicityLevel as any,
           isGifted: false, // New plant is not gifted
         },
       });
