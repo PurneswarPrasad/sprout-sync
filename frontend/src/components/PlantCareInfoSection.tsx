@@ -12,9 +12,21 @@ interface SelectedTask {
 
 interface PlantCareInfoSectionProps {
   hasProcessedAI: boolean;
-  careLevel: string;
-  sunRequirements: string;
-  toxicityLevel: string;
+  careLevel?: string | {
+    level: 'Easy' | 'Moderate' | 'Difficult';
+    description: string;
+    maintenanceTips: string;
+  };
+  sunRequirements?: string | {
+    level: 'No sun' | 'Part to Full' | 'Full sun';
+    description: string;
+    placementTips: string;
+  };
+  toxicityLevel?: string | {
+    level: 'Low' | 'Medium' | 'High';
+    description: string;
+    safetyTips: string;
+  };
   selectedTasks: SelectedTask[];
 }
 
@@ -34,10 +46,10 @@ export const PlantCareInfoSection: React.FC<PlantCareInfoSectionProps> = ({
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Plant Care Information</h2>
       <PlantCareCards
-        careLevel={careLevel as 'Easy' | 'Moderate' | 'Difficult' | undefined}
+        careLevel={careLevel}
         waterFrequency={selectedTasks.find(task => task.key === 'watering')?.frequency}
-        sunRequirements={sunRequirements as 'No sun' | 'Part to Full' | 'Full sun' | undefined}
-        toxicityLevel={toxicityLevel as 'Low' | 'Medium' | 'High' | undefined}
+        sunRequirements={sunRequirements}
+        toxicityLevel={toxicityLevel}
       />
     </div>
   );

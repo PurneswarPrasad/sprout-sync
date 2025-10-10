@@ -55,15 +55,31 @@ const getTaskIcon = (taskKey: string): string => {
 };
 
 // Helper function to generate dynamic task frequency text
-const getTaskFrequencyText = (template: TaskTemplate, selectedTask?: SelectedTask): string => {
-  const frequency = selectedTask?.frequency || template.defaultFrequencyDays;
-  const isSuggested = selectedTask?.isSuggested || false;
-  
-  if (frequency === 1) {
-    return isSuggested ? 'Suggested: everyday' : 'Default: everyday';
+const getTaskFrequencyText = (template: TaskTemplate, selectedTask?: SelectedTask, aiSuggestedTask?: AISuggestedTask): string => {
+  if (selectedTask) {
+    const frequency = selectedTask.frequency;
+    const isSuggested = selectedTask.isSuggested || false;
+
+    if (frequency === 1) {
+      return isSuggested ? 'Suggested: everyday' : 'Default: everyday';
+    } else {
+      const prefix = isSuggested ? 'Suggested' : 'Default';
+      return `${prefix}: every ${frequency} days`;
+    }
+  } else if (aiSuggestedTask) {
+    const frequency = aiSuggestedTask.frequency;
+    if (frequency === 1) {
+      return 'Suggested: everyday';
+    } else {
+      return `Suggested: every ${frequency} days`;
+    }
   } else {
-    const prefix = isSuggested ? 'Suggested' : 'Default';
-    return `${prefix}: every ${frequency} days`;
+    const frequency = template.defaultFrequencyDays;
+    if (frequency === 1) {
+      return 'Default: everyday';
+    } else {
+      return `Default: every ${frequency} days`;
+    }
   }
 };
 
@@ -84,6 +100,14 @@ interface SelectedTask {
   isSuggested?: boolean; // Track if frequency was changed from default or set by AI
 }
 
+interface AISuggestedTask {
+  key: string;
+  label: string;
+  colorHex: string;
+  frequency: number;
+  isSuggested?: boolean;
+}
+
 export const AddPlantPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,6 +115,7 @@ export const AddPlantPage: React.FC = () => {
   const [taskTemplatesLoading, setTaskTemplatesLoading] = useState(true);
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<SelectedTask[]>([]);
+  const [aiSuggestedTasks, setAiSuggestedTasks] = useState<AISuggestedTask[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -107,6 +132,22 @@ export const AddPlantPage: React.FC = () => {
     commonPestsAndDiseases: '',
     preventiveMeasures: '',
   });
+
+  // Separate state for detailed care information for cards
+  const [careInfo, setCareInfo] = useState({
+    careLevel: formData.careLevel,
+    sunRequirements: formData.sunRequirements,
+    toxicityLevel: formData.toxicityLevel,
+  });
+
+  // Sync careInfo when formData changes
+  useEffect(() => {
+    setCareInfo({
+      careLevel: formData.careLevel,
+      sunRequirements: formData.sunRequirements,
+      toxicityLevel: formData.toxicityLevel,
+    });
+  }, [formData.careLevel, formData.sunRequirements, formData.toxicityLevel]);
 
 
   // Image upload state
@@ -231,13 +272,16 @@ export const AddPlantPage: React.FC = () => {
     if (isSelected) {
       setSelectedTasks(selectedTasks.filter(task => task.key !== template.key));
     } else {
+      // Check if there's an AI-suggested task for this template
+      const aiSuggestedTask = aiSuggestedTasks.find(task => task.key === template.key);
+
       const newTask: SelectedTask = {
         key: template.key,
         label: template.label,
         colorHex: template.colorHex,
-        frequency: template.defaultFrequencyDays,
-        isSuggested: false, // Default tasks are not suggested
-        ...(template.defaultFrequencyDays === 1 && { lastCompleted: getTodayDateString() })
+        frequency: aiSuggestedTask?.frequency || template.defaultFrequencyDays,
+        isSuggested: !!aiSuggestedTask, // Mark as suggested if it came from AI
+        ...(aiSuggestedTask?.frequency === 1 && { lastCompleted: getTodayDateString() })
       };
 
       setSelectedTasks([...selectedTasks, newTask]);
@@ -313,8 +357,10 @@ export const AddPlantPage: React.FC = () => {
       const previewUrl = CloudinaryService.getPreviewUrl(file);
       setImagePreview(previewUrl);
 
-      // Reset AI flag when user manually uploads
+      // Reset AI flag and AI suggestions when user manually uploads
       setIsImageFromAI(false);
+      setAiSuggestedTasks([]);
+      setAiData(null);
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image. Please try again.');
@@ -392,6 +438,7 @@ export const AddPlantPage: React.FC = () => {
     setImagePreview(null);
     setImageUploadResult(null);
     setIsImageFromAI(false);
+    setAiSuggestedTasks([]);
     setAiData(null); // Clear AI data when image is deleted
   };
 
@@ -444,22 +491,28 @@ export const AddPlantPage: React.FC = () => {
       preventiveMeasures: aiData.preventiveMeasures || '',
     }));
 
-    // Convert AI suggested tasks to selected tasks
-    const aiTasks: SelectedTask[] = aiData.suggestedTasks.map((task: any) => {
+    // Also set the detailed care information for the cards
+    setCareInfo(prev => ({
+      ...prev,
+      careLevel: aiData.careLevel || prev.careLevel,
+      sunRequirements: aiData.sunRequirements || prev.sunRequirements,
+      toxicityLevel: aiData.toxicityLevel || prev.toxicityLevel,
+    }));
+
+    // Convert AI suggested tasks to suggested tasks (not automatically selected)
+    const aiTasks: AISuggestedTask[] = aiData.suggestedTasks.map((task: any) => {
       const template = taskTemplates.find(t => t.key === task.name);
-      const isDefaultFrequency = template && task.frequencyDays === template.defaultFrequencyDays;
-      
+
       return {
         key: task.name,
         label: template?.label || task.name,
         colorHex: template?.colorHex || '#3B82F6',
         frequency: task.frequencyDays,
-        isSuggested: !isDefaultFrequency, // Mark as suggested if not default frequency
-        ...(task.frequencyDays === 1 && { lastCompleted: getTodayDateString() })
+        isSuggested: true
       };
     });
 
-    setSelectedTasks(aiTasks);
+    setAiSuggestedTasks(aiTasks);
 
     // Auto-populate image if available
     if (aiData.imageInfo) {
@@ -688,9 +741,9 @@ export const AddPlantPage: React.FC = () => {
             {/* Plant Care Information Cards - Only show if coming from AI identification */}
             <PlantCareInfoSection
               hasProcessedAI={hasProcessedAI}
-              careLevel={formData.careLevel}
-              sunRequirements={formData.sunRequirements}
-              toxicityLevel={formData.toxicityLevel}
+              careLevel={careInfo.careLevel}
+              sunRequirements={careInfo.sunRequirements}
+              toxicityLevel={careInfo.toxicityLevel}
               selectedTasks={selectedTasks}
             />
 
@@ -699,6 +752,7 @@ export const AddPlantPage: React.FC = () => {
               taskTemplatesLoading={taskTemplatesLoading}
               taskTemplates={taskTemplates}
               selectedTasks={selectedTasks}
+              aiSuggestedTasks={aiSuggestedTasks}
               onToggleTaskSelection={toggleTaskSelection}
               onUpdateTaskFrequency={updateTaskFrequency}
               onUpdateTaskLastCompleted={updateTaskLastCompleted}

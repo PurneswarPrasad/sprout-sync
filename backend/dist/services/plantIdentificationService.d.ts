@@ -3,9 +3,21 @@ export interface AIPlantIdentification {
     commonName: string;
     plantType: string;
     confidence: number;
-    careLevel: 'Easy' | 'Moderate' | 'Difficult';
-    sunRequirements: 'No sun' | 'Part to Full' | 'Full sun';
-    toxicityLevel: 'Low' | 'Medium' | 'High';
+    careLevel: {
+        level: 'Easy' | 'Moderate' | 'Difficult';
+        description: string;
+        maintenanceTips: string;
+    };
+    sunRequirements: {
+        level: 'No sun' | 'Part to Full' | 'Full sun';
+        description: string;
+        placementTips: string;
+    };
+    toxicityLevel: {
+        level: 'Low' | 'Medium' | 'High';
+        description: string;
+        safetyTips: string;
+    };
     petFriendliness: {
         isFriendly: boolean;
         reason: string;

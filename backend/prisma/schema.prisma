@@ -36,9 +36,9 @@ model Plant {
   type            String?
   acquisitionDate DateTime?
   city            String?
-  careLevel       String?       // Easy, Moderate, Difficult
-  sunRequirements String?       // No sun, Part to Full, Full sun
-  toxicityLevel   String?       // Low, Medium, High
+  careLevel       Json?         // Either string or detailed object
+  sunRequirements Json?         // Either string or detailed object
+  toxicityLevel   Json?         // Either string or detailed object
   petFriendliness Json?         // { isFriendly: boolean, reason: string }
   commonPestsAndDiseases String?
   preventiveMeasures String?

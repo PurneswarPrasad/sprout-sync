@@ -25,19 +25,64 @@ const plantIdentificationSchema = {
       description: "Confidence score between 0.0 and 1.0",
     },
     careLevel: {
-      type: SchemaType.STRING,
-      description: "Care difficulty level",
-      enum: ["Easy", "Moderate", "Difficult"],
+      type: SchemaType.OBJECT,
+      description: "Care difficulty level with detailed description",
+      properties: {
+        level: {
+          type: SchemaType.STRING,
+          description: "Care difficulty level",
+          enum: ["Easy", "Moderate", "Difficult"],
+        },
+        description: {
+          type: SchemaType.STRING,
+          description: "Detailed description of care requirements and maintenance needs",
+        },
+        maintenanceTips: {
+          type: SchemaType.STRING,
+          description: "Specific maintenance tips for this care level",
+        }
+      },
+      required: ["level", "description", "maintenanceTips"],
     },
     sunRequirements: {
-      type: SchemaType.STRING,
-      description: "Sunlight requirements",
-      enum: ["No sun", "Part to Full", "Full sun"],
+      type: SchemaType.OBJECT,
+      description: "Sunlight requirements with detailed lighting information",
+      properties: {
+        level: {
+          type: SchemaType.STRING,
+          description: "Sunlight requirements",
+          enum: ["No sun", "Part to Full", "Full sun"],
+        },
+        description: {
+          type: SchemaType.STRING,
+          description: "Detailed description of light exposure needs and preferences",
+        },
+        placementTips: {
+          type: SchemaType.STRING,
+          description: "Specific placement tips for optimal light conditions",
+        }
+      },
+      required: ["level", "description", "placementTips"],
     },
     toxicityLevel: {
-      type: SchemaType.STRING,
-      description: "Toxicity level",
-      enum: ["Low", "Medium", "High"],
+      type: SchemaType.OBJECT,
+      description: "Toxicity level with detailed safety information",
+      properties: {
+        level: {
+          type: SchemaType.STRING,
+          description: "Toxicity level",
+          enum: ["Low", "Medium", "High"],
+        },
+        description: {
+          type: SchemaType.STRING,
+          description: "Detailed description of toxicity risks and effects",
+        },
+        safetyTips: {
+          type: SchemaType.STRING,
+          description: "Specific safety tips and precautions for handling",
+        }
+      },
+      required: ["level", "description", "safetyTips"],
     },
     petFriendliness: {
       type: SchemaType.OBJECT,
@@ -127,9 +172,21 @@ export interface AIPlantIdentification {
   commonName: string;
   plantType: string;
   confidence: number;
-  careLevel: 'Easy' | 'Moderate' | 'Difficult';
-  sunRequirements: 'No sun' | 'Part to Full' | 'Full sun';
-  toxicityLevel: 'Low' | 'Medium' | 'High';
+  careLevel: {
+    level: 'Easy' | 'Moderate' | 'Difficult';
+    description: string;
+    maintenanceTips: string;
+  };
+  sunRequirements: {
+    level: 'No sun' | 'Part to Full' | 'Full sun';
+    description: string;
+    placementTips: string;
+  };
+  toxicityLevel: {
+    level: 'Low' | 'Medium' | 'High';
+    description: string;
+    safetyTips: string;
+  };
   petFriendliness: {
     isFriendly: boolean;
     reason: string;
@@ -191,9 +248,21 @@ export class PlantIdentificationService {
         "commonName": "Common name of the plant. Can be an empty string if unknown.",
         "plantType": "General category of the plant (e.g., 'Tropical Foliage', 'Succulent', 'Flowering Houseplant'). Must not be empty.",
         "confidence": 0.95, // Number between 0.0 and 1.0; lower if features are ambiguous or image is unclear.
-        "careLevel": "'Easy' | 'Moderate' | 'Difficult'", // Exact match required.
-        "sunRequirements": "'No sun' | 'Part to Full' | 'Full sun'", // Exact match required.
-        "toxicityLevel": "'Low' | 'Medium' | 'High'", // Exact match required.
+        "careLevel": {
+          "level": "'Easy' | 'Moderate' | 'Difficult'",
+          "description": "Detailed description of care requirements and maintenance needs for this plant",
+          "maintenanceTips": "Specific maintenance tips for this care level"
+        },
+        "sunRequirements": {
+          "level": "'No sun' | 'Part to Full' | 'Full sun'",
+          "description": "Detailed description of light exposure needs and preferences",
+          "placementTips": "Specific placement tips for optimal light conditions"
+        },
+        "toxicityLevel": {
+          "level": "'Low' | 'Medium' | 'High'",
+          "description": "Detailed description of toxicity risks and effects",
+          "safetyTips": "Specific safety tips and precautions for handling"
+        },
         "petFriendliness": {
           "isFriendly": boolean, // True only if non-toxic to cats/dogs.
           "reason": "Briefly explain why (e.g., 'Non-toxic to cats and dogs' or 'Contains calcium oxalate crystals, toxic if ingested'). Max 50 words."
@@ -333,9 +402,21 @@ export class PlantIdentificationService {
       commonName: response.commonName || '',
       plantType: response.plantType || 'Unknown Type',
       confidence: Math.min(Math.max(response.confidence || 0.5, 0), 1),
-      careLevel: response.careLevel || 'Moderate',
-      sunRequirements: response.sunRequirements || 'Part to Full',
-      toxicityLevel: response.toxicityLevel || 'Low',
+      careLevel: response.careLevel || {
+        level: 'Moderate',
+        description: 'Standard houseplant care requirements',
+        maintenanceTips: 'Regular watering and occasional fertilizing'
+      },
+      sunRequirements: response.sunRequirements || {
+        level: 'Part to Full',
+        description: 'Moderate light conditions',
+        placementTips: 'Place near east or west facing windows'
+      },
+      toxicityLevel: response.toxicityLevel || {
+        level: 'Low',
+        description: 'Generally safe for households',
+        safetyTips: 'Safe for most environments'
+      },
       petFriendliness: response.petFriendliness || {
         isFriendly: true,
         reason: 'Plant safety information not available'

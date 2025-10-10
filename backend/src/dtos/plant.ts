@@ -12,9 +12,30 @@ export const createPlantSchema = z.object({
     return !isNaN(date.getTime());
   }, 'Invalid date format'),
   city: z.string().optional(),
-  careLevel: z.enum(['Easy', 'Moderate', 'Difficult']).optional(),
-  sunRequirements: z.enum(['No sun', 'Part to Full', 'Full sun']).optional(),
-  toxicityLevel: z.enum(['Low', 'Medium', 'High']).optional(),
+  careLevel: z.union([
+    z.enum(['Easy', 'Moderate', 'Difficult']),
+    z.object({
+      level: z.enum(['Easy', 'Moderate', 'Difficult']),
+      description: z.string(),
+      maintenanceTips: z.string(),
+    })
+  ]).optional(),
+  sunRequirements: z.union([
+    z.enum(['No sun', 'Part to Full', 'Full sun']),
+    z.object({
+      level: z.enum(['No sun', 'Part to Full', 'Full sun']),
+      description: z.string(),
+      placementTips: z.string(),
+    })
+  ]).optional(),
+  toxicityLevel: z.union([
+    z.enum(['Low', 'Medium', 'High']),
+    z.object({
+      level: z.enum(['Low', 'Medium', 'High']),
+      description: z.string(),
+      safetyTips: z.string(),
+    })
+  ]).optional(),
   petFriendliness: z.object({
     isFriendly: z.boolean(),
     reason: z.string(),
@@ -31,6 +52,33 @@ export const updatePlantSchema = createPlantSchema.partial();
 export type UpdatePlantDTO = z.infer<typeof updatePlantSchema>;
 
 // Plant Response DTO
+const careLevelResponseSchema = z.union([
+  z.enum(['Easy', 'Moderate', 'Difficult']),
+  z.object({
+    level: z.enum(['Easy', 'Moderate', 'Difficult']),
+    description: z.string(),
+    maintenanceTips: z.string(),
+  })
+]).nullable();
+
+const sunRequirementsResponseSchema = z.union([
+  z.enum(['No sun', 'Part to Full', 'Full sun']),
+  z.object({
+    level: z.enum(['No sun', 'Part to Full', 'Full sun']),
+    description: z.string(),
+    placementTips: z.string(),
+  })
+]).nullable();
+
+const toxicityLevelResponseSchema = z.union([
+  z.enum(['Low', 'Medium', 'High']),
+  z.object({
+    level: z.enum(['Low', 'Medium', 'High']),
+    description: z.string(),
+    safetyTips: z.string(),
+  })
+]).nullable();
+
 export const plantResponseSchema = z.object({
   id: z.string(),
   userId: z.string(),
@@ -40,9 +88,9 @@ export const plantResponseSchema = z.object({
   type: z.string().nullable(),
   acquisitionDate: z.date().nullable(),
   city: z.string().nullable(),
-  careLevel: z.enum(['Easy', 'Moderate', 'Difficult']).nullable(),
-  sunRequirements: z.enum(['No sun', 'Part to Full', 'Full sun']).nullable(),
-  toxicityLevel: z.enum(['Low', 'Medium', 'High']).nullable(),
+  careLevel: careLevelResponseSchema,
+  sunRequirements: sunRequirementsResponseSchema,
+  toxicityLevel: toxicityLevelResponseSchema,
   petFriendliness: z.object({
     isFriendly: z.boolean(),
     reason: z.string(),

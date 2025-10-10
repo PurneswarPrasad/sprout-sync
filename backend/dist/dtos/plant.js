@@ -14,9 +14,30 @@ exports.createPlantSchema = zod_1.z.object({
         return !isNaN(date.getTime());
     }, 'Invalid date format'),
     city: zod_1.z.string().optional(),
-    careLevel: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']).optional(),
-    sunRequirements: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']).optional(),
-    toxicityLevel: zod_1.z.enum(['Low', 'Medium', 'High']).optional(),
+    careLevel: zod_1.z.union([
+        zod_1.z.enum(['Easy', 'Moderate', 'Difficult']),
+        zod_1.z.object({
+            level: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']),
+            description: zod_1.z.string(),
+            maintenanceTips: zod_1.z.string(),
+        })
+    ]).optional(),
+    sunRequirements: zod_1.z.union([
+        zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']),
+        zod_1.z.object({
+            level: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']),
+            description: zod_1.z.string(),
+            placementTips: zod_1.z.string(),
+        })
+    ]).optional(),
+    toxicityLevel: zod_1.z.union([
+        zod_1.z.enum(['Low', 'Medium', 'High']),
+        zod_1.z.object({
+            level: zod_1.z.enum(['Low', 'Medium', 'High']),
+            description: zod_1.z.string(),
+            safetyTips: zod_1.z.string(),
+        })
+    ]).optional(),
     petFriendliness: zod_1.z.object({
         isFriendly: zod_1.z.boolean(),
         reason: zod_1.z.string(),
@@ -25,6 +46,30 @@ exports.createPlantSchema = zod_1.z.object({
     preventiveMeasures: zod_1.z.string().optional(),
 });
 exports.updatePlantSchema = exports.createPlantSchema.partial();
+const careLevelResponseSchema = zod_1.z.union([
+    zod_1.z.enum(['Easy', 'Moderate', 'Difficult']),
+    zod_1.z.object({
+        level: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']),
+        description: zod_1.z.string(),
+        maintenanceTips: zod_1.z.string(),
+    })
+]).nullable();
+const sunRequirementsResponseSchema = zod_1.z.union([
+    zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']),
+    zod_1.z.object({
+        level: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']),
+        description: zod_1.z.string(),
+        placementTips: zod_1.z.string(),
+    })
+]).nullable();
+const toxicityLevelResponseSchema = zod_1.z.union([
+    zod_1.z.enum(['Low', 'Medium', 'High']),
+    zod_1.z.object({
+        level: zod_1.z.enum(['Low', 'Medium', 'High']),
+        description: zod_1.z.string(),
+        safetyTips: zod_1.z.string(),
+    })
+]).nullable();
 exports.plantResponseSchema = zod_1.z.object({
     id: zod_1.z.string(),
     userId: zod_1.z.string(),
@@ -34,9 +79,9 @@ exports.plantResponseSchema = zod_1.z.object({
     type: zod_1.z.string().nullable(),
     acquisitionDate: zod_1.z.date().nullable(),
     city: zod_1.z.string().nullable(),
-    careLevel: zod_1.z.enum(['Easy', 'Moderate', 'Difficult']).nullable(),
-    sunRequirements: zod_1.z.enum(['No sun', 'Part to Full', 'Full sun']).nullable(),
-    toxicityLevel: zod_1.z.enum(['Low', 'Medium', 'High']).nullable(),
+    careLevel: careLevelResponseSchema,
+    sunRequirements: sunRequirementsResponseSchema,
+    toxicityLevel: toxicityLevelResponseSchema,
     petFriendliness: zod_1.z.object({
         isFriendly: zod_1.z.boolean(),
         reason: zod_1.z.string(),

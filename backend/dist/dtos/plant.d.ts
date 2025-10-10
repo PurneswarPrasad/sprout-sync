@@ -6,9 +6,45 @@ export declare const createPlantSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodString>;
     acquisitionDate: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>;
     city: z.ZodOptional<z.ZodString>;
-    careLevel: z.ZodOptional<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>;
-    sunRequirements: z.ZodOptional<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>;
-    toxicityLevel: z.ZodOptional<z.ZodEnum<["Low", "Medium", "High"]>>;
+    careLevel: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["Easy", "Moderate", "Difficult"]>, z.ZodObject<{
+        level: z.ZodEnum<["Easy", "Moderate", "Difficult"]>;
+        description: z.ZodString;
+        maintenanceTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    }, {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    }>]>>;
+    sunRequirements: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["No sun", "Part to Full", "Full sun"]>, z.ZodObject<{
+        level: z.ZodEnum<["No sun", "Part to Full", "Full sun"]>;
+        description: z.ZodString;
+        placementTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    }, {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    }>]>>;
+    toxicityLevel: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["Low", "Medium", "High"]>, z.ZodObject<{
+        level: z.ZodEnum<["Low", "Medium", "High"]>;
+        description: z.ZodString;
+        safetyTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    }, {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    }>]>>;
     petFriendliness: z.ZodOptional<z.ZodObject<{
         isFriendly: z.ZodBoolean;
         reason: z.ZodString;
@@ -28,9 +64,21 @@ export declare const createPlantSchema: z.ZodObject<{
     petName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
-    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
-    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
-    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    } | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    } | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    } | undefined;
     petFriendliness?: {
         isFriendly: boolean;
         reason: string;
@@ -44,9 +92,21 @@ export declare const createPlantSchema: z.ZodObject<{
     petName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
-    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
-    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
-    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    } | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    } | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    } | undefined;
     petFriendliness?: {
         isFriendly: boolean;
         reason: string;
@@ -62,9 +122,45 @@ export declare const updatePlantSchema: z.ZodObject<{
     type: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     acquisitionDate: z.ZodOptional<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, string | undefined>>;
     city: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    careLevel: z.ZodOptional<z.ZodOptional<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>>;
-    sunRequirements: z.ZodOptional<z.ZodOptional<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>>;
-    toxicityLevel: z.ZodOptional<z.ZodOptional<z.ZodEnum<["Low", "Medium", "High"]>>>;
+    careLevel: z.ZodOptional<z.ZodOptional<z.ZodUnion<[z.ZodEnum<["Easy", "Moderate", "Difficult"]>, z.ZodObject<{
+        level: z.ZodEnum<["Easy", "Moderate", "Difficult"]>;
+        description: z.ZodString;
+        maintenanceTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    }, {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    }>]>>>;
+    sunRequirements: z.ZodOptional<z.ZodOptional<z.ZodUnion<[z.ZodEnum<["No sun", "Part to Full", "Full sun"]>, z.ZodObject<{
+        level: z.ZodEnum<["No sun", "Part to Full", "Full sun"]>;
+        description: z.ZodString;
+        placementTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    }, {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    }>]>>>;
+    toxicityLevel: z.ZodOptional<z.ZodOptional<z.ZodUnion<[z.ZodEnum<["Low", "Medium", "High"]>, z.ZodObject<{
+        level: z.ZodEnum<["Low", "Medium", "High"]>;
+        description: z.ZodString;
+        safetyTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    }, {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    }>]>>>;
     petFriendliness: z.ZodOptional<z.ZodOptional<z.ZodObject<{
         isFriendly: z.ZodBoolean;
         reason: z.ZodString;
@@ -84,9 +180,21 @@ export declare const updatePlantSchema: z.ZodObject<{
     commonName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
-    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
-    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
-    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    } | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    } | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    } | undefined;
     petFriendliness?: {
         isFriendly: boolean;
         reason: string;
@@ -100,9 +208,21 @@ export declare const updatePlantSchema: z.ZodObject<{
     commonName?: string | undefined;
     acquisitionDate?: string | undefined;
     city?: string | undefined;
-    careLevel?: "Easy" | "Moderate" | "Difficult" | undefined;
-    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | undefined;
-    toxicityLevel?: "Low" | "Medium" | "High" | undefined;
+    careLevel?: "Easy" | "Moderate" | "Difficult" | {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    } | undefined;
+    sunRequirements?: "No sun" | "Part to Full" | "Full sun" | {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    } | undefined;
+    toxicityLevel?: "Low" | "Medium" | "High" | {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    } | undefined;
     petFriendliness?: {
         isFriendly: boolean;
         reason: string;
@@ -120,9 +240,45 @@ export declare const plantResponseSchema: z.ZodObject<{
     type: z.ZodNullable<z.ZodString>;
     acquisitionDate: z.ZodNullable<z.ZodDate>;
     city: z.ZodNullable<z.ZodString>;
-    careLevel: z.ZodNullable<z.ZodEnum<["Easy", "Moderate", "Difficult"]>>;
-    sunRequirements: z.ZodNullable<z.ZodEnum<["No sun", "Part to Full", "Full sun"]>>;
-    toxicityLevel: z.ZodNullable<z.ZodEnum<["Low", "Medium", "High"]>>;
+    careLevel: z.ZodNullable<z.ZodUnion<[z.ZodEnum<["Easy", "Moderate", "Difficult"]>, z.ZodObject<{
+        level: z.ZodEnum<["Easy", "Moderate", "Difficult"]>;
+        description: z.ZodString;
+        maintenanceTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    }, {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    }>]>>;
+    sunRequirements: z.ZodNullable<z.ZodUnion<[z.ZodEnum<["No sun", "Part to Full", "Full sun"]>, z.ZodObject<{
+        level: z.ZodEnum<["No sun", "Part to Full", "Full sun"]>;
+        description: z.ZodString;
+        placementTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    }, {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    }>]>>;
+    toxicityLevel: z.ZodNullable<z.ZodUnion<[z.ZodEnum<["Low", "Medium", "High"]>, z.ZodObject<{
+        level: z.ZodEnum<["Low", "Medium", "High"]>;
+        description: z.ZodString;
+        safetyTips: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    }, {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    }>]>>;
     petFriendliness: z.ZodOptional<z.ZodNullable<z.ZodObject<{
         isFriendly: z.ZodBoolean;
         reason: z.ZodString;
@@ -156,9 +312,21 @@ export declare const plantResponseSchema: z.ZodObject<{
     commonName: string | null;
     acquisitionDate: Date | null;
     city: string | null;
-    careLevel: "Easy" | "Moderate" | "Difficult" | null;
-    sunRequirements: "No sun" | "Part to Full" | "Full sun" | null;
-    toxicityLevel: "Low" | "Medium" | "High" | null;
+    careLevel: "Easy" | "Moderate" | "Difficult" | {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    } | null;
+    sunRequirements: "No sun" | "Part to Full" | "Full sun" | {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    } | null;
+    toxicityLevel: "Low" | "Medium" | "High" | {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    } | null;
     userId: string;
     updatedAt: Date;
     petFriendliness?: {
@@ -180,9 +348,21 @@ export declare const plantResponseSchema: z.ZodObject<{
     commonName: string | null;
     acquisitionDate: Date | null;
     city: string | null;
-    careLevel: "Easy" | "Moderate" | "Difficult" | null;
-    sunRequirements: "No sun" | "Part to Full" | "Full sun" | null;
-    toxicityLevel: "Low" | "Medium" | "High" | null;
+    careLevel: "Easy" | "Moderate" | "Difficult" | {
+        level: "Easy" | "Moderate" | "Difficult";
+        description: string;
+        maintenanceTips: string;
+    } | null;
+    sunRequirements: "No sun" | "Part to Full" | "Full sun" | {
+        level: "No sun" | "Part to Full" | "Full sun";
+        description: string;
+        placementTips: string;
+    } | null;
+    toxicityLevel: "Low" | "Medium" | "High" | {
+        level: "Low" | "Medium" | "High";
+        description: string;
+        safetyTips: string;
+    } | null;
     userId: string;
     updatedAt: Date;
     petFriendliness?: {

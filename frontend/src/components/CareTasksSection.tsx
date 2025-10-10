@@ -18,16 +18,25 @@ interface SelectedTask {
   isSuggested?: boolean;
 }
 
+interface AISuggestedTask {
+  key: string;
+  label: string;
+  colorHex: string;
+  frequency: number;
+  isSuggested?: boolean;
+}
+
 interface CareTasksSectionProps {
   taskTemplatesLoading: boolean;
   taskTemplates: TaskTemplate[];
   selectedTasks: SelectedTask[];
+  aiSuggestedTasks?: AISuggestedTask[];
   onToggleTaskSelection: (template: TaskTemplate) => void;
   onUpdateTaskFrequency: (taskKey: string, frequency: number) => void;
   onUpdateTaskLastCompleted: (taskKey: string, lastCompleted: string) => void;
   onRemoveTask: (taskKey: string) => void;
   getTaskIcon: (taskKey: string) => string;
-  getTaskFrequencyText: (template: TaskTemplate, selectedTask?: SelectedTask) => string;
+  getTaskFrequencyText: (template: TaskTemplate, selectedTask?: SelectedTask, aiSuggestedTask?: AISuggestedTask) => string;
   getTodayDateString: () => string;
 }
 
@@ -35,6 +44,7 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
   taskTemplatesLoading,
   taskTemplates,
   selectedTasks,
+  aiSuggestedTasks = [],
   onToggleTaskSelection,
   onUpdateTaskFrequency,
   onUpdateTaskLastCompleted,
@@ -68,6 +78,7 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
           {taskTemplates.map((template) => {
             const isSelected = selectedTasks.some(task => task.key === template.key);
             const selectedTask = selectedTasks.find(task => task.key === template.key);
+            const aiSuggestedTask = aiSuggestedTasks.find(task => task.key === template.key);
 
             return (
               <div key={template.key} className="space-y-3">
@@ -101,7 +112,7 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-800 truncate">{template.label}</h3>
                         <p className="text-sm text-gray-600 truncate">
-                          {getTaskFrequencyText(template, selectedTask)}
+                          {getTaskFrequencyText(template, selectedTask, aiSuggestedTask)}
                         </p>
                       </div>
                       {!isSelected && (
@@ -114,6 +125,9 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
                     {/* Task Configuration - appears beside selected task */}
                     {isSelected && selectedTask && (
                       <div className="flex-1 lg:flex-none lg:w-80 flex items-center gap-3 min-w-0">
+                        {/* Spacer to push frequency to the right */}
+                        <div className="flex-1"></div>
+
                         <div className="flex-1 min-w-0">
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Frequency (days)
@@ -127,6 +141,7 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
                           />
                         </div>
 
+                        {/*
                         <div className="flex-1 min-w-0">
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Last Completed
@@ -142,6 +157,7 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
                             disabled={selectedTask.frequency === 1}
                           />
                         </div>
+                        */}
 
                         <button
                           type="button"
