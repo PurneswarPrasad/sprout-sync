@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { updateUserIdInSheet } from '../utils/onboarding';
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -17,12 +18,19 @@ export default function AuthCallbackPage() {
         
         // Decode the JWT to get user info (without verification for now)
         const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({
+        const user = {
           id: payload.userId,
           email: payload.email,
           name: payload.name,
           avatarUrl: payload.avatarUrl,
-        });
+        };
+        setUser(user);
+        
+        // Update Google Sheets with user's email if they went through onboarding
+        const onboardingUserId = localStorage.getItem('onboarding-user-id');
+        if (onboardingUserId && user.email) {
+          updateUserIdInSheet(user.email);
+        }
         
         // Redirect to home page
         navigate('/home');

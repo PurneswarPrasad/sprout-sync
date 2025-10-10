@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
+import InitialLandingPage from './pages/InitialLandingPage';
+import OnboardingPage from './pages/OnboardingPage';
+import SignInPage from './pages/SignInPage';
 import HomePage from './pages/HomePage';
 import { PlantsPage } from './pages/PlantsPage';
 import { AddPlantPage } from './pages/AddPlantPage';
@@ -19,7 +21,9 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<InitialLandingPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/signin" element={<SignInPage />} />
           <Route path="/auth-callback" element={<AuthCallbackPage />} />
           <Route path="/terms-and-conditions" element={<TermsPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
