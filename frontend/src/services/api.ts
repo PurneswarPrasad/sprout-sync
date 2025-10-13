@@ -153,4 +153,19 @@ export const plantGiftsAPI = {
     api.delete(`/api/plant-gifts/${giftId}`),
 };
 
+export const tutorialAPI = {
+  // Get tutorial state
+  getState: () => api.get('/api/tutorial/state'),
+  
+  // Update tutorial state
+  updateState: (data: {
+    completedSteps?: string[];
+    skippedSteps?: string[];
+    hasCompletedTutorial?: boolean;
+  }) => api.post('/api/tutorial/state', data),
+  
+  // Mark tutorial as completed
+  complete: () => api.post('/api/tutorial/complete'),
+};
+
 export default api;

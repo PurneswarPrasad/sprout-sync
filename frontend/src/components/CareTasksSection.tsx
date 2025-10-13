@@ -40,7 +40,7 @@ interface CareTasksSectionProps {
   getTodayDateString: () => string;
 }
 
-export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
+export const CareTasksSection = React.forwardRef<HTMLDivElement, CareTasksSectionProps>(({
   taskTemplatesLoading,
   taskTemplates,
   selectedTasks,
@@ -52,9 +52,9 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
   getTaskIcon,
   getTaskFrequencyText,
   getTodayDateString,
-}) => {
+}, ref) => {
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+    <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
         <h2 className="text-lg font-semibold text-gray-800">Care Tasks</h2>
         {!taskTemplatesLoading && selectedTasks.length === 0 && (
@@ -177,4 +177,6 @@ export const CareTasksSection: React.FC<CareTasksSectionProps> = ({
       )}
     </div>
   );
-};
+});
+
+CareTasksSection.displayName = 'CareTasksSection';

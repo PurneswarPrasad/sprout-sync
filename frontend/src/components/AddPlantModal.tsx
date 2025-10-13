@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Camera, PenTool, X, Heart } from 'lucide-react';
+import { TutorialSpotlight } from './TutorialSpotlight';
+import { shouldShowTutorial, isStepDismissed, markStepCompleted, markStepSkipped } from '../utils/tutorial';
 
 interface AddPlantModalProps {
   isOpen: boolean;
@@ -16,6 +18,32 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({
   onCameraID,
   onCheckHealth,
 }) => {
+  const cameraButtonRef = useRef<HTMLButtonElement>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && shouldShowTutorial() && !isStepDismissed('modal-camera-id')) {
+      // Delay to let the modal render first
+      setTimeout(() => {
+        setShowTutorial(true);
+      }, 300);
+    } else {
+      setShowTutorial(false);
+    }
+  }, [isOpen]);
+
+  const handleSkipTutorial = () => {
+    markStepSkipped('modal-camera-id');
+    setShowTutorial(false);
+  };
+
+  const handleNextTutorial = () => {
+    markStepCompleted('modal-camera-id');
+    setShowTutorial(false);
+    // Trigger camera ID
+    onCameraID();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -35,6 +63,7 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({
         {/* Options */}
         <div className="space-y-4">
           <button
+            ref={cameraButtonRef}
             onClick={onCameraID}
             className="w-full p-4 border-2 border-emerald-300 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 flex items-center gap-4"
           >
@@ -86,6 +115,16 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Tutorial Spotlight */}
+      <TutorialSpotlight
+        isVisible={showTutorial}
+        targetRef={cameraButtonRef}
+        message="Use AI to identify your favorite plant!"
+        position="right"
+        onSkip={handleSkipTutorial}
+        onNext={handleNextTutorial}
+      />
     </div>
   );
 };

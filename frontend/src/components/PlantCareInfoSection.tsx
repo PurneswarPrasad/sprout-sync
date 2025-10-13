@@ -30,20 +30,20 @@ interface PlantCareInfoSectionProps {
   selectedTasks: SelectedTask[];
 }
 
-export const PlantCareInfoSection: React.FC<PlantCareInfoSectionProps> = ({
+export const PlantCareInfoSection = React.forwardRef<HTMLDivElement, PlantCareInfoSectionProps>(({
   hasProcessedAI,
   careLevel,
   sunRequirements,
   toxicityLevel,
   selectedTasks,
-}) => {
+}, ref) => {
   // Only show if coming from AI identification and has care information
   if (!hasProcessedAI || (!careLevel && !sunRequirements && !toxicityLevel && selectedTasks.length === 0)) {
     return null;
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+    <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Plant Care Information</h2>
       <PlantCareCards
         careLevel={careLevel}
@@ -53,4 +53,6 @@ export const PlantCareInfoSection: React.FC<PlantCareInfoSectionProps> = ({
       />
     </div>
   );
-};
+});
+
+PlantCareInfoSection.displayName = 'PlantCareInfoSection';

@@ -10,6 +10,8 @@ import { StatsCards } from '../components/StatsCards';
 import { PlantsSection } from '../components/PlantsSection';
 import { TasksSection } from '../components/TasksSection';
 import { OverdueSection } from '../components/OverdueSection';
+import { TutorialSpotlight } from '../components/TutorialSpotlight';
+import { shouldShowTutorial, isStepDismissed, markStepCompleted, markStepSkipped, initTutorialState } from '../utils/tutorial';
 
 interface User {
   id: string;
@@ -107,8 +109,27 @@ const HomePage: React.FC = () => {
   // Refs to track swipe cards for resetting when delete is cancelled
   const swipeCardRefs = useRef<{ [key: string]: SwipeToDeleteCardRef | null }>({});
 
+  // Tutorial refs and state
+  const fabButtonRef = useRef<HTMLButtonElement>(null);
+  const [showHomepageTutorial, setShowHomepageTutorial] = useState(false);
+
   useEffect(() => {
-    fetchUserProfile();
+    const initialize = async () => {
+      await fetchUserProfile();
+      
+      // Initialize tutorial state from API
+      await initTutorialState();
+      
+      // Check if we should show tutorial
+      if (shouldShowTutorial() && !isStepDismissed('homepage-add-button')) {
+        // Delay to let the page render first
+        setTimeout(() => {
+          setShowHomepageTutorial(true);
+        }, 500);
+      }
+    };
+    
+    initialize();
   }, []);
 
   useEffect(() => {
@@ -326,6 +347,19 @@ const HomePage: React.FC = () => {
     }
   };
 
+  // Tutorial handlers
+  const handleSkipHomepageTutorial = () => {
+    markStepSkipped('homepage-add-button');
+    setShowHomepageTutorial(false);
+  };
+
+  const handleNextHomepageTutorial = () => {
+    markStepCompleted('homepage-add-button');
+    setShowHomepageTutorial(false);
+    // Trigger the add plant modal
+    setShowAddPlantModal(true);
+  };
+
   // Get tasks that are due today (nextDueOn = today)
   const getTodaysTasks = (): Array<{ task: PlantTask; plant: Plant; status: { status: string; text: string; color: string }; isCompleted: boolean }> => {
     return plants.flatMap(plant => 
@@ -437,7 +471,7 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <Layout>
+    <Layout fabRef={fabButtonRef}>
       <div className="space-y-6 sm:space-y-8">
         {/* Welcome Section */}
         <div className="mb-6 sm:mb-8">
@@ -533,6 +567,16 @@ const HomePage: React.FC = () => {
         message={confirmDialog.message}
         onClose={closeConfirmDialog}
         onConfirm={markTaskComplete}
+      />
+
+      {/* Tutorial Spotlight */}
+      <TutorialSpotlight
+        isVisible={showHomepageTutorial}
+        targetRef={fabButtonRef}
+        message="Click here to meet your first plant friend!"
+        position="left"
+        onSkip={handleSkipHomepageTutorial}
+        onNext={handleNextHomepageTutorial}
       />
     </Layout>
   );

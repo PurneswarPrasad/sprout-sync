@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Upload, ArrowLeft, AlertCircle, Image } from 'lucide-react';
 import { aiAPI } from '../services/api';
 import { CameraTab } from './CameraTab';
 import { UrlTab } from './UrlTab';
 import PlantImageErrorModal from './PlantImageErrorModal';
+import { TutorialSpotlight } from './TutorialSpotlight';
+import { shouldShowTutorial, isStepDismissed, markStepCompleted, markStepSkipped } from '../utils/tutorial';
 
 interface AIPlantIdentificationProps {
   onBack: () => void;
@@ -52,6 +54,19 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
   // Plant image error modal state
   const [showPlantImageErrorModal, setShowPlantImageErrorModal] = useState(false);
 
+  // Tutorial refs and state
+  const cameraAreaRef = useRef<HTMLDivElement>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (shouldShowTutorial() && !isStepDismissed('ai-camera-area')) {
+      // Delay to let the page render first
+      setTimeout(() => {
+        setShowTutorial(true);
+      }, 300);
+    }
+  }, []);
+
   // Cleanup function to revoke any temporary image URLs
   const cleanupTemporaryImages = () => {
     if (capturedImage && capturedImage.startsWith('blob:')) {
@@ -90,6 +105,17 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
     setCapturedImage(null);
     setImageUrl('');
     setError(null);
+  };
+
+  // Tutorial handlers
+  const handleSkipTutorial = () => {
+    markStepSkipped('ai-camera-area');
+    setShowTutorial(false);
+  };
+
+  const handleNextTutorial = () => {
+    markStepCompleted('ai-camera-area');
+    setShowTutorial(false);
   };
 
 
@@ -192,7 +218,7 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm mb-6">
+        <div ref={cameraAreaRef} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm mb-6">
           <div className="flex space-x-1 mb-6">
             <button
               onClick={() => setActiveTab('camera')}
@@ -268,6 +294,16 @@ export const AIPlantIdentification: React.FC<AIPlantIdentificationProps> = ({
         isOpen={showPlantImageErrorModal}
         onClose={handleClosePlantImageErrorModal}
         onRetry={handleRetryPlantImage}
+      />
+
+      {/* Tutorial Spotlight */}
+      <TutorialSpotlight
+        isVisible={showTutorial}
+        targetRef={cameraAreaRef}
+        message="Your camera does the magic here!"
+        position="right"
+        onSkip={handleSkipTutorial}
+        onNext={handleNextTutorial}
       />
     </div>
   );

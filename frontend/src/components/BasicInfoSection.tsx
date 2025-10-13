@@ -36,13 +36,13 @@ interface BasicInfoSectionProps {
   imageUploadProps: ImageUploadSectionProps;
 }
 
-export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
+export const BasicInfoSection = React.forwardRef<HTMLDivElement, BasicInfoSectionProps>(({
   formData,
   onFormDataChange,
   imageUploadProps,
-}) => {
+}, ref) => {
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
+    <div ref={ref} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
 
       <div className="space-y-6">
@@ -140,4 +140,6 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       </div>
     </div>
   );
-};
+});
+
+BasicInfoSection.displayName = 'BasicInfoSection';

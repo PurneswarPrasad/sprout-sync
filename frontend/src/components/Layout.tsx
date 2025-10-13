@@ -17,9 +17,10 @@ interface User {
 
 interface LayoutProps {
   children: React.ReactNode;
+  fabRef?: React.RefObject<HTMLButtonElement>;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, fabRef }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout: logoutFromStore } = useAuthStore();
@@ -370,6 +371,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Floating Action Button - Hide on plant detail page, add plant page, and AI identification page */}
       {!shouldHideFloatingButton && (
         <button
+          ref={fabRef}
           onClick={() => setShowAddPlantModal(true)}
           className="fixed bottom-20 right-4 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:bg-emerald-700 transition-colors duration-200 flex items-center justify-center z-50 sm:bottom-24"
         >

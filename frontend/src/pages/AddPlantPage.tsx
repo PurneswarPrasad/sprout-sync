@@ -8,6 +8,8 @@ import { CloudinaryService, CloudinaryUploadResult } from '../services/cloudinar
 import { BasicInfoSection } from '../components/BasicInfoSection';
 import { PlantCareInfoSection } from '../components/PlantCareInfoSection';
 import { CareTasksSection } from '../components/CareTasksSection';
+import { TutorialSpotlight } from '../components/TutorialSpotlight';
+import { shouldShowTutorial, isStepDismissed, markStepCompleted, markStepSkipped, markTutorialCompleted } from '../utils/tutorial';
 
 // Helper function to get today's date in YYYY-MM-DD format in local timezone
 const getTodayDateString = () => {
@@ -161,6 +163,12 @@ export const AddPlantPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aiProcessedRef = useRef(false);
 
+  // Tutorial refs and state
+  const basicInfoRef = useRef<HTMLDivElement>(null);
+  const plantCareInfoRef = useRef<HTMLDivElement>(null);
+  const careTasksRef = useRef<HTMLDivElement>(null);
+  const [currentTutorialStep, setCurrentTutorialStep] = useState<'basic-info' | 'care-info' | 'tasks' | null>(null);
+
   // AI identification state
   const [aiConfidence, setAiConfidence] = useState<number | null>(null);
   const [showConfidenceNotification, setShowConfidenceNotification] = useState(false);
@@ -200,6 +208,9 @@ export const AddPlantPage: React.FC = () => {
       handleAIIdentification(location.state.aiData);
       // Clear the state to prevent re-processing
       navigate(location.pathname, { replace: true });
+    } else if (!location.state?.fromAI) {
+      // If not from AI, still start tutorial for basic info
+      startTutorialSequence();
     }
   }, [location.state?.aiData, location.state?.fromAI]);
 
@@ -459,6 +470,70 @@ export const AddPlantPage: React.FC = () => {
     }
   };
 
+  // Tutorial handlers
+  const startTutorialSequence = () => {
+    if (shouldShowTutorial() && !isStepDismissed('add-plant-basic-info')) {
+      setTimeout(() => {
+        setCurrentTutorialStep('basic-info');
+      }, 500);
+    }
+  };
+
+  const handleSkipTutorial = (step: 'basic-info' | 'care-info' | 'tasks') => {
+    const stepMap = {
+      'basic-info': 'add-plant-basic-info',
+      'care-info': 'add-plant-care-info',
+      'tasks': 'add-plant-tasks',
+    } as const;
+    
+    markStepSkipped(stepMap[step]);
+    setCurrentTutorialStep(null);
+    
+    // If skipping the last step, mark tutorial as completed
+    if (step === 'tasks') {
+      markTutorialCompleted();
+    }
+  };
+
+  const handleNextTutorial = (step: 'basic-info' | 'care-info' | 'tasks') => {
+    const stepMap = {
+      'basic-info': 'add-plant-basic-info',
+      'care-info': 'add-plant-care-info',
+      'tasks': 'add-plant-tasks',
+    } as const;
+    
+    markStepCompleted(stepMap[step]);
+
+    // Move to next step or complete tutorial
+    if (step === 'basic-info') {
+      // Check if care info section will be visible
+      if (hasProcessedAI && !isStepDismissed('add-plant-care-info')) {
+        setTimeout(() => {
+          setCurrentTutorialStep('care-info');
+        }, 300);
+      } else if (!isStepDismissed('add-plant-tasks')) {
+        setTimeout(() => {
+          setCurrentTutorialStep('tasks');
+        }, 300);
+      } else {
+        setCurrentTutorialStep(null);
+        markTutorialCompleted();
+      }
+    } else if (step === 'care-info') {
+      if (!isStepDismissed('add-plant-tasks')) {
+        setTimeout(() => {
+          setCurrentTutorialStep('tasks');
+        }, 300);
+      } else {
+        setCurrentTutorialStep(null);
+        markTutorialCompleted();
+      }
+    } else if (step === 'tasks') {
+      setCurrentTutorialStep(null);
+      markTutorialCompleted();
+    }
+  };
+
   // Function to handle AI identification data
   const handleAIIdentification = async (aiData: any) => {
     console.log('handleAIIdentification: Processing AI data', { 
@@ -476,6 +551,9 @@ export const AddPlantPage: React.FC = () => {
 
     // Store AI data for later use (e.g., for the tag message)
     setAiData(aiData);
+
+    // Start tutorial sequence after AI data is processed
+    startTutorialSequence();
 
     // Set plant names, type, and care information from AI identification
     setFormData(prev => ({
@@ -719,6 +797,7 @@ export const AddPlantPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <BasicInfoSection
+              ref={basicInfoRef}
               formData={formData}
               onFormDataChange={(updates) => setFormData({ ...formData, ...updates })}
               imageUploadProps={{
@@ -740,6 +819,7 @@ export const AddPlantPage: React.FC = () => {
 
             {/* Plant Care Information Cards - Only show if coming from AI identification */}
             <PlantCareInfoSection
+              ref={plantCareInfoRef}
               hasProcessedAI={hasProcessedAI}
               careLevel={careInfo.careLevel}
               sunRequirements={careInfo.sunRequirements}
@@ -749,6 +829,7 @@ export const AddPlantPage: React.FC = () => {
 
             {/* Care Tasks */}
             <CareTasksSection
+              ref={careTasksRef}
               taskTemplatesLoading={taskTemplatesLoading}
               taskTemplates={taskTemplates}
               selectedTasks={selectedTasks}
@@ -801,6 +882,35 @@ export const AddPlantPage: React.FC = () => {
         confidence={aiConfidence || 0}
         isVisible={showConfidenceNotification}
         onClose={() => setShowConfidenceNotification(false)}
+      />
+
+      {/* Tutorial Spotlights */}
+      <TutorialSpotlight
+        isVisible={currentTutorialStep === 'basic-info'}
+        targetRef={basicInfoRef}
+        message="Know more about your plant"
+        position="right"
+        onSkip={() => handleSkipTutorial('basic-info')}
+        onNext={() => handleNextTutorial('basic-info')}
+      />
+
+      <TutorialSpotlight
+        isVisible={currentTutorialStep === 'care-info'}
+        targetRef={plantCareInfoRef}
+        message="Learn how to take care of your buddy"
+        position="right"
+        onSkip={() => handleSkipTutorial('care-info')}
+        onNext={() => handleNextTutorial('care-info')}
+      />
+
+      <TutorialSpotlight
+        isVisible={currentTutorialStep === 'tasks'}
+        targetRef={careTasksRef}
+        message="We recommend, you choose!"
+        position="right"
+        onSkip={() => handleSkipTutorial('tasks')}
+        onNext={() => handleNextTutorial('tasks')}
+        isLastStep={true}
       />
     </Layout>
   );
