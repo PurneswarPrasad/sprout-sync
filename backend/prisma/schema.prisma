@@ -153,7 +153,6 @@ model UserSettings {
   persona          Persona
   timezone         String
   onesignalPlayerId String?
-  hasSeenNewUserFocus Boolean @default(false) // Track if user has seen the new user focus
   
   // Google Calendar sync settings
   googleCalendarSyncEnabled Boolean @default(false)
