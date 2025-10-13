@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { updateUserIdInSheet } from '../utils/onboarding';
+import { updateUserIdInSheet, clearOnboardingUserId } from '../utils/onboarding';
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -31,6 +31,9 @@ export default function AuthCallbackPage() {
         if (onboardingUserId && user.email) {
           updateUserIdInSheet(user.email);
         }
+        
+        // Clear onboarding data after successful authentication
+        clearOnboardingUserId();
         
         // Redirect to home page
         navigate('/home');

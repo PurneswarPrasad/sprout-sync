@@ -2,10 +2,14 @@
 
 export interface OnboardingData {
   userId: string;
+  plantExperience: string;
   plantLocation: string[];
-  helpWith: string[];
-  interestLevel: string;
-  skillLevel: string;
+  plantGoals: string[];
+  timeCommitment: string;
+  lightCondition: string;
+  petsOrKids: string;
+  avoidPreferences: string[];
+  appFeatures: string[];
   timestamp: string;
 }
 
@@ -27,17 +31,39 @@ export const getOrCreateUserId = (): string => {
   return userId;
 };
 
+// Check if user has already submitted onboarding
+export const hasSubmittedOnboarding = (): boolean => {
+  const storageKey = 'onboarding-submitted';
+  return localStorage.getItem(storageKey) === 'true';
+};
+
+// Mark onboarding as submitted
+export const markOnboardingAsSubmitted = (): void => {
+  const storageKey = 'onboarding-submitted';
+  localStorage.setItem(storageKey, 'true');
+};
+
 // Submit onboarding data to Google Sheets
 export const submitOnboardingData = async (data: Partial<OnboardingData>): Promise<void> => {
+  // Check if user has already submitted
+  if (hasSubmittedOnboarding()) {
+    console.log('Onboarding already submitted for this user. Skipping duplicate submission.');
+    return;
+  }
+
   const userId = getOrCreateUserId();
   const timestamp = new Date().toISOString();
   
   const payload = {
     userId,
+    plantExperience: data.plantExperience || '',
     plantLocation: data.plantLocation || [],
-    helpWith: data.helpWith || [],
-    interestLevel: data.interestLevel || '',
-    skillLevel: data.skillLevel || '',
+    plantGoals: data.plantGoals || [],
+    timeCommitment: data.timeCommitment || '',
+    lightCondition: data.lightCondition || '',
+    petsOrKids: data.petsOrKids || '',
+    avoidPreferences: data.avoidPreferences || [],
+    appFeatures: data.appFeatures || [],
     timestamp
   };
 
@@ -52,6 +78,9 @@ export const submitOnboardingData = async (data: Partial<OnboardingData>): Promi
     );
 
     console.log('Onboarding data submitted successfully:', payload);
+    
+    // Mark as submitted after successful submission
+    markOnboardingAsSubmitted();
   } catch (error) {
     // Silent fail - log error but don't block user flow
     console.error('Failed to submit onboarding data:', error);
@@ -85,7 +114,8 @@ export const updateUserIdInSheet = async (newUserId: string): Promise<void> => {
   }
 };
 
-// Clear onboarding user ID (useful for testing or reset)
+// Clear onboarding user ID and submission flag (useful for testing or reset)
 export const clearOnboardingUserId = (): void => {
   localStorage.removeItem('onboarding-user-id');
+  localStorage.removeItem('onboarding-submitted');
 };

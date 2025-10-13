@@ -5,10 +5,14 @@ import { authAPI } from '../services/api';
 import { submitOnboardingData, getOrCreateUserId } from '../utils/onboarding';
 
 interface OnboardingState {
+  plantExperience: string;
   plantLocation: string[];
-  helpWith: string[];
-  interestLevel: string;
-  skillLevel: string;
+  plantGoals: string[];
+  timeCommitment: string;
+  lightCondition: string;
+  petsOrKids: string;
+  avoidPreferences: string[];
+  appFeatures: string[];
 }
 
 const OnboardingPage: React.FC = () => {
@@ -16,61 +20,115 @@ const OnboardingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<OnboardingState>({
+    plantExperience: '',
     plantLocation: [],
-    helpWith: [],
-    interestLevel: '',
-    skillLevel: ''
+    plantGoals: [],
+    timeCommitment: '',
+    lightCondition: '',
+    petsOrKids: '',
+    avoidPreferences: [],
+    appFeatures: []
   });
 
   // Question data
   const questions = {
     1: {
-      title: "Where are your plants?",
-      subtitle: "You can pick multiple options.",
-      type: "multi-select" as const,
+      title: "How has your luck been with plants so far?",
+      subtitle: "Be honest — we'll help from there.",
+      type: "single-select" as const,
       options: [
-        { id: "indoor", label: "Potted plants indoor", icon: "🏠" },
-        { id: "outdoor", label: "Potted plants outdoor", icon: "🪴" },
-        { id: "garden", label: "Garden, plants in ground", icon: "🌳" }
+        { id: "never-owned", label: "Never owned one", description: "Totally new", icon: "🌱" },
+        { id: "tried-before", label: "Tried before, had mixed results", description: "Some survived", icon: "🤞" },
+        { id: "kept-few", label: "Kept a few alive", description: "I know basics", icon: "👍" },
+        { id: "confident", label: "Confident / experienced", description: "I know care routines", icon: "🌿" }
       ],
       hasSkip: true
     },
     2: {
-      title: "What can we help you with?",
-      subtitle: "You can pick multiple options.",
+      title: "Where will your plants live?",
+      subtitle: "Pick all that apply.",
       type: "multi-select" as const,
       options: [
-        { id: "sick-plant", label: "Get help with a sick plant", icon: "🩺" },
-        { id: "reminders", label: "Get water and care reminders", icon: "🚿" },
-        { id: "identify", label: "Identify a plant", icon: "🔍" },
-        { id: "journal", label: "Plant organization & journal", icon: "📝" },
-        { id: "something-else", label: "Something else", icon: "⋯" }
+        { id: "indoors", label: "Indoors (room/desk)", icon: "🏠" },
+        { id: "balcony", label: "Balcony / patio", icon: "🌤️" },
+        { id: "outdoor", label: "Garden / yard", icon: "🌳" }
       ],
       hasSkip: true
     },
     3: {
-      title: "How interested are you in plant care?",
-      subtitle: "",
-      type: "single-select" as const,
+      title: "What do you want from plants?",
+      subtitle: "Pick any — we'll prioritise recommendations.",
+      type: "multi-select" as const,
       options: [
-        { id: "low", label: "Low", description: "I just want to keep my plants alive", image: "/Sansevieria trifasciata 1.jpg" },
-        { id: "medium", label: "Medium", description: "I like plant care and I'm alright with spending time on my plants", image: "/Philodendron-Cordatum-Hanging-Expressions-upright-aspect-ratio-360-460.webp" },
-        { id: "high", label: "High", description: "I live for plants. I want to spend every waking hour on them", image: "/advanced.png" }
+        { id: "low-maint", label: "Easy, low-maintenance", icon: "🪴" },
+        { id: "decor", label: "Look & decor", icon: "✨" },
+        { id: "air", label: "Cleaner air / health", icon: "🌿" },
+        { id: "hobby", label: "Learn & grow as a hobby", icon: "📚" },
+        { id: "gift", label: "Gifts / sharing plants", icon: "🎁" }
       ],
-      hasSkip: false
+      hasSkip: true
     },
     4: {
-      title: "How good are you at taking care of plants?",
-      subtitle: "",
+      title: "How much time can you spend on plants?",
+      subtitle: "This helps match care level.",
       type: "single-select" as const,
       options: [
-        { id: "hopeless", label: "Hopeless", description: "The only plants that's still alive are the ones that never lived", image: "/hopeless.jpg" },
-        { id: "beginner", label: "Beginner", description: "Every now and then I manage to keep a cactus alive", image: "/beginner.jpg" },
-        { id: "experienced", label: "Experienced", description: "I have my plants under control, we are alright", image: "/experienced.webp" },
-        { id: "skilled", label: "Skilled", description: "What I don't know about plants is not worth knowing", image: "/skilled.webp" },
-        { id: "master", label: "Master", description: "The name says it all!", image: "/Gemini_Generated_Image_xsq2w0xsq2w0xsq2.png" }
+        { id: "very-little", label: "Very little — <15 min/week", description: "I'll forget often", icon: "⏱️" },
+        { id: "some", label: "A bit — 15–60 min/week", description: "I can check now & then", icon: "🕒" },
+        { id: "regular", label: "Regular — few hours/week", description: "I'll do weekly care", icon: "🧰" },
+        { id: "all-in", label: "I love spending time", description: "I'll care often & learn", icon: "💚" }
       ],
-      hasSkip: false
+      hasSkip: true
+    },
+    5: {
+      title: "How much light does the spot get?",
+      subtitle: "Think about where you'll keep your plants.",
+      type: "single-select" as const,
+      options: [
+        { id: "bright-direct", label: "Bright, direct sun (south/window)", icon: "☀️" },
+        { id: "bright-indirect", label: "Bright but indirect light", icon: "🌤️" },
+        { id: "low-light", label: "Low / shady spot", icon: "🌥️" },
+        { id: "varies", label: "Light varies day-to-day", icon: "🔄" }
+      ],
+      hasSkip: true
+    },
+    6: {
+      title: "Do you have pets or small children to consider?",
+      subtitle: "We'll avoid toxic plants if needed.",
+      type: "single-select" as const,
+      options: [
+        { id: "no-pets", label: "No, nothing to worry about", icon: "✅" },
+        { id: "pets", label: "Yes — pets (cats/dogs)", icon: "🐶🐱" },
+        { id: "kids", label: "Yes — young children", icon: "🧒" },
+        { id: "both", label: "Both pets & kids", icon: "👪🐾" }
+      ],
+      hasSkip: true
+    },
+    7: {
+      title: "Anything you'd rather avoid?",
+      subtitle: "Helps filter recommended plants.",
+      type: "multi-select" as const,
+      options: [
+        { id: "toxic", label: "Toxic plants", icon: "⚠️" },
+        { id: "big", label: "Large / fast-growing plants", icon: "🌲" },
+        { id: "messy", label: "Plants that drop lots of leaves", icon: "🍂" },
+        { id: "fragrant", label: "Strong fragrance", icon: "🌸" },
+        { id: "no-preference", label: "No preference", icon: "✅" }
+      ],
+      hasSkip: true
+    },
+    8: {
+      title: "What help would you like from the app?",
+      subtitle: "Pick what you want to use.",
+      type: "multi-select" as const,
+      options: [
+        { id: "reminders", label: "Water & care reminders", icon: "⏰" },
+        { id: "identify", label: "Identify plants from photos", icon: "🔍" },
+        { id: "sick-help", label: "Help for sick plants", icon: "🩺" },
+        { id: "journal", label: "Keep a plant journal", icon: "📓" },
+        { id: "community", label: "Connect with other beginners", icon: "💬" }
+      ],
+      hasSkip: true
     }
   };
 
@@ -98,8 +156,15 @@ const OnboardingPage: React.FC = () => {
   }, [navigate]);
 
   const handleMultiSelect = (currentStep: number, optionId: string) => {
-    const propertyName = currentStep === 1 ? 'plantLocation' : 'helpWith';
-    const currentAnswers = answers[propertyName];
+    const propertyMap: Record<number, keyof OnboardingState> = {
+      2: 'plantLocation',
+      3: 'plantGoals',
+      7: 'avoidPreferences',
+      8: 'appFeatures'
+    };
+    
+    const propertyName = propertyMap[currentStep];
+    const currentAnswers = answers[propertyName] as string[];
     const newAnswers = currentAnswers.includes(optionId)
       ? currentAnswers.filter(id => id !== optionId)
       : [...currentAnswers, optionId];
@@ -111,7 +176,14 @@ const OnboardingPage: React.FC = () => {
   };
 
   const handleSingleSelect = (currentStep: number, optionId: string) => {
-    const propertyName = currentStep === 3 ? 'interestLevel' : 'skillLevel';
+    const propertyMap: Record<number, keyof OnboardingState> = {
+      1: 'plantExperience',
+      4: 'timeCommitment',
+      5: 'lightCondition',
+      6: 'petsOrKids'
+    };
+    
+    const propertyName = propertyMap[currentStep];
     setAnswers(prev => ({
       ...prev,
       [propertyName]: optionId
@@ -119,38 +191,50 @@ const OnboardingPage: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < 8) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handleSkip = () => {
-    if (currentStep === 1 || currentStep === 2) {
-      // Clear answers for the current question before skipping
-      if (currentStep === 1) {
-        setAnswers(prev => ({
-          ...prev,
-          plantLocation: []
-        }));
-      } else if (currentStep === 2) {
-        setAnswers(prev => ({
-          ...prev,
-          helpWith: []
-        }));
-      }
-      
-      // Skip to question 3
-      setCurrentStep(3);
+    // Clear the current answer
+    const clearMap: Record<number, Partial<OnboardingState>> = {
+      1: { plantExperience: '' },
+      2: { plantLocation: [] },
+      3: { plantGoals: [] },
+      4: { timeCommitment: '' },
+      5: { lightCondition: '' },
+      6: { petsOrKids: '' },
+      7: { avoidPreferences: [] },
+      8: { appFeatures: [] }
+    };
+    
+    if (clearMap[currentStep]) {
+      setAnswers(prev => ({
+        ...prev,
+        ...clearMap[currentStep]
+      }));
+    }
+    
+    // If it's the last question, submit instead of moving to next step
+    if (currentStep === 8) {
+      handleContinue();
+    } else if (currentStep < 8) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
   const handleContinue = () => {
     // Submit all onboarding data before navigating
     submitOnboardingData({
+      plantExperience: answers.plantExperience,
       plantLocation: answers.plantLocation,
-      helpWith: answers.helpWith,
-      interestLevel: answers.interestLevel,
-      skillLevel: answers.skillLevel
+      plantGoals: answers.plantGoals,
+      timeCommitment: answers.timeCommitment,
+      lightCondition: answers.lightCondition,
+      petsOrKids: answers.petsOrKids,
+      avoidPreferences: answers.avoidPreferences,
+      appFeatures: answers.appFeatures
     });
     
     navigate('/signin');
@@ -158,15 +242,26 @@ const OnboardingPage: React.FC = () => {
 
   const canProceed = () => {
     const question = questions[currentStep as keyof typeof questions];
+    
     if (question.type === 'multi-select') {
-      // Multi-select questions require at least one selection to proceed
-      const propertyName = currentStep === 1 ? 'plantLocation' : 'helpWith';
-      const answer = answers[propertyName];
+      const propertyMap: Record<number, keyof OnboardingState> = {
+        2: 'plantLocation',
+        3: 'plantGoals',
+        7: 'avoidPreferences',
+        8: 'appFeatures'
+      };
+      const propertyName = propertyMap[currentStep];
+      const answer = answers[propertyName] as string[];
       return answer && answer.length > 0;
     } else {
-      // Single-select questions require a selection
-      const propertyName = currentStep === 3 ? 'interestLevel' : 'skillLevel';
-      const answer = answers[propertyName];
+      const propertyMap: Record<number, keyof OnboardingState> = {
+        1: 'plantExperience',
+        4: 'timeCommitment',
+        5: 'lightCondition',
+        6: 'petsOrKids'
+      };
+      const propertyName = propertyMap[currentStep];
+      const answer = answers[propertyName] as string;
       return answer && answer !== '';
     }
   };
@@ -242,7 +337,7 @@ const OnboardingPage: React.FC = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-center space-x-2">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((step) => (
               <div
                 key={step}
                 className={`w-8 h-2 rounded-full transition-colors duration-300 ${
@@ -251,7 +346,7 @@ const OnboardingPage: React.FC = () => {
               />
             ))}
           </div>
-          <p className="text-center text-sm text-gray-600 mt-2">{currentStep}/4</p>
+          <p className="text-center text-sm text-gray-600 mt-2">{currentStep}/8</p>
         </div>
 
         {/* Question content */}
@@ -287,9 +382,27 @@ const OnboardingPage: React.FC = () => {
           {/* Options */}
           <div className="space-y-3 sm:space-y-4 mb-8">
             {currentQuestion.options.map((option, index) => {
-              const isSelected = currentQuestion.type === 'multi-select'
-                ? (currentStep === 1 ? answers.plantLocation : answers.helpWith).includes(option.id)
-                : (currentStep === 3 ? answers.interestLevel : answers.skillLevel) === option.id;
+              let isSelected = false;
+              
+              if (currentQuestion.type === 'multi-select') {
+                const multiSelectMap: Record<number, keyof OnboardingState> = {
+                  2: 'plantLocation',
+                  3: 'plantGoals',
+                  7: 'avoidPreferences',
+                  8: 'appFeatures'
+                };
+                const propertyName = multiSelectMap[currentStep];
+                isSelected = (answers[propertyName] as string[]).includes(option.id);
+              } else {
+                const singleSelectMap: Record<number, keyof OnboardingState> = {
+                  1: 'plantExperience',
+                  4: 'timeCommitment',
+                  5: 'lightCondition',
+                  6: 'petsOrKids'
+                };
+                const propertyName = singleSelectMap[currentStep];
+                isSelected = (answers[propertyName] as string) === option.id;
+              }
 
               return (
                 <motion.div
@@ -332,25 +445,15 @@ const OnboardingPage: React.FC = () => {
                           : 'bg-white border-gray-200 hover:border-green-200 hover:shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          <img 
-                            src={(option as any).image} 
-                            alt={option.label}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Fallback to a placeholder if image doesn't exist
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{(option as any).icon}</span>
                         <div className="flex-1 text-left">
-                          <h3 className={`font-semibold text-lg ${isSelected ? 'text-green-700' : 'text-gray-800'}`}>
+                          <h3 className={`font-semibold text-base ${isSelected ? 'text-green-700' : 'text-gray-800'}`}>
                             {option.label}
                           </h3>
                           <p className="text-gray-600 text-sm mt-1">{(option as any).description}</p>
                         </div>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                           isSelected 
                             ? 'bg-green-500 border-green-500' 
                             : 'border-gray-300'
@@ -386,7 +489,7 @@ const OnboardingPage: React.FC = () => {
             )}
 
             <div className="flex space-x-3">
-              {currentStep < 4 ? (
+              {currentStep < 8 ? (
                 <button
                   onClick={handleNext}
                   disabled={!canProceed()}
@@ -408,7 +511,7 @@ const OnboardingPage: React.FC = () => {
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  Continue
+                  Submit
                 </button>
               )}
             </div>
