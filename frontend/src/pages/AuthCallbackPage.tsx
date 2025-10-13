@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { updateUserIdInSheet, clearOnboardingUserId } from '../utils/onboarding';
+import { updateUserIdInSheet } from '../utils/onboarding';
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -27,18 +27,21 @@ export default function AuthCallbackPage() {
         };
         setUser(user);
         
+        // Check if user has completed onboarding before clearing flags
+        const hasCompletedOnboarding = localStorage.getItem('onboarding-submitted') === 'true';
+        
         // Update Google Sheets with user's email if they went through onboarding
         const onboardingUserId = localStorage.getItem('onboarding-user-id');
         if (onboardingUserId && user.email) {
           updateUserIdInSheet(user.email);
         }
         
-        // Clear onboarding data after successful authentication
-        clearOnboardingUserId();
+        // Clear temporary onboarding user ID (but keep the submitted flag)
+        localStorage.removeItem('onboarding-user-id');
         
         // If new user and hasn't completed onboarding, redirect to onboarding
         // Otherwise redirect to home
-        if (isNewUser && !localStorage.getItem('onboarding-submitted')) {
+        if (isNewUser && !hasCompletedOnboarding) {
           navigate('/onboarding');
         } else {
           navigate('/home');
