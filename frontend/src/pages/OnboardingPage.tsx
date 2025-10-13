@@ -18,6 +18,7 @@ interface OnboardingState {
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<OnboardingState>({
     plantExperience: '',
@@ -133,14 +134,18 @@ const OnboardingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Check if user is already authenticated
+    // Check if user is already authenticated AND has completed onboarding
     const checkAuthStatus = async () => {
       try {
         const response = await authAPI.status();
 
         if (response.data.success && response.data.authenticated) {
-          // User is already authenticated, redirect to home page
-          navigate('/home');
+          // If user is authenticated and has already submitted onboarding, redirect to home
+          const hasCompletedOnboarding = localStorage.getItem('onboarding-submitted') === 'true';
+          if (hasCompletedOnboarding) {
+            navigate('/home');
+            return;
+          }
         }
       } catch (error) {
         // User is not authenticated, continue with onboarding
@@ -224,9 +229,11 @@ const OnboardingPage: React.FC = () => {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    setSubmitting(true);
+    
     // Submit all onboarding data before navigating
-    submitOnboardingData({
+    await submitOnboardingData({
       plantExperience: answers.plantExperience,
       plantLocation: answers.plantLocation,
       plantGoals: answers.plantGoals,
@@ -518,6 +525,26 @@ const OnboardingPage: React.FC = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Submission Loading Overlay */}
+      {submitting && (
+        <motion.div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div 
+            className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center space-y-4"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+            <p className="text-gray-800 text-lg font-medium">Optimising your experience...</p>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

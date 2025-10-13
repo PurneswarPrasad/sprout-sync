@@ -21,6 +21,7 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
         let user = await prisma_1.prisma.user.findUnique({
             where: { googleId: id },
         });
+        let isNewUser = false;
         if (!user) {
             user = await prisma_1.prisma.user.create({
                 data: {
@@ -30,6 +31,7 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
                     avatarUrl: avatarUrl ?? null,
                 },
             });
+            isNewUser = true;
         }
         else {
             user = await prisma_1.prisma.user.update({
@@ -40,7 +42,7 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
                 },
             });
         }
-        return done(null, user);
+        return done(null, { ...user, isNewUser });
     }
     catch (error) {
         return done(error, false);

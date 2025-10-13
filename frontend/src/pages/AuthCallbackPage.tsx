@@ -10,6 +10,7 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const isNewUser = searchParams.get('isNewUser') === 'true';
     
     if (token) {
       try {
@@ -35,8 +36,13 @@ export default function AuthCallbackPage() {
         // Clear onboarding data after successful authentication
         clearOnboardingUserId();
         
-        // Redirect to home page
-        navigate('/home');
+        // If new user and hasn't completed onboarding, redirect to onboarding
+        // Otherwise redirect to home
+        if (isNewUser && !localStorage.getItem('onboarding-submitted')) {
+          navigate('/onboarding');
+        } else {
+          navigate('/home');
+        }
       } catch (error) {
         console.error('Error processing auth callback:', error);
         navigate('/auth-error');

@@ -4,6 +4,7 @@ export interface JWTPayload {
     email: string;
     name: string;
     avatarUrl?: string | null | undefined;
+    isNewUser?: boolean;
 }
 export declare const generateToken: (payload: JWTPayload) => string;
 export declare const verifyToken: (token: string) => JWTPayload;

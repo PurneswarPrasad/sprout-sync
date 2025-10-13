@@ -25,6 +25,8 @@ passport.use(
           where: { googleId: id },
         });
 
+        let isNewUser = false;
+
         if (!user) {
           user = await prisma.user.create({
             data: {
@@ -34,6 +36,7 @@ passport.use(
               avatarUrl: avatarUrl ?? null,
             },
           });
+          isNewUser = true;
         } else {
           // Update user info if it has changed
           user = await prisma.user.update({
@@ -45,7 +48,7 @@ passport.use(
           });
         }
 
-        return done(null, user);
+        return done(null, { ...user, isNewUser });
       } catch (error) {
         return done(error, false);
       }

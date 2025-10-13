@@ -9,6 +9,7 @@ export interface JWTPayload {
   email: string;
   name: string;
   avatarUrl?: string | null | undefined;
+  isNewUser?: boolean;
 }
 
 export const generateToken = (payload: JWTPayload): string => {

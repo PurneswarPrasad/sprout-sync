@@ -51,7 +51,31 @@ export const submitOnboardingData = async (data: Partial<OnboardingData>): Promi
     return;
   }
 
-  const userId = getOrCreateUserId();
+  // Mark as submitted immediately to prevent race conditions
+  markOnboardingAsSubmitted();
+
+  // Check if user is already authenticated - if so, use their email instead of random ID
+  let userId = getOrCreateUserId();
+  
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const authData = JSON.parse(authStorage);
+      const token = authData?.state?.token;
+      
+      if (token) {
+        // Decode JWT to get user email
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.email) {
+          userId = payload.email;
+          console.log('User is authenticated, using email:', userId);
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Could not get authenticated user, using temporary user ID');
+  }
+
   const timestamp = new Date().toISOString();
   
   const payload = {
@@ -78,9 +102,6 @@ export const submitOnboardingData = async (data: Partial<OnboardingData>): Promi
     );
 
     console.log('Onboarding data submitted successfully:', payload);
-    
-    // Mark as submitted after successful submission
-    markOnboardingAsSubmitted();
   } catch (error) {
     // Silent fail - log error but don't block user flow
     console.error('Failed to submit onboarding data:', error);

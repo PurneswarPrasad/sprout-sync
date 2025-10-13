@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { authAPI } from '../services/api';
-import { hasSubmittedOnboarding } from '../utils/onboarding';
 
 const SignInPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,13 +14,6 @@ const SignInPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    // Check if user has submitted onboarding responses
-    if (!hasSubmittedOnboarding()) {
-      // User hasn't submitted onboarding responses, redirect to onboarding page
-      navigate('/onboarding');
-      return;
-    }
-
     // Check if user is already authenticated
     const checkAuthStatus = async () => {
       try {

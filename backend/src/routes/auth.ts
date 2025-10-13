@@ -50,13 +50,15 @@ router.get('/google/callback',
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl || undefined,
+      isNewUser: user.isNewUser || false,
     });
 
     console.log('🎫 JWT token generated');
 
     // Redirect to frontend with token
     const frontendUrl = process.env['FRONTEND_URL'] || 'http://localhost:5173';
-    const redirectUrl = `${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}`;
+    const isNewUser = user.isNewUser ? '&isNewUser=true' : '';
+    const redirectUrl = `${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}${isNewUser}`;
     
     console.log('Redirecting to:', redirectUrl);
     res.redirect(redirectUrl);
