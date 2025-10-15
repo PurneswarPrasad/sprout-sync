@@ -89,6 +89,8 @@ export function PlantDetailPage() {
   const navigate = useNavigate();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  console.log('PlantDetailPage mounted with plantId:', plantId);
   const [activeTab, setActiveTab] = useState<'care' | 'health' | 'about'>('care');
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<PlantTask | null>(null);
@@ -123,9 +125,26 @@ export function PlantDetailPage() {
   const fetchPlant = async () => {
     try {
       const response = await plantsAPI.getById(plantId!);
+      console.log('Plant fetched successfully:', response.data);
       setPlant(response.data.data);
     } catch (error) {
       console.error('Error fetching plant:', error);
+      // If plant not found, it might still be processing - retry once after a delay
+      if ((error as any)?.response?.status === 404) {
+        console.log('Plant not found, retrying in 1 second...');
+        setTimeout(async () => {
+          try {
+            const retryResponse = await plantsAPI.getById(plantId!);
+            console.log('Plant fetched on retry:', retryResponse.data);
+            setPlant(retryResponse.data.data);
+          } catch (retryError) {
+            console.error('Error fetching plant on retry:', retryError);
+          } finally {
+            setLoading(false);
+          }
+        }, 1000);
+        return;
+      }
     } finally {
       setLoading(false);
     }

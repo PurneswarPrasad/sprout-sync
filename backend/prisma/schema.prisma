@@ -166,6 +166,12 @@ model UserSettings {
   tutorialCompleted Boolean @default(false)
   tutorialCompletedSteps String[] @default([]) // Array of completed tutorial step IDs
   tutorialSkippedSteps String[] @default([]) // Array of skipped tutorial step IDs
+  
+  // Notification settings
+  notificationsEnabled Boolean @default(true)
+  notificationsEnabledAt DateTime? // Timestamp when notifications were enabled
+  fcmToken String?
+  notificationPromptShown Boolean @default(false) // Track if user has seen the notification prompt
 }
 
 enum Persona {

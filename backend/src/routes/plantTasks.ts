@@ -355,6 +355,15 @@ router.post('/:taskId/complete', authenticateJWT, checkPlantOwnership, async (re
       },
     });
     
+    // Schedule next notification
+    try {
+      const { notificationService } = await import('../services/notificationService');
+      await notificationService.scheduleNextTaskNotification(taskId!);
+    } catch (notifError) {
+      console.error('Error scheduling next task notification:', notifError);
+      // Don't fail the request if notification scheduling fails
+    }
+    
     res.json({
       success: true,
       data: updatedTask,

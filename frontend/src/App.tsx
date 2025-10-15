@@ -12,21 +12,27 @@ import { PlantDetailPage } from './pages/PlantDetailPage';
 import { AcceptGiftPage } from './pages/AcceptGiftPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { NotificationPromptPage } from './pages/NotificationPromptPage';
+import { SettingsPage } from './pages/SettingsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { NotificationProvider } from './components/NotificationProvider';
 import './App.css'
 
 function App() {
   return (
     <Router>
-      <div className="App">
-        <Routes>
+      <NotificationProvider>
+        <div className="App">
+          <Routes>
           <Route path="/" element={<InitialLandingPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/auth-callback" element={<AuthCallbackPage />} />
           <Route path="/terms-and-conditions" element={<TermsPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/notification-prompt" element={<ProtectedRoute><NotificationPromptPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/plants" element={<ProtectedRoute><PlantsPage /></ProtectedRoute>} />
           <Route path="/add-plant" element={<ProtectedRoute><AddPlantPage /></ProtectedRoute>} />
@@ -35,7 +41,8 @@ function App() {
           <Route path="/plants/:plantId" element={<ProtectedRoute><PlantDetailPage /></ProtectedRoute>} />
           <Route path="/accept-gift/:token" element={<ProtectedRoute><AcceptGiftPage /></ProtectedRoute>} />
         </Routes>
-      </div>
+        </div>
+      </NotificationProvider>
     </Router>
   );
 }

@@ -25,6 +25,8 @@ const upload_1 = __importDefault(require("./routes/upload"));
 const googleCalendar_1 = __importDefault(require("./routes/googleCalendar"));
 const plantGifts_1 = require("./routes/plantGifts");
 const tutorial_1 = __importDefault(require("./routes/tutorial"));
+const notifications_1 = require("./routes/notifications");
+const cronService_1 = require("./services/cronService");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env['PORT'] || 3001;
@@ -49,6 +51,7 @@ app.use('/api/ai', ai_1.aiRouter);
 app.use('/api/upload', upload_1.default);
 app.use('/api/google-calendar', googleCalendar_1.default);
 app.use('/api/tutorial', tutorial_1.default);
+app.use('/api/notifications', notifications_1.notificationsRouter);
 app.use('/api/plants', plants_1.plantsRouter);
 app.use('/api/plant-gifts', plantGifts_1.plantGiftsRouter);
 app.use('/api/plants/:plantId/tasks', plantTasks_1.plantTasksRouter);
@@ -80,5 +83,6 @@ app.listen(PORT, () => {
     console.log(`🌱 SproutSync API server running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env['NODE_ENV'] || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+    cronService_1.cronService.startDueTasksCheck();
 });
 //# sourceMappingURL=index.js.map

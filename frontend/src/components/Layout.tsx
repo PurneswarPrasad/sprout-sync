@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Calendar as CalendarIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { Home, Leaf, Calendar, User, LogOut, Plus, ChevronDown, Calendar as CalendarIcon, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import { AddPlantModal } from './AddPlantModal';
 import PlantHealthCheckModal from './PlantHealthCheckModal';
 import { GoogleCalendarSyncModal } from './GoogleCalendarSyncModal';
@@ -88,6 +88,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, fabRef }) => {
       // Always clear the frontend auth state
       console.log('🧹 Clearing frontend auth state');
       logoutFromStore();
+      
+      // Clear all localStorage items
+      console.log('🧹 Clearing all localStorage');
+      localStorage.clear();
+      
       console.log('🚀 Redirecting to landing page');
       // Force a hard redirect to ensure we leave the protected route
       window.location.href = '/';
@@ -193,6 +198,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, fabRef }) => {
                       </p>
                     </div>
                     <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        navigate('/settings');
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </button>
+                    <button
                       onTouchStart={handleLogout}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                     >
@@ -274,19 +289,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, fabRef }) => {
                     <p className="text-xs text-gray-500">{user?.email}</p>
                   </div>
                   <button
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      navigate('/settings');
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Settings</span>
+                  </button>
+                  <button
                     onClick={handleLogout}
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                    // onClick={handleLogoutClick}
-                    // onMouseDown={handleLogoutClick}
-                    // onTouchStart={handleLogoutClick}
-                    // onTouchEnd={handleLogoutClick}
-                    // className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center space-x-2 touch-manipulation"
-                    // style={{ minHeight: '44px' }}
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
                   </button>
-                  {/* Additional buttons can be added here in the future */}
                 </div>
               )}
               </div>

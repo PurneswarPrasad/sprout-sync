@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { authAPI } from '../services/api';
+import { notificationService } from '../services/notificationService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, isAuthenticated, logout } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +29,25 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         const response = await authAPI.status();
         
         if (response.data.success && response.data.authenticated) {
+          // Token is valid, check if we need to show notification prompt
+          // Skip notification prompt check if already on notification-prompt or settings page
+          if (location.pathname !== '/notification-prompt' && location.pathname !== '/settings') {
+            try {
+              const settings = await notificationService.getSettings();
+              
+              // If user hasn't seen the prompt yet, redirect to notification prompt
+              if (!settings.notificationPromptShown) {
+                console.log('📢 Redirecting to notification prompt');
+                navigate('/notification-prompt', { replace: true });
+                setLoading(false);
+                return;
+              }
+            } catch (notifError) {
+              console.error('Error checking notification settings, continuing anyway:', notifError);
+              // Continue to page even if notification check fails
+            }
+          }
+          
           // Token is valid, allow access
           setLoading(false);
         } else {
@@ -45,7 +66,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     };
 
     checkAuthStatus();
-  }, [navigate, token, logout, isAuthenticated]);
+  }, [navigate, token, logout, isAuthenticated, location.pathname]);
 
   if (loading) {
     return (

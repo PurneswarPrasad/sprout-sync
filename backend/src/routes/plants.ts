@@ -450,6 +450,15 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
       }
     }
     
+    // Send immediate notifications for all tasks
+    try {
+      const { notificationService } = await import('../services/notificationService');
+      await notificationService.sendImmediateTaskNotifications(userId, plant.id);
+    } catch (notifError) {
+      console.error('Error sending immediate task notifications:', notifError);
+      // Don't fail the request if notification fails
+    }
+    
     res.status(201).json({
       success: true,
       data: plant,

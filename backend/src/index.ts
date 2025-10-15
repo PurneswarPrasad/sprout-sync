@@ -22,6 +22,8 @@ import uploadRouter from './routes/upload';
 import googleCalendarRouter from './routes/googleCalendar';
 import { plantGiftsRouter } from './routes/plantGifts';
 import tutorialRouter from './routes/tutorial';
+import { notificationsRouter } from './routes/notifications';
+import { cronService } from './services/cronService';
 
 // Load environment variables
 dotenv.config();
@@ -75,6 +77,7 @@ app.use('/api/ai', aiRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/google-calendar', googleCalendarRouter);
 app.use('/api/tutorial', tutorialRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Plants routes (must come before nested routes)
 app.use('/api/plants', plantsRouter);
@@ -121,4 +124,7 @@ app.listen(PORT, () => {
   console.log(`🌱 SproutSync API server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env['NODE_ENV'] || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  
+  // Start cron jobs
+  cronService.startDueTasksCheck();
 });

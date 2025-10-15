@@ -4,23 +4,9 @@ let wb: Workbox | null = null;
 let deferredPrompt: any = null;
 
 export const registerSW = () => {
-  if ('serviceWorker' in navigator) {
-    wb = new Workbox('/sw.js');
-    
-    wb.addEventListener('waiting', () => {
-      // Show update notification
-      if (confirm('New version available! Click OK to update.')) {
-        wb?.messageSkipWaiting();
-      }
-    });
-    
-    wb.addEventListener('controlling', () => {
-      // Reload the page to use the new service worker
-      window.location.reload();
-    });
-    
-    wb.register();
-  }
+  // Service worker registration is now handled by Firebase in notificationService.ts
+  // This prevents conflicts between VitePWA and Firebase service workers
+  console.log('Service worker registration delegated to Firebase');
 };
 
 export const checkForUpdates = () => {

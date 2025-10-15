@@ -18,6 +18,8 @@
     "cloudinary-react": "^1.8.1",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
+    "dotenv": "^17.2.3",
+    "firebase": "^12.4.0",
     "framer-motion": "^12.23.12",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.542.0",
