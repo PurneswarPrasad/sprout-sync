@@ -1,6 +1,3 @@
-import { Workbox } from 'workbox-window';
-
-let wb: Workbox | null = null;
 let deferredPrompt: any = null;
 
 export const registerSW = () => {
@@ -10,16 +7,14 @@ export const registerSW = () => {
 };
 
 export const checkForUpdates = () => {
-  if (wb) {
-    wb.update();
-  }
+  // Service worker updates are now handled by Firebase service worker
+  console.log('Service worker updates handled by Firebase');
 };
 
 // Force update function for development
 export const forceUpdate = () => {
-  if (wb) {
-    wb.messageSkipWaiting();
-  }
+  // Service worker updates are now handled by Firebase service worker
+  console.log('Service worker updates handled by Firebase');
 };
 
 // Capture the beforeinstallprompt event
