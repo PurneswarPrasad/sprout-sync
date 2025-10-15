@@ -125,11 +125,35 @@ class NotificationServiceClass {
   private handleForegroundMessage(payload: NotificationPayload): void {
     console.log('Foreground message:', payload);
 
-    // Show in-app notification
+    // Show in-app notification (toast)
     this.foregroundCallbacks.forEach((callback) => callback(payload));
 
-    // Also show browser notification if permission is granted
-    if (Notification.permission === 'granted') {
+    // For mobile and PWA, use service worker to show notification
+    // This ensures notifications appear properly on all devices
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(
+          payload.notification?.title || 'SproutSync',
+          {
+            body: payload.notification?.body || '',
+            icon: '/plant.png',
+            badge: '/plant.png',
+            tag: payload.data?.taskId || 'notification',
+            data: payload.data,
+            requireInteraction: false,
+          }
+        );
+
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => {
+          registration.getNotifications({ tag: payload.data?.taskId || 'notification' })
+            .then((notifications) => {
+              notifications.forEach((notification) => notification.close());
+            });
+        }, 10000);
+      });
+    } else if (Notification.permission === 'granted') {
+      // Fallback for browsers without service worker
       const notification = new Notification(
         payload.notification?.title || 'SproutSync',
         {
