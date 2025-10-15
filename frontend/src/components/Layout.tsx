@@ -198,7 +198,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, fabRef }) => {
                       </p>
                     </div>
                     <button
-                      onClick={() => {
+                      onTouchStart={() => {
                         setShowProfileDropdown(false);
                         navigate('/settings');
                       }}
