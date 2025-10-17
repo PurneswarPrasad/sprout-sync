@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { PlantSlugEditor } from './PlantSlugEditor';
 
 interface PlantPhoto {
   id: string;
@@ -14,6 +15,7 @@ interface Plant {
   petName: string | null;
   botanicalName: string | null;
   commonName: string | null;
+  slug?: string | null;
   type: string | null;
   acquisitionDate: string | null;
   city: string | null;
@@ -57,11 +59,24 @@ const getPlantDisplayName = (plant: Plant): string => {
 };
 
 export function PlantAboutTab({ plant }: PlantAboutTabProps) {
+  const [currentSlug, setCurrentSlug] = useState(plant.slug || null);
+
+  const handleSlugUpdated = (newSlug: string) => {
+    setCurrentSlug(newSlug);
+  };
+
   return (
     <div className="bg-white rounded-lg p-6 border border-gray-200">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">About {getPlantDisplayName(plant)}</h2>
       
       <div className="space-y-6">
+        {/* Shareable Profile */}
+        <PlantSlugEditor
+          plantId={plant.id}
+          slug={currentSlug}
+          onSlugUpdated={handleSlugUpdated}
+        />
+
         {/* Basic Information */}
         <div>
           <h3 className="text-lg font-medium text-gray-800 mb-3">Basic Information</h3>

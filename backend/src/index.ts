@@ -24,6 +24,8 @@ import { plantGiftsRouter } from './routes/plantGifts';
 import tutorialRouter from './routes/tutorial';
 import { notificationsRouter } from './routes/notifications';
 import { cronService } from './services/cronService';
+import { usersRouter } from './routes/users';
+import { publicRouter } from './routes/public';
 
 // Load environment variables
 dotenv.config();
@@ -42,7 +44,7 @@ app.use(
   cors({
     origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
@@ -78,6 +80,8 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/google-calendar', googleCalendarRouter);
 app.use('/api/tutorial', tutorialRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/public', publicRouter);
 
 // Plants routes (must come before nested routes)
 app.use('/api/plants', plantsRouter);

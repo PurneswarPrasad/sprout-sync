@@ -1,6 +1,10 @@
 /* eslint-disable no-undef */
+// Import Firebase scripts
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+// Import Workbox for caching
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
 
 // Initialize Firebase in the service worker
 // These values will be replaced at build time
@@ -14,6 +18,44 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+
+// Configure Workbox
+if (workbox) {
+  console.log('Workbox loaded successfully');
+  
+  // Precache static assets
+  workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || []);
+  
+  // Cache Cloudinary images
+  workbox.routing.registerRoute(
+    /^https:\/\/res\.cloudinary\.com\/.*/i,
+    new workbox.strategies.CacheFirst({
+      cacheName: 'cloudinary-images',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 50,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+        }),
+      ],
+    })
+  );
+  
+  // Cache API responses with network-first strategy
+  workbox.routing.registerRoute(
+    /^https:\/\/.*\/api\/.*/i,
+    new workbox.strategies.NetworkFirst({
+      cacheName: 'api-cache',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 50,
+          maxAgeSeconds: 5 * 60, // 5 minutes
+        }),
+      ],
+    })
+  );
+} else {
+  console.log('Workbox failed to load');
+}
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {

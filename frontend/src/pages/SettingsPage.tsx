@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, User } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, User, Edit2, Check, X, Link as LinkIcon } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { notificationService } from '../services/notificationService';
-import { authAPI } from '../services/api';
+import { authAPI, usersAPI } from '../services/api';
 
 interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
   avatarUrl?: string;
 }
 
@@ -19,6 +20,9 @@ export const SettingsPage: React.FC = () => {
   const [hasToken, setHasToken] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [usernameError, setUsernameError] = useState('');
 
   useEffect(() => {
     fetchUserProfile();
@@ -27,12 +31,54 @@ export const SettingsPage: React.FC = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await authAPI.profile();
+      const response = await usersAPI.getProfile();
       if (response.data.success) {
         setUser(response.data.data);
+        setUsernameInput(response.data.data.username || '');
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const handleStartEditUsername = () => {
+    setIsEditingUsername(true);
+    setUsernameError('');
+  };
+
+  const handleCancelEditUsername = () => {
+    setIsEditingUsername(false);
+    setUsernameInput(user?.username || '');
+    setUsernameError('');
+  };
+
+  const handleSaveUsername = async () => {
+    if (!usernameInput.trim()) {
+      setUsernameError('Username cannot be empty');
+      return;
+    }
+
+    // Validate username format
+    if (!/^[a-z0-9-]+$/.test(usernameInput)) {
+      setUsernameError('Username can only contain lowercase letters, numbers, and hyphens');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setUsernameError('');
+      const response = await usersAPI.updateUsername(usernameInput);
+      if (response.data.success) {
+        setUser(response.data.data);
+        setIsEditingUsername(false);
+      }
+    } catch (error: any) {
+      console.error('Error updating username:', error);
+      setUsernameError(
+        error.response?.data?.error || 'Failed to update username. Please try again.'
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -102,17 +148,83 @@ export const SettingsPage: React.FC = () => {
               <span>Profile</span>
             </h2>
             {user && (
-              <div className="flex items-center space-x-4">
-                {user.avatarUrl && (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name}
-                    className="w-16 h-16 rounded-full border-2 border-emerald-200"
-                  />
-                )}
-                <div>
-                  <p className="text-lg font-medium text-gray-900">{user.name}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  {user.avatarUrl && (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name}
+                      className="w-16 h-16 rounded-full border-2 border-emerald-200"
+                    />
+                  )}
+                  <div>
+                    <p className="text-lg font-medium text-gray-900">{user.name}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+
+                {/* Username Section */}
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-gray-700">Profile Username</h3>
+                    {!isEditingUsername && (
+                      <button
+                        onClick={handleStartEditUsername}
+                        className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingUsername ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={usernameInput}
+                        onChange={(e) => setUsernameInput(e.target.value.toLowerCase())}
+                        placeholder="your-username"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                      {usernameError && (
+                        <p className="text-sm text-red-600">{usernameError}</p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleSaveUsername}
+                          disabled={isSaving}
+                          className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          <Check className="w-4 h-4" />
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelEditUsername}
+                          disabled={isSaving}
+                          className="flex items-center gap-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                        >
+                          <X className="w-4 h-4" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-base text-gray-900 mb-1">@{user.username || 'Not set'}</p>
+                      {user.username && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <LinkIcon className="w-4 h-4" />
+                          <span className="font-mono">
+                            {window.location.origin}/u/{user.username}/...
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Your username is used in shareable plant profile URLs
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -15,6 +15,7 @@ model User {
   googleId    String   @unique
   email       String   @unique
   name        String?
+  username    String?  @unique
   avatarUrl   String?
   createdAt   DateTime @default(now())
 
@@ -24,12 +25,15 @@ model User {
   settings     UserSettings?
   sentGifts    PlantGift[] @relation("GiftSender")
   receivedGifts PlantGift[] @relation("GiftReceiver")
+  appreciations PlantAppreciation[]
+  comments     PlantComment[]
 }
 
 model Plant {
   id              String        @id @default(uuid())
   userId          String
   user            User          @relation(fields: [userId], references: [id])
+  slug            String?
   petName         String?
   botanicalName   String?
   commonName      String?
@@ -52,6 +56,10 @@ model Plant {
   photos          Photo[]
   trackingUpdates PlantTracking[]
   gift            PlantGift?
+  appreciations   PlantAppreciation[]
+  comments        PlantComment[]
+
+  @@unique([userId, slug])
 }
 
 model TaskTemplate {
@@ -201,5 +209,26 @@ enum GiftStatus {
   ACCEPTED   // Gift has been accepted by receiver
   EXPIRED    // Gift link has expired
   CANCELLED  // Gift was cancelled by sender
+}
+
+model PlantAppreciation {
+  id        String   @id @default(uuid())
+  plantId   String
+  plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([plantId, userId])
+}
+
+model PlantComment {
+  id        String   @id @default(uuid())
+  plantId   String
+  plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   String
+  createdAt DateTime @default(now())
 }
 

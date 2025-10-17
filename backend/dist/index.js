@@ -27,6 +27,8 @@ const plantGifts_1 = require("./routes/plantGifts");
 const tutorial_1 = __importDefault(require("./routes/tutorial"));
 const notifications_1 = require("./routes/notifications");
 const cronService_1 = require("./services/cronService");
+const users_1 = require("./routes/users");
+const public_1 = require("./routes/public");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env['PORT'] || 3001;
@@ -35,7 +37,7 @@ app.use((0, compression_1.default)());
 app.use((0, cors_1.default)({
     origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use((0, morgan_1.default)('combined'));
@@ -52,6 +54,8 @@ app.use('/api/upload', upload_1.default);
 app.use('/api/google-calendar', googleCalendar_1.default);
 app.use('/api/tutorial', tutorial_1.default);
 app.use('/api/notifications', notifications_1.notificationsRouter);
+app.use('/api/users', users_1.usersRouter);
+app.use('/api/public', public_1.publicRouter);
 app.use('/api/plants', plants_1.plantsRouter);
 app.use('/api/plant-gifts', plantGifts_1.plantGiftsRouter);
 app.use('/api/plants/:plantId/tasks', plantTasks_1.plantTasksRouter);

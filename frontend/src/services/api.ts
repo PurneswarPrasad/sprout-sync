@@ -55,6 +55,11 @@ export const authAPI = {
   googleAuth: () => window.location.href = `${API_BASE_URL}/auth/google`,
 };
 
+export const usersAPI = {
+  getProfile: () => api.get('/api/users/profile'),
+  updateUsername: (username: string) => api.patch('/api/users/username', { username }),
+};
+
 export const plantsAPI = {
   getAll: () => api.get('/api/plants'),
   getGifted: () => api.get('/api/plants/gifted'),
@@ -62,6 +67,7 @@ export const plantsAPI = {
   create: (data: any) => api.post('/api/plants', data),
   update: (id: string, data: any) => api.put(`/api/plants/${id}`, data),
   delete: (id: string) => api.delete(`/api/plants/${id}`),
+  updateSlug: (id: string, slug: string) => api.patch(`/api/plants/${id}/slug`, { slug }),
   getTaskTemplates: () => api.get('/api/plants/task-templates'),
   completeTask: (plantId: string, taskId: string) => 
     api.post(`/api/tasks/${taskId}/complete`, {}),
@@ -75,6 +81,12 @@ export const plantsAPI = {
   // Plant photo endpoints
   createPhoto: (plantId: string, data: any) => 
     api.post(`/api/plants/${plantId}/photos`, data),
+  // Social features
+  appreciate: (plantId: string) => api.post(`/api/plants/${plantId}/appreciate`),
+  getAppreciations: (plantId: string) => api.get(`/api/plants/${plantId}/appreciations`),
+  addComment: (plantId: string, comment: string) => 
+    api.post(`/api/plants/${plantId}/comments`, { comment }),
+  getComments: (plantId: string) => api.get(`/api/plants/${plantId}/comments`),
 };
 
 export const aiAPI = {

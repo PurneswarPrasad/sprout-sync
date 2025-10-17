@@ -6,6 +6,7 @@ import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantSchema, updatePlantSchema } from '../dtos';
 import { CloudinaryService } from '../services/cloudinaryService';
 import { taskSyncService } from '../services/taskSyncService';
+import { generatePlantSlug, toSlug } from '../utils/slugify';
 
 const router = Router();
 
@@ -324,10 +325,15 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
     
     const templateMap = new Map(taskTemplates.map(t => [t.key, t]));
     
+    // Generate slug for the plant
+    const plantName = (validatedData.petName as string) || (validatedData.commonName as string) || (validatedData.botanicalName as string);
+    const slug = await generatePlantSlug(plantName, userId);
+    
     // Create the plant with tasks
     const plant = await prisma.plant.create({
       data: {
         userId: userId,
+        slug: slug,
         petName: (validatedData.petName as string) || null,
         botanicalName: validatedData.botanicalName as string,
         commonName: validatedData.commonName as string,
@@ -714,6 +720,318 @@ router.get('/task-templates', authenticateJWT, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch task templates',
+    });
+  }
+});
+
+// PATCH /api/plants/:id/slug - Update plant slug
+const updateSlugSchema = z.object({
+  slug: z
+    .string()
+    .min(1, 'Slug is required')
+    .max(50, 'Slug must be 50 characters or less')
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Slug can only contain lowercase letters, numbers, and hyphens'
+    ),
+});
+
+router.patch('/:id/slug', authenticateJWT, validate(updateSlugSchema), async (req, res) => {
+  try {
+    const plantId = req.params['id'];
+    if (!plantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+    }
+
+    const userId = (req.user as any).userId;
+    const { slug } = updateSlugSchema.parse(req.body);
+
+    // Convert to slug format
+    const slugified = toSlug(slug);
+
+    // Check if plant exists and belongs to user
+    const plant = await prisma.plant.findFirst({
+      where: {
+        id: plantId,
+        userId: userId,
+      },
+    });
+
+    if (!plant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Plant not found',
+      });
+    }
+
+    // Check if slug is already in use by another plant of this user
+    const existingPlant = await prisma.plant.findFirst({
+      where: {
+        userId,
+        slug: slugified,
+        NOT: { id: plantId },
+      },
+    });
+
+    if (existingPlant) {
+      return res.status(400).json({
+        success: false,
+        error: 'Slug is already in use by another plant',
+      });
+    }
+
+    // Update slug
+    const updatedPlant = await prisma.plant.update({
+      where: { id: plantId },
+      data: { slug: slugified },
+    });
+
+    res.json({
+      success: true,
+      data: updatedPlant,
+      message: 'Plant slug updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating plant slug:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        details: error.errors,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update plant slug',
+    });
+  }
+});
+
+// POST /api/plants/:id/appreciate - Toggle appreciation
+router.post('/:id/appreciate', authenticateJWT, async (req, res) => {
+  try {
+    const plantId = req.params['id'];
+    if (!plantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+    }
+
+    const userId = (req.user as any).userId;
+
+    // Check if plant exists
+    const plant = await prisma.plant.findUnique({
+      where: { id: plantId },
+    });
+
+    if (!plant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Plant not found',
+      });
+    }
+
+    // Check if user already appreciated
+    const existingAppreciation = await prisma.plantAppreciation.findUnique({
+      where: {
+        plantId_userId: {
+          plantId,
+          userId,
+        },
+      },
+    });
+
+    if (existingAppreciation) {
+      // Remove appreciation
+      await prisma.plantAppreciation.delete({
+        where: {
+          plantId_userId: {
+            plantId,
+            userId,
+          },
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: { appreciated: false },
+        message: 'Appreciation removed',
+      });
+    } else {
+      // Add appreciation
+      await prisma.plantAppreciation.create({
+        data: {
+          plantId,
+          userId,
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: { appreciated: true },
+        message: 'Plant appreciated',
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling appreciation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to toggle appreciation',
+    });
+  }
+});
+
+// GET /api/plants/:id/appreciations - Get appreciations
+router.get('/:id/appreciations', async (req, res) => {
+  try {
+    const plantId = req.params['id'];
+    if (!plantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+    }
+
+    const appreciations = await prisma.plantAppreciation.findMany({
+      where: { plantId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        count: appreciations.length,
+        users: appreciations.map((a) => a.user),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching appreciations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch appreciations',
+    });
+  }
+});
+
+// POST /api/plants/:id/comments - Add comment
+const createCommentSchema = z.object({
+  comment: z.string().min(1, 'Comment is required').max(500, 'Comment must be 500 characters or less'),
+});
+
+router.post('/:id/comments', authenticateJWT, validate(createCommentSchema), async (req, res) => {
+  try {
+    const plantId = req.params['id'];
+    if (!plantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+    }
+
+    const userId = (req.user as any).userId;
+    const { comment } = createCommentSchema.parse(req.body);
+
+    // Check if plant exists
+    const plant = await prisma.plant.findUnique({
+      where: { id: plantId },
+    });
+
+    if (!plant) {
+      return res.status(404).json({
+        success: false,
+        error: 'Plant not found',
+      });
+    }
+
+    // Create comment
+    const newComment = await prisma.plantComment.create({
+      data: {
+        plantId,
+        userId,
+        comment,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: newComment,
+      message: 'Comment added successfully',
+    });
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        details: error.errors,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create comment',
+    });
+  }
+});
+
+// GET /api/plants/:id/comments - Get comments
+router.get('/:id/comments', async (req, res) => {
+  try {
+    const plantId = req.params['id'];
+    if (!plantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plant ID is required',
+      });
+    }
+
+    const comments = await prisma.plantComment.findMany({
+      where: { plantId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: comments,
+      count: comments.length,
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch comments',
     });
   }
 });
