@@ -9,6 +9,7 @@ export interface JWTPayload {
   email: string;
   name: string;
   avatarUrl?: string | null | undefined;
+  username?: string | null | undefined;
   isNewUser?: boolean;
 }
 

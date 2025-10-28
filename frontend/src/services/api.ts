@@ -180,4 +180,13 @@ export const tutorialAPI = {
   complete: () => api.post('/api/tutorial/complete'),
 };
 
+export const gardensAPI = {
+  // Appreciate a garden
+  appreciate: (gardenOwnerId: string) => api.post(`/api/gardens/${gardenOwnerId}/appreciate`),
+  
+  // Add a comment to a garden
+  addComment: (gardenOwnerId: string, comment: string) => 
+    api.post(`/api/gardens/${gardenOwnerId}/comments`, { comment }),
+};
+
 export default api;

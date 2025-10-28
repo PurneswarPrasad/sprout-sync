@@ -12,6 +12,8 @@ interface CameraTabProps {
   onError: (error: string) => void;
 }
 
+const TIPS_SEEN_KEY = 'ai-plant-tips-seen';
+
 export const CameraTab: React.FC<CameraTabProps> = ({
   capturedImage,
   loading,
@@ -28,21 +30,32 @@ export const CameraTab: React.FC<CameraTabProps> = ({
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleTakePhotoClick = () => {
-    setShowTipsModal(true);
-    setCurrentTipIndex(0);
+    const hasSeenTips = localStorage.getItem(TIPS_SEEN_KEY) === 'true';
+    
+    if (hasSeenTips) {
+      // User has already seen the tips, open camera directly
+      cameraInputRef.current?.click();
+    } else {
+      // First time viewing, show tips
+      setShowTipsModal(true);
+      setCurrentTipIndex(0);
+    }
   };
 
   const handleNextTip = () => {
     if (currentTipIndex < 2) { // 3 tips total (0, 1, 2)
       setCurrentTipIndex(currentTipIndex + 1);
     } else {
-      // Last tip - open camera
+      // Last tip - mark as seen and open camera
+      localStorage.setItem(TIPS_SEEN_KEY, 'true');
       setShowTipsModal(false);
       cameraInputRef.current?.click();
     }
   };
 
   const handleCloseTips = () => {
+    // Mark tips as seen so they don't show again
+    localStorage.setItem(TIPS_SEEN_KEY, 'true');
     setShowTipsModal(false);
     setCurrentTipIndex(0);
   };
@@ -89,9 +102,6 @@ export const CameraTab: React.FC<CameraTabProps> = ({
                   Take Photo
                 </button>
                 
-                <p className="text-xs text-gray-500 mt-2">
-                  This will show tips before opening your camera
-                </p>
               </div>
             </div>
             

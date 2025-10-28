@@ -45,6 +45,7 @@ router.get('/google/callback', (req, res, next) => {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatarUrl || undefined,
+        username: user.username || undefined,
         isNewUser: user.isNewUser || false,
     });
     console.log('🎫 JWT token generated');
@@ -62,6 +63,7 @@ router.get('/profile', jwtAuth_1.authenticateJWT, (req, res) => {
             email: req.user.email,
             name: req.user.name,
             avatarUrl: req.user.avatarUrl,
+            username: req.user.username,
         },
     });
 });
@@ -80,6 +82,7 @@ router.get('/status', jwtAuth_1.authenticateJWT, (req, res) => {
             email: req.user.email,
             name: req.user.name,
             avatarUrl: req.user.avatarUrl,
+            username: req.user.username,
         },
     });
 });
@@ -106,6 +109,7 @@ router.get('/status/public', (req, res) => {
                 email: decoded.email,
                 name: decoded.name,
                 avatarUrl: decoded.avatarUrl,
+                username: decoded.username,
             },
         });
     }

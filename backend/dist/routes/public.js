@@ -127,4 +127,112 @@ router.get('/u/:username/:plantSlug', async (req, res) => {
         });
     }
 });
+router.get('/garden/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { username },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                avatarUrl: true,
+            },
+        });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found',
+            });
+        }
+        const plants = await prisma_1.prisma.plant.findMany({
+            where: {
+                userId: user.id,
+                isGifted: false,
+            },
+            include: {
+                tasks: {
+                    where: { active: true },
+                    orderBy: { taskKey: 'asc' },
+                },
+                photos: {
+                    orderBy: { takenAt: 'desc' },
+                    take: 1,
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        const plantsWithHealth = plants.map((plant) => {
+            const healthScore = (0, healthScore_1.calculateHealthScore)(plant.tasks);
+            return {
+                id: plant.id,
+                petName: plant.petName,
+                botanicalName: plant.botanicalName,
+                commonName: plant.commonName,
+                type: plant.type,
+                photo: plant.photos[0] || null,
+                tasks: plant.tasks,
+                healthScore,
+                careLevel: plant.careLevel,
+                sunRequirements: plant.sunRequirements,
+            };
+        });
+        const appreciations = await prisma_1.prisma.gardenAppreciation.findMany({
+            where: {
+                gardenOwnerId: user.id,
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatarUrl: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        const comments = await prisma_1.prisma.gardenComment.findMany({
+            where: {
+                gardenOwnerId: user.id,
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatarUrl: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        res.json({
+            success: true,
+            data: {
+                owner: user,
+                plants: plantsWithHealth,
+                appreciations: {
+                    count: appreciations.length,
+                    users: appreciations.map((a) => a.user),
+                },
+                comments: comments.map((c) => ({
+                    id: c.id,
+                    comment: c.comment,
+                    createdAt: c.createdAt,
+                    user: c.user,
+                })),
+            },
+        });
+    }
+    catch (error) {
+        console.error('Error fetching public garden profile:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch garden profile',
+        });
+    }
+});
 //# sourceMappingURL=public.js.map

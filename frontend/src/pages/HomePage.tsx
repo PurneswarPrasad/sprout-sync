@@ -489,6 +489,7 @@ const HomePage: React.FC = () => {
           todaysTasksCount={todaysTasksCount}
           overdueTasksCount={overdueTasksCount}
           completedTasksCount={completedTasksCount}
+          firstName={user?.name?.split(' ')[0]}
         />
 
         {/* Content Grid */}

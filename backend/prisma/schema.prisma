@@ -27,6 +27,8 @@ model User {
   receivedGifts PlantGift[] @relation("GiftReceiver")
   appreciations PlantAppreciation[]
   comments     PlantComment[]
+  gardenAppreciations GardenAppreciation[]
+  gardenComments GardenComment[]
 }
 
 model Plant {
@@ -226,6 +228,25 @@ model PlantComment {
   id        String   @id @default(uuid())
   plantId   String
   plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model GardenAppreciation {
+  id        String   @id @default(uuid())
+  gardenOwnerId String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([gardenOwnerId, userId])
+}
+
+model GardenComment {
+  id        String   @id @default(uuid())
+  gardenOwnerId String
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   comment   String

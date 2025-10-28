@@ -6,6 +6,9 @@ import { AddPlantModal } from '../components/AddPlantModal';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
 import { SearchFilter } from '../components/SearchFilter';
 import { PlantGrid } from '../components/PlantGrid';
+import { ShareGardenLinkDialog } from '../components/ShareGardenLinkDialog';
+import { Link as LinkIcon } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 
 interface Plant {
   id: string;
@@ -74,6 +77,7 @@ interface User {
   email: string;
   name: string;
   avatarUrl: string;
+  username?: string;
 }
 
 // Helper function to get display name for plant
@@ -94,6 +98,7 @@ const getPlantDisplayName = (plant: Plant): string => {
 export function PlantsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user: authUser } = useAuthStore();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [giftedPlants, setGiftedPlants] = useState<Plant[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -101,6 +106,7 @@ export function PlantsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'your-plants' | 'gifted-plants'>('all');
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Delete confirmation state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -212,10 +218,7 @@ export function PlantsPage() {
       return `Hi ${name}, you have gifted ${giftedCount === 1 ? '1 plant' : `${giftedCount} plants`}`;
     }
 
-    const ownedText = ownedCount === 0 ? 'no plants in your garden' : `${ownedCount} ${ownedCount === 1 ? 'plant' : 'plants'} in your garden`;
-    const giftedText = giftedCount === 0 ? 'gifted none' : `gifted ${giftedCount === 1 ? '1 plant' : `${giftedCount} plants`}`;
-
-    return `Hi ${name}, you own ${ownedText} and have ${giftedText}`;
+    return `Welcome to your garden, ${name}!`;
   }, [user, activeFilter, ownedCount, giftedCount]);
 
 
@@ -279,14 +282,22 @@ export function PlantsPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-gray-800">My Plants</h1>
-            <p className="text-sm text-gray-500">Manage your plant collection</p>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <p className="text-xl font-semibold text-gray-700">
+              {greetingMessage}
+            </p>
+            {(authUser?.username || user?.username) && (
+              <button
+                onClick={() => setShowShareDialog(true)}
+                className="p-1.5 rounded-full bg-emerald-100 hover:bg-emerald-200 transition-colors"
+                title="Share your garden"
+              >
+                <LinkIcon className="w-4 h-4 text-emerald-600" />
+              </button>
+            )}
           </div>
-          <p className="text-xl font-semibold text-gray-700 md:text-right">
-            {greetingMessage}
-          </p>
+          <p className="text-sm text-gray-500">Manage your plant collection</p>
         </div>
 
         {/* Search and Filter */}
@@ -333,6 +344,16 @@ export function PlantsPage() {
         cancelText="Cancel"
         isLoading={deleteDialog.isLoading}
       />
+
+      {/* Share Garden Link Dialog */}
+      {(authUser?.username || user?.username) && (
+        <ShareGardenLinkDialog
+          isOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+          gardenUrl={`${window.location.origin}/${authUser?.username || user?.username}/garden`}
+          username={authUser?.username || user?.username || ''}
+        />
+      )}
     </Layout>
   );
 }

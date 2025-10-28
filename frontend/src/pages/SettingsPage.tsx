@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, BellOff, User, Edit2, Check, X, Link as LinkIcon } fro
 import { Layout } from '../components/Layout';
 import { notificationService } from '../services/notificationService';
 import { authAPI, usersAPI } from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 
 interface User {
   id: string;
@@ -15,6 +16,7 @@ interface User {
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setUser: setAuthUser } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [hasToken, setHasToken] = useState(false);
@@ -69,7 +71,10 @@ export const SettingsPage: React.FC = () => {
       setUsernameError('');
       const response = await usersAPI.updateUsername(usernameInput);
       if (response.data.success) {
-        setUser(response.data.data);
+        const updatedUser = response.data.data;
+        setUser(updatedUser);
+        // Update auth store so other components see the new username
+        setAuthUser(updatedUser);
         setIsEditingUsername(false);
       }
     } catch (error: any) {

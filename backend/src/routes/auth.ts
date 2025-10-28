@@ -50,6 +50,7 @@ router.get('/google/callback',
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl || undefined,
+      username: user.username || undefined,
       isNewUser: user.isNewUser || false,
     });
 
@@ -69,12 +70,13 @@ router.get('/google/callback',
 router.get('/profile', authenticateJWT, (req, res) => {
   res.json({
     success: true,
-          data: {
-        id: (req.user as any).userId,
-        email: (req.user as any).email,
-        name: (req.user as any).name,
-        avatarUrl: (req.user as any).avatarUrl,
-      },
+    data: {
+      id: (req.user as any).userId,
+      email: (req.user as any).email,
+      name: (req.user as any).name,
+      avatarUrl: (req.user as any).avatarUrl,
+      username: (req.user as any).username,
+    },
   });
 });
 
@@ -96,6 +98,7 @@ router.get('/status', authenticateJWT, (req, res) => {
       email: (req.user as any).email,
       name: (req.user as any).name,
       avatarUrl: (req.user as any).avatarUrl,
+      username: (req.user as any).username,
     },
   });
 });
@@ -128,6 +131,7 @@ router.get('/status/public', (req, res) => {
         email: decoded.email,
         name: decoded.name,
         avatarUrl: decoded.avatarUrl,
+        username: decoded.username,
       },
     });
   } catch (error) {

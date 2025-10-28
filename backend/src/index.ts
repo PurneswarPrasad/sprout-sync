@@ -26,6 +26,7 @@ import { notificationsRouter } from './routes/notifications';
 import { cronService } from './services/cronService';
 import { usersRouter } from './routes/users';
 import { publicRouter } from './routes/public';
+import { gardensRouter } from './routes/gardens';
 
 // Load environment variables
 dotenv.config();
@@ -82,6 +83,7 @@ app.use('/api/tutorial', tutorialRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/public', publicRouter);
+app.use('/api/gardens', gardensRouter);
 
 // Plants routes (must come before nested routes)
 app.use('/api/plants', plantsRouter);
