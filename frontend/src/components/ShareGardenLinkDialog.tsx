@@ -52,55 +52,83 @@ export function ShareGardenLinkDialog({
 
         {/* Content */}
         <div className="p-4">
-          <p className="text-sm text-gray-600 mb-4">
-            Share this link to show your garden to friends and the community!
-          </p>
+          {username ? (
+            <>
+              <p className="text-sm text-gray-600 mb-4">
+                Share this link to show your garden to friends and the community!
+              </p>
 
-          {/* Garden Link Display */}
-          <div className="bg-gray-50 rounded-lg p-3 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-gray-700">Your Garden Link</label>
+              {/* Garden Link Display */}
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-medium text-gray-700">Your Garden Link</label>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 break-all">
+                  {gardenUrl}
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                <p className="text-xs text-emerald-800">
+                  <span className="font-semibold">✨ Tip:</span> Your garden profile updates automatically when you add or remove plants!
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-sm text-gray-600 mb-4">
+                You need to set a username in Settings to share your garden.
+              </p>
               <button
-                onClick={handleCopy}
-                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+                onClick={() => {
+                  onClose();
+                  window.location.href = '/settings';
+                }}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm"
               >
-                {copied ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    Copy
-                  </>
-                )}
+                Go to Settings
               </button>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 break-all">
-              {gardenUrl}
-            </div>
-          </div>
-
-          {/* Info */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-            <p className="text-xs text-emerald-800">
-              <span className="font-semibold">✨ Tip:</span> Your garden profile updates automatically when you add or remove plants!
-            </p>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              handleCopy();
-              setTimeout(() => onClose(), 1000);
-            }}
-            className="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
-          >
-            {copied ? 'Copied!' : 'Copy Link & Close'}
-          </button>
+          {username ? (
+            <button
+              onClick={() => {
+                handleCopy();
+                setTimeout(() => onClose(), 1000);
+              }}
+              className="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
+            >
+              {copied ? 'Copied!' : 'Copy Link & Close'}
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>

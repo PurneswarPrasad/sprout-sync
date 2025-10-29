@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { authAPI, plantsAPI } from '../services/api';
+import { authAPI, plantsAPI, usersAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { AddPlantModal } from '../components/AddPlantModal';
 import { DeleteConfirmationDialog } from '../components/DeleteConfirmationDialog';
@@ -8,7 +8,6 @@ import { SearchFilter } from '../components/SearchFilter';
 import { PlantGrid } from '../components/PlantGrid';
 import { ShareGardenLinkDialog } from '../components/ShareGardenLinkDialog';
 import { Link as LinkIcon } from 'lucide-react';
-import { useAuthStore } from '../stores/authStore';
 
 interface Plant {
   id: string;
@@ -98,10 +97,10 @@ const getPlantDisplayName = (plant: Plant): string => {
 export function PlantsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: authUser } = useAuthStore();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [giftedPlants, setGiftedPlants] = useState<Plant[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
@@ -123,6 +122,7 @@ export function PlantsPage() {
 
   useEffect(() => {
     fetchPlants();
+    fetchUsername();
   }, []);
 
   useEffect(() => {
@@ -139,6 +139,17 @@ export function PlantsPage() {
 
     fetchUserProfile();
   }, []);
+
+  const fetchUsername = async () => {
+    try {
+      const response = await usersAPI.getProfile();
+      if (response.data.success) {
+        setUsername(response.data.data.username);
+      }
+    } catch (error) {
+      console.error('Error fetching username:', error);
+    }
+  };
 
   // Refresh plants when navigating from AddPlantPage
   useEffect(() => {
@@ -287,15 +298,13 @@ export function PlantsPage() {
             <p className="text-xl font-semibold text-gray-700">
               {greetingMessage}
             </p>
-            {(authUser?.username || user?.username) && (
-              <button
-                onClick={() => setShowShareDialog(true)}
-                className="p-1.5 rounded-full bg-emerald-100 hover:bg-emerald-200 transition-colors"
-                title="Share your garden"
-              >
-                <LinkIcon className="w-4 h-4 text-emerald-600" />
-              </button>
-            )}
+            <button
+              onClick={() => setShowShareDialog(true)}
+              className="p-1.5 rounded-full bg-emerald-100 hover:bg-emerald-200 transition-colors"
+              title="Share your garden"
+            >
+              <LinkIcon className="w-4 h-4 text-emerald-600" />
+            </button>
           </div>
           <p className="text-sm text-gray-500">Manage your plant collection</p>
         </div>
@@ -346,14 +355,12 @@ export function PlantsPage() {
       />
 
       {/* Share Garden Link Dialog */}
-      {(authUser?.username || user?.username) && (
-        <ShareGardenLinkDialog
-          isOpen={showShareDialog}
-          onClose={() => setShowShareDialog(false)}
-          gardenUrl={`${window.location.origin}/${authUser?.username || user?.username}/garden`}
-          username={authUser?.username || user?.username || ''}
-        />
-      )}
+      <ShareGardenLinkDialog
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        gardenUrl={username ? `${window.location.origin}/${username}/garden` : ''}
+        username={username || ''}
+      />
     </Layout>
   );
 }

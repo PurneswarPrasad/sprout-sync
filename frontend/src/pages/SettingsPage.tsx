@@ -16,7 +16,6 @@ interface User {
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setUser: setAuthUser } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [hasToken, setHasToken] = useState(false);
@@ -73,8 +72,6 @@ export const SettingsPage: React.FC = () => {
       if (response.data.success) {
         const updatedUser = response.data.data;
         setUser(updatedUser);
-        // Update auth store so other components see the new username
-        setAuthUser(updatedUser);
         setIsEditingUsername(false);
       }
     } catch (error: any) {
