@@ -50,9 +50,9 @@ export const Footer: React.FC = () => {
               <a href="#" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Contact
               </a>
-              <a href="#" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
+              <Link to="/newsletter" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Newsletter
-              </a>
+              </Link>
               <a href="#" className="block text-sm text-gray-600 hover:text-emerald-600 transition-colors cursor-pointer">
                 Team
               </a>

@@ -232,7 +232,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, fabRef }) => {
             
             {/* Center - Newsletter signup */}
             <div className="flex-1 flex justify-center">
-              <button className="text-sm text-gray-600 hover:bg-emerald-100 hover:border-emerald-300 border border-transparent px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer">
+              <button 
+                onClick={() => navigate('/newsletter')}
+                className="text-sm text-gray-600 hover:bg-emerald-100 hover:border-emerald-300 border border-transparent px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer"
+              >
                 Newsletter coming soon! Click <span className="font-bold">here</span> to sign up.
               </button>
             </div>

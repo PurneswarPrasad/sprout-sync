@@ -118,6 +118,7 @@ const InitialLandingPage: React.FC = () => {
               {/* Center - Beginner-friendly tagline */}
               <div className="flex-1 flex justify-center px-2">
                 <motion.button 
+                  onClick={() => navigate('/newsletter')}
                   className="text-xs sm:text-sm text-green-700 hover:bg-green-100 hover:border-green-300 border border-transparent px-2 sm:px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer text-center whitespace-nowrap"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

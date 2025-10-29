@@ -17,6 +17,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import PublicPlantProfile from './pages/PublicPlantProfile';
 import PublicGardenProfile from './pages/PublicGardenProfile';
+import { NewsletterPage } from './pages/NewsletterPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { NotificationProvider } from './components/NotificationProvider';
 import './App.css'
@@ -33,6 +34,7 @@ function App() {
           <Route path="/auth-callback" element={<AuthCallbackPage />} />
           <Route path="/terms-and-conditions" element={<TermsPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/newsletter" element={<NewsletterPage />} />
           <Route path="/u/:username/:plantSlug" element={<PublicPlantProfile />} />
           <Route path="/:username/garden" element={<PublicGardenProfile />} />
           <Route path="/notification-prompt" element={<ProtectedRoute><NotificationPromptPage /></ProtectedRoute>} />
