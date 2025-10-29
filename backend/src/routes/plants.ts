@@ -539,6 +539,17 @@ router.put('/:id', authenticateJWT, validate(updatePlantSchema), async (req, res
           },
         },
         tasks: true,
+        photos: {
+          orderBy: {
+            takenAt: 'desc',
+          },
+        },
+        _count: {
+          select: {
+            notes: true,
+            photos: true,
+          },
+        },
       },
     });
     

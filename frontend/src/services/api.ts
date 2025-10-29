@@ -81,6 +81,8 @@ export const plantsAPI = {
   // Plant photo endpoints
   createPhoto: (plantId: string, data: any) => 
     api.post(`/api/plants/${plantId}/photos`, data),
+  deletePhoto: (plantId: string, photoId: string) => 
+    api.delete(`/api/plants/${plantId}/photos/${photoId}`),
   // Social features
   appreciate: (plantId: string) => api.post(`/api/plants/${plantId}/appreciate`),
   getAppreciations: (plantId: string) => api.get(`/api/plants/${plantId}/appreciations`),

@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPhotoSchema } from '../dtos';
+import { CloudinaryService } from '../services/cloudinaryService';
 
 const router = Router({ mergeParams: true });
 
@@ -130,6 +131,65 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPhotoSchem
       success: false,
       error: 'Failed to create plant photo',
       details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// DELETE /api/plants/:plantId/photos/:photoId - Delete a specific photo
+router.delete('/:photoId', authenticateJWT, checkPlantOwnership, async (req, res) => {
+  try {
+    const plantId = req.params['plantId'];
+    const photoId = req.params['photoId'];
+    
+    if (!plantId || !photoId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Plant ID and Photo ID are required',
+      });
+    }
+
+    // Check if the photo exists and belongs to the plant
+    const existingPhoto = await prisma.photo.findFirst({
+      where: {
+        id: photoId,
+        plantId: plantId,
+      },
+    });
+
+    if (!existingPhoto) {
+      return res.status(404).json({
+        success: false,
+        error: 'Photo not found',
+      });
+    }
+
+    // Delete photo from Cloudinary if it exists
+    if (existingPhoto.cloudinaryPublicId) {
+      try {
+        await CloudinaryService.deleteImage(existingPhoto.cloudinaryPublicId);
+        console.log(`Deleted photo from Cloudinary: ${existingPhoto.cloudinaryPublicId}`);
+      } catch (error) {
+        console.error('Error deleting photo from Cloudinary:', error);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete the photo from database
+    await prisma.photo.delete({
+      where: {
+        id: photoId,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Photo deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting plant photo:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete plant photo',
     });
   }
 });

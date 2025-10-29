@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Leaf } from 'lucide-react';
+import { ArrowLeft, Leaf, Edit2 } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { plantsAPI, plantGiftsAPI } from '../services/api';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
@@ -13,6 +13,7 @@ import { PlantHealthTab } from '../components/PlantHealthTab';
 import { PlantAboutTab } from '../components/PlantAboutTab';
 import { GiftPlantModal } from '../components/GiftPlantModal';
 import { ShareGiftModal } from '../components/ShareGiftModal';
+import { EditPlantModal } from '../components/EditPlantModal';
 
 interface PlantTask {
   id: string;
@@ -109,6 +110,9 @@ export function PlantDetailPage() {
   const [giftToken, setGiftToken] = useState<string | null>(null);
   const [giftLoading, setGiftLoading] = useState(false);
   const [giftLinkCopied, setGiftLinkCopied] = useState(false);
+  
+  // Edit plant modal state
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (plantId) {
@@ -308,7 +312,16 @@ export function PlantDetailPage() {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate" title={getPlantDisplayName(plant)}>{getPlantDisplayName(plant)}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate" title={getPlantDisplayName(plant)}>{getPlantDisplayName(plant)}</h1>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                  title="Edit plant"
+                >
+                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                </button>
+              </div>
               <p className="text-sm sm:text-base text-emerald-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
             </div>
           </div>
@@ -474,6 +487,20 @@ export function PlantDetailPage() {
         onClose={handleGiftLinkCopied}
         plantName={getPlantDisplayName(plant!)}
         giftToken={giftToken || ''}
+      />
+      <EditPlantModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        plantId={plant?.id || ''}
+        currentNickname={plant?.petName || null}
+        currentPhoto={plant?.photos && plant.photos.length > 0 ? {
+          id: plant.photos[0].id,
+          secureUrl: plant.photos[0].secureUrl,
+          cloudinaryPublicId: plant.photos[0].cloudinaryPublicId,
+        } : null}
+        onUpdate={() => {
+          fetchPlant();
+        }}
       />
     </Layout>
   );
