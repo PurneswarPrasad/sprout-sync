@@ -44,6 +44,11 @@ export interface PublicPlantProfile {
     quote: string;
     image: string;
   };
+  healthTrackingPhotos: Array<{
+    id: string;
+    photoUrl: string;
+    createdAt: string;
+  }>;
   appreciations: {
     count: number;
     users: Array<{

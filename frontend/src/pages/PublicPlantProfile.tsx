@@ -5,12 +5,15 @@ import PlantProfileHero from '../components/PlantProfile/PlantProfileHero';
 import CareDetailsPanel from '../components/PlantProfile/CareDetailsPanel';
 import HealthStatsCard from '../components/PlantProfile/HealthStatsCard';
 import SocialInteractionZone from '../components/PlantProfile/SocialInteractionZone';
+import GalleryModal from '../components/PlantProfile/GalleryModal';
 
 const PublicPlantProfile = () => {
   const { username, plantSlug } = useParams<{ username: string; plantSlug: string }>();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
   // Get current user from auth storage
   const getCurrentUserId = () => {
@@ -129,8 +132,78 @@ const PublicPlantProfile = () => {
               careStreak={profile.careStreak}
             />
 
-            {/* Right: Care Details and Health Stats Stacked */}
+            {/* Right: Gallery, Care Details and Health Stats Stacked */}
             <div className="space-y-4 sm:space-y-6">
+              {/* Health Tracking Gallery */}
+              {profile.healthTrackingPhotos && profile.healthTrackingPhotos.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Gallery</h2>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    {(() => {
+                      const photos = profile.healthTrackingPhotos;
+                      const photoCount = photos.length;
+                      let photosToShow: typeof photos = [];
+                      let showOverlay = false;
+                      let overlayCount = 0;
+
+                      if (photoCount === 4) {
+                        photosToShow = photos.slice(0, 4);
+                      } else if (photoCount > 4) {
+                        photosToShow = photos.slice(0, 3);
+                        showOverlay = true;
+                        overlayCount = photoCount - 3;
+                      } else {
+                        photosToShow = photos;
+                      }
+
+                      return (
+                        <>
+                          {photosToShow.map((photo, index) => (
+                            <div
+                              key={photo.id}
+                              onClick={() => {
+                                setGalleryInitialIndex(index);
+                                setIsGalleryOpen(true);
+                              }}
+                              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                            >
+                              <img
+                                src={photo.photoUrl}
+                                alt="Health tracking photo"
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                          ))}
+                          {showOverlay && (
+                            <div
+                              onClick={() => {
+                                setGalleryInitialIndex(3);
+                                setIsGalleryOpen(true);
+                              }}
+                              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                            >
+                              <img
+                                src={photos[3].photoUrl}
+                                alt="Health tracking photo"
+                                className="w-full h-full object-cover blur-md"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-white flex items-center justify-center">
+                                  <span className="text-white font-bold text-lg sm:text-xl">
+                                    +{overlayCount}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
               <CareDetailsPanel
                 tasks={profile.tasks}
                 sunRequirements={profile.plant.sunRequirements}
@@ -167,6 +240,16 @@ const PublicPlantProfile = () => {
           </p>
         </div>
       </footer>
+
+      {/* Gallery Modal */}
+      {profile.healthTrackingPhotos && profile.healthTrackingPhotos.length > 0 && (
+        <GalleryModal
+          isOpen={isGalleryOpen}
+          onClose={() => setIsGalleryOpen(false)}
+          photos={profile.healthTrackingPhotos}
+          initialIndex={galleryInitialIndex}
+        />
+      )}
     </div>
   );
 };
