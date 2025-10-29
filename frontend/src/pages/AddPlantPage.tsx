@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { plantsAPI } from '../services/api';
+import { plantsAPI, googleCalendarAPI } from '../services/api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { ConfidenceNotification } from '../components/ConfidenceNotification';
@@ -9,6 +9,7 @@ import { BasicInfoSection } from '../components/BasicInfoSection';
 import { PlantCareInfoSection } from '../components/PlantCareInfoSection';
 import { CareTasksSection } from '../components/CareTasksSection';
 import { TutorialSpotlight } from '../components/TutorialSpotlight';
+import { GoogleCalendarSyncPrompt } from '../components/GoogleCalendarSyncPrompt';
 import { shouldShowTutorial, isStepDismissed, markStepCompleted, markStepSkipped, markTutorialCompleted } from '../utils/tutorial';
 
 // Helper function to get today's date in YYYY-MM-DD format in local timezone
@@ -176,6 +177,12 @@ export const AddPlantPage: React.FC = () => {
   const [isAutoPopulatingImage, setIsAutoPopulatingImage] = useState(false);
   const [aiData, setAiData] = useState<any>(null);
   const [hasProcessedAI, setHasProcessedAI] = useState(false);
+
+  // Google Calendar sync prompt state
+  const [showSyncPrompt, setShowSyncPrompt] = useState(false);
+  const [createdPlantId, setCreatedPlantId] = useState<string | null>(null);
+  const [createdPlantName, setCreatedPlantName] = useState<string>('');
+  const [isAddingToSync, setIsAddingToSync] = useState(false);
 
   // Helper function to generate AI tag message
   const getAITagMessage = () => {
@@ -767,12 +774,91 @@ export const AddPlantPage: React.FC = () => {
         }
       }
 
-      navigate(`/plants/${response.data.data.id}`, { state: { plantCreated: true } });
+      const plantId = response.data.data?.id;
+      if (!plantId) {
+        console.error('Plant ID not found in response');
+        navigate('/plants');
+        return;
+      }
+
+      // Get plant name for prompt
+      const plantName = formData.petName || formData.commonName.split(',')[0].trim() || formData.botanicalName || 'this plant';
+      
+      // Check Google Calendar sync status
+      try {
+        const syncStatusResponse = await googleCalendarAPI.getStatus();
+        if (syncStatusResponse.data.success) {
+          const syncStatus = syncStatusResponse.data.data;
+          
+          // Show prompt if sync is enabled and user has access
+          if (syncStatus.syncEnabled && syncStatus.hasAccess) {
+            setCreatedPlantId(plantId);
+            setCreatedPlantName(plantName);
+            setShowSyncPrompt(true);
+            return; // Don't navigate yet, wait for user response
+          }
+        }
+      } catch (error) {
+        console.error('Error checking Google Calendar sync status:', error);
+        // Continue with normal navigation if check fails
+      }
+
+      // Navigate to plant detail page if sync prompt isn't shown
+      navigate(`/plants/${plantId}`, { state: { plantCreated: true } });
     } catch (error) {
       console.error('Error creating plant:', error);
       alert('Failed to create plant. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncConfirm = async () => {
+    if (!createdPlantId) {
+      // Fallback: navigate to plants list if plant ID is missing
+      navigate('/plants');
+      return;
+    }
+
+    setIsAddingToSync(true);
+    try {
+      // Get current sync status to preserve settings
+      const syncStatusResponse = await googleCalendarAPI.getStatus();
+      if (syncStatusResponse.data.success) {
+        const syncStatus = syncStatusResponse.data.data;
+        const currentSyncedPlantIds = syncStatus.syncedPlantIds || [];
+        
+        // Add the new plant ID to the list if not already present
+        const updatedSyncedPlantIds = currentSyncedPlantIds.includes(createdPlantId)
+          ? currentSyncedPlantIds
+          : [...currentSyncedPlantIds, createdPlantId];
+
+        // Update settings with the new plant ID
+        await googleCalendarAPI.updateSettings({
+          enabled: true,
+          reminderMinutes: syncStatus.reminderMinutes,
+          syncedPlantIds: updatedSyncedPlantIds,
+        });
+
+        console.log('Plant added to Google Calendar sync successfully');
+      }
+    } catch (error) {
+      console.error('Error adding plant to Google Calendar sync:', error);
+      // Continue with navigation even if sync fails
+    } finally {
+      setIsAddingToSync(false);
+      setShowSyncPrompt(false);
+      // Navigate to plant detail page after handling sync
+      navigate(`/plants/${createdPlantId}`, { state: { plantCreated: true } });
+    }
+  };
+
+  const handleSyncClose = () => {
+    setShowSyncPrompt(false);
+    if (createdPlantId) {
+      navigate(`/plants/${createdPlantId}`, { state: { plantCreated: true } });
+    } else {
+      navigate('/plants');
     }
   };
 
@@ -882,6 +968,15 @@ export const AddPlantPage: React.FC = () => {
         confidence={aiConfidence || 0}
         isVisible={showConfidenceNotification}
         onClose={() => setShowConfidenceNotification(false)}
+      />
+
+      {/* Google Calendar Sync Prompt */}
+      <GoogleCalendarSyncPrompt
+        isOpen={showSyncPrompt}
+        onClose={handleSyncClose}
+        onConfirm={handleSyncConfirm}
+        plantName={createdPlantName}
+        isLoading={isAddingToSync}
       />
 
       {/* Tutorial Spotlights */}
