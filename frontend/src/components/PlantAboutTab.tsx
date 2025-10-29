@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { PlantSlugEditor } from './PlantSlugEditor';
+import React, { useState, useEffect } from 'react';
+import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import { plantsAPI } from '../services/api';
+import { PlantCommentsModal } from './PlantCommentsModal';
+import { ShareableProfileModal } from './ShareableProfileModal';
 
 interface PlantPhoto {
   id: string;
@@ -60,9 +63,58 @@ const getPlantDisplayName = (plant: Plant): string => {
 
 export function PlantAboutTab({ plant }: PlantAboutTabProps) {
   const [currentSlug, setCurrentSlug] = useState(plant.slug || null);
+  const [likesCount, setLikesCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(true);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [plant.id]);
+
+  const fetchCounts = async () => {
+    try {
+      setLoadingCounts(true);
+      const [appreciationsRes, commentsRes] = await Promise.all([
+        plantsAPI.getAppreciations(plant.id),
+        plantsAPI.getComments(plant.id),
+      ]);
+
+      if (appreciationsRes.data.success) {
+        setLikesCount(appreciationsRes.data.data?.count || 0);
+      }
+      if (commentsRes.data.success) {
+        setCommentsCount(commentsRes.data.count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
 
   const handleSlugUpdated = (newSlug: string) => {
     setCurrentSlug(newSlug);
+  };
+
+  const handleLike = async () => {
+    try {
+      await plantsAPI.appreciate(plant.id);
+      // Refresh counts after like
+      const res = await plantsAPI.getAppreciations(plant.id);
+      if (res.data.success) {
+        setLikesCount(res.data.data?.count || 0);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
+  const handleCommentsModalClose = () => {
+    setShowCommentsModal(false);
+    // Refresh comments count when modal closes (in case new comment was added)
+    fetchCounts();
   };
 
   return (
@@ -70,12 +122,58 @@ export function PlantAboutTab({ plant }: PlantAboutTabProps) {
       <h2 className="text-xl font-semibold text-gray-800 mb-4">About {getPlantDisplayName(plant)}</h2>
       
       <div className="space-y-6">
-        {/* Shareable Profile */}
-        <PlantSlugEditor
-          plantId={plant.id}
-          slug={currentSlug}
-          onSlugUpdated={handleSlugUpdated}
-        />
+        {/* Social Actions */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleLike}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105 hover:shadow-md"
+          >
+            <Heart 
+              className="w-5 h-5" 
+              style={{
+                fill: '#ef4444',
+                color: '#ef4444',
+                filter: 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.4)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+              }}
+            />
+            <span className="text-sm font-medium text-gray-700">
+              {loadingCounts ? '...' : likesCount}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setShowCommentsModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105 hover:shadow-md"
+          >
+            <MessageCircle 
+              className="w-5 h-5" 
+              style={{
+                fill: 'none',
+                stroke: '#000000',
+                strokeWidth: '3',
+                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+              }}
+            />
+            <span className="text-sm font-medium text-gray-700">
+              {loadingCounts ? '...' : commentsCount}
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105 hover:shadow-md"
+          >
+            <Share2 
+              className="w-5 h-5" 
+              style={{
+                fill: '#10b981',
+                color: '#10b981',
+                filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.4)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+              }}
+            />
+            <span className="text-sm font-medium text-gray-700">Share</span>
+          </button>
+        </div>
 
         {/* Basic Information */}
         <div>
@@ -230,6 +328,22 @@ export function PlantAboutTab({ plant }: PlantAboutTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <PlantCommentsModal
+        isOpen={showCommentsModal}
+        onClose={handleCommentsModalClose}
+        plantId={plant.id}
+        plantName={getPlantDisplayName(plant)}
+      />
+      <ShareableProfileModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        plantId={plant.id}
+        slug={currentSlug}
+        onSlugUpdated={handleSlugUpdated}
+        plantName={getPlantDisplayName(plant)}
+      />
     </div>
   );
 }

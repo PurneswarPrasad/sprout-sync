@@ -91,7 +91,7 @@ export function PlantDetailPage() {
   const [loading, setLoading] = useState(true);
   
   console.log('PlantDetailPage mounted with plantId:', plantId);
-  const [activeTab, setActiveTab] = useState<'care' | 'health' | 'about'>('care');
+  const [activeTab, setActiveTab] = useState<'care' | 'health' | 'about'>('about');
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<PlantTask | null>(null);
   const [showTrackingModal, setShowTrackingModal] = useState(false);
@@ -323,13 +323,22 @@ export function PlantDetailPage() {
               disabled={plant.isGifted || giftLoading}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
             >
-              {giftLoading ? 'Creating...' : 'Gift your plant'}
+              {giftLoading ? 'Creating...' : '🎁 Gift your plant'}
             </button>
           )}
         </div>
 
         {/* Navigation Tabs */}
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('about')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeTab === 'about'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+              }`}
+          >
+            About
+          </button>
           <button
             onClick={() => setActiveTab('care')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeTab === 'care'
@@ -347,15 +356,6 @@ export function PlantDetailPage() {
               }`}
           >
             Health
-          </button>
-          <button
-            onClick={() => setActiveTab('about')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeTab === 'about'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-              }`}
-          >
-            About
           </button>
         </div>
 

@@ -95,24 +95,18 @@ export function PlantSlugEditor({ plantId, slug, onSlugUpdated }: PlantSlugEdito
 
   return (
     <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg p-4 border border-emerald-200">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <LinkIcon className="w-4 h-4 text-emerald-600" />
-          Shareable Profile
-        </h3>
-        {!isEditing && slug && (
-          <button
-            onClick={handleStartEdit}
-            className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700"
-          >
-            <Edit2 className="w-4 h-4" />
-            Edit
-          </button>
-        )}
-      </div>
-
       {isEditing ? (
         <div className="space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">Edit Slug</h3>
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-700"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">
               /u/{username || '...'}/ 
@@ -140,7 +134,6 @@ export function PlantSlugEditor({ plantId, slug, onSlugUpdated }: PlantSlugEdito
               disabled={isSaving}
               className="flex items-center gap-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
             >
-              <X className="w-4 h-4" />
               Cancel
             </button>
           </div>
@@ -148,29 +141,52 @@ export function PlantSlugEditor({ plantId, slug, onSlugUpdated }: PlantSlugEdito
       ) : (
         <div>
           {profileUrl ? (
-            <>
-              <a
-                href={profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-emerald-700 hover:text-emerald-800 underline font-mono break-all"
-              >
-                {profileUrl}
-              </a>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Share2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <a
+                  href={profileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-emerald-700 hover:text-emerald-800 underline font-mono break-all flex-1 min-w-0"
+                >
+                  {profileUrl}
+                </a>
+                {slug && (
+                  <button
+                    onClick={handleStartEdit}
+                    className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700 flex-shrink-0 px-2 py-1"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                )}
+              </div>
               <button
                 onClick={handleShare}
-                className="mt-2 flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm w-full justify-center"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium w-full justify-center"
               >
                 <Share2 className="w-4 h-4" />
                 Share Profile
               </button>
-            </>
+            </div>
           ) : (
-            <p className="text-sm text-gray-600 italic">
-              {!username
-                ? 'Set your username in Settings to enable shareable profiles'
-                : 'No slug set for this plant'}
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 italic">
+                {!username
+                  ? 'Set your username in Settings to enable shareable profiles'
+                  : 'No slug set for this plant'}
+              </p>
+              {username && !slug && (
+                <button
+                  onClick={handleStartEdit}
+                  className="flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Create slug
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
