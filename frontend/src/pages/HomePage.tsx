@@ -11,7 +11,15 @@ import { PlantsSection } from '../components/PlantsSection';
 import { TasksSection } from '../components/TasksSection';
 import { OverdueSection } from '../components/OverdueSection';
 import { TutorialSpotlight } from '../components/TutorialSpotlight';
-import { shouldShowTutorial, isStepDismissed, markStepCompleted, markStepSkipped, initTutorialState } from '../utils/tutorial';
+import { TutorialPromptModal } from '../components/TutorialPromptModal';
+import {
+  shouldShowTutorial,
+  isStepDismissed,
+  markStepCompleted,
+  markStepSkipped,
+  initTutorialState,
+  markTutorialCompleted,
+} from '../utils/tutorial';
 
 interface User {
   id: string;
@@ -80,6 +88,7 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
+  const [showTutorialPrompt, setShowTutorialPrompt] = useState(false);
   
   // Delete confirmation state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -120,11 +129,15 @@ const HomePage: React.FC = () => {
       await initTutorialState();
       
       // Check if we should show tutorial
-      if (shouldShowTutorial() && !isStepDismissed('homepage-add-button')) {
-        // Delay to let the page render first
-        setTimeout(() => {
-          setShowHomepageTutorial(true);
-        }, 500);
+      if (shouldShowTutorial()) {
+        if (!isStepDismissed('tutorial-intro')) {
+          setShowTutorialPrompt(true);
+          setShowHomepageTutorial(false);
+        } else if (!isStepDismissed('homepage-add-button')) {
+          setTimeout(() => {
+            setShowHomepageTutorial(true);
+          }, 500);
+        }
       }
     };
     
@@ -341,15 +354,34 @@ const HomePage: React.FC = () => {
 
   // Tutorial handlers
   const handleSkipHomepageTutorial = () => {
-    markStepSkipped('homepage-add-button');
+    void markStepSkipped('homepage-add-button');
     setShowHomepageTutorial(false);
   };
 
   const handleNextHomepageTutorial = () => {
-    markStepCompleted('homepage-add-button');
+    void markStepCompleted('homepage-add-button');
     setShowHomepageTutorial(false);
     // Trigger the add plant modal
     setShowAddPlantModal(true);
+  };
+
+  const handleTutorialPromptConfirm = () => {
+    void markStepCompleted('tutorial-intro');
+    setShowTutorialPrompt(false);
+
+    if (!isStepDismissed('homepage-add-button')) {
+      setTimeout(() => {
+        setShowHomepageTutorial(true);
+      }, 300);
+    }
+  };
+
+  const handleTutorialPromptDecline = () => {
+    void markStepSkipped('tutorial-intro');
+    setShowTutorialPrompt(false);
+    setShowHomepageTutorial(false);
+    void markStepSkipped('homepage-add-button');
+    void markTutorialCompleted();
   };
 
   // Get tasks that are due today (nextDueOn = today)
@@ -542,6 +574,12 @@ const HomePage: React.FC = () => {
         message={confirmDialog.message}
         onClose={closeConfirmDialog}
         onConfirm={markTaskComplete}
+      />
+
+      <TutorialPromptModal
+        isOpen={showTutorialPrompt}
+        onConfirm={handleTutorialPromptConfirm}
+        onDecline={handleTutorialPromptDecline}
       />
 
       {/* Tutorial Spotlight */}

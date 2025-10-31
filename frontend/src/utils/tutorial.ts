@@ -2,6 +2,7 @@
 import { tutorialAPI } from '../services/api';
 
 export type TutorialStep = 
+  | 'tutorial-intro'
   | 'homepage-add-button'
   | 'modal-camera-id'
   | 'ai-camera-area'
@@ -138,6 +139,7 @@ export const shouldShowTutorial = (): boolean => {
 // Get the next step in the tutorial sequence
 export const getNextTutorialStep = (): TutorialStep | null => {
   const allSteps: TutorialStep[] = [
+    'tutorial-intro',
     'homepage-add-button',
     'modal-camera-id',
     'ai-camera-area',

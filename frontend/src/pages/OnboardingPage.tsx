@@ -20,6 +20,7 @@ const OnboardingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [userFirstName, setUserFirstName] = useState('');
   const [answers, setAnswers] = useState<OnboardingState>({
     plantExperience: '',
     plantLocation: [],
@@ -140,6 +141,20 @@ const OnboardingPage: React.FC = () => {
         const response = await authAPI.status();
 
         if (response.data.success && response.data.authenticated) {
+          const user = response.data.user;
+          if (user) {
+            const rawName = (user.name && user.name.trim())
+              || (user.username && user.username.trim())
+              || (user.email ? user.email.split('@')[0] : '');
+
+            if (rawName) {
+              const firstName = rawName.split(/[\s_]+/)[0];
+              if (firstName) {
+                setUserFirstName(firstName.charAt(0).toUpperCase() + firstName.slice(1));
+              }
+            }
+          }
+          
           // If user is authenticated and has already submitted onboarding, redirect to home
           const hasCompletedOnboarding = localStorage.getItem('onboarding-submitted') === 'true';
           if (hasCompletedOnboarding) {
@@ -524,7 +539,7 @@ const OnboardingPage: React.FC = () => {
             transition={{ duration: 0.3, delay: 0.1 }}
           >
             <div className="w-16 h-16 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
-            <p className="text-gray-800 text-lg font-medium">Optimising your experience...</p>
+            <p className="text-gray-800 text-lg font-medium">{`Getting ready for you, ${userFirstName || 'friend'}`}</p>
           </motion.div>
         </motion.div>
       )}
