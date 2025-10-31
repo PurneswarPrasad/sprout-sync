@@ -226,12 +226,14 @@ router.post('/accept', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(accep
                 },
             });
             if (gift.plant.tasks.length > 0) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
                 await tx.plantTask.createMany({
                     data: gift.plant.tasks.map(task => ({
                         plantId: newPlant.id,
                         taskKey: task.taskKey,
                         frequencyDays: task.frequencyDays,
-                        nextDueOn: task.nextDueOn,
+                        nextDueOn: new Date(today),
                         active: task.active,
                     })),
                 });

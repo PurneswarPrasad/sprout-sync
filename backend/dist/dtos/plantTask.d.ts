@@ -16,6 +16,17 @@ export declare const createPlantTaskSchema: z.ZodObject<{
     nextDueOn: string;
 }>;
 export type CreatePlantTaskDTO = z.infer<typeof createPlantTaskSchema>;
+export declare const createPlantTaskWithoutIdsSchema: z.ZodObject<{
+    taskKey: z.ZodString;
+    frequencyDays: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    taskKey: string;
+    frequencyDays: number;
+}, {
+    taskKey: string;
+    frequencyDays: number;
+}>;
+export type CreatePlantTaskWithoutIdsDTO = z.infer<typeof createPlantTaskWithoutIdsSchema>;
 export declare const updatePlantTaskSchema: z.ZodObject<{
     frequencyDays: z.ZodOptional<z.ZodNumber>;
     nextDueOn: z.ZodOptional<z.ZodString>;

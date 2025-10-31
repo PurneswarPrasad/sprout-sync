@@ -128,12 +128,14 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.crea
                 error: 'Plant not found',
             });
         }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const task = await prisma_1.prisma.plantTask.create({
             data: {
                 plantId: validatedData.plantId,
                 taskKey: validatedData.taskKey,
                 frequencyDays: validatedData.frequencyDays,
-                nextDueOn: new Date(validatedData.nextDueOn),
+                nextDueOn: today,
             },
             include: {
                 plant: {

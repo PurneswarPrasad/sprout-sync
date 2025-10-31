@@ -40,6 +40,7 @@ const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
+const taskSyncService_1 = require("../services/taskSyncService");
 const router = (0, express_1.Router)();
 exports.plantTasksRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
@@ -125,16 +126,18 @@ router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res)
         });
     }
 });
-router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createPlantTaskSchema), async (req, res) => {
+router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.validate)(dtos_1.createPlantTaskWithoutIdsSchema), async (req, res) => {
     try {
         const plantId = req.params['plantId'];
-        const validatedData = dtos_1.createPlantTaskSchema.parse(req.body);
+        const validatedData = dtos_1.createPlantTaskWithoutIdsSchema.parse(req.body);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const task = await prisma_1.prisma.plantTask.create({
             data: {
                 plantId: plantId,
                 taskKey: validatedData.taskKey,
                 frequencyDays: validatedData.frequencyDays,
-                nextDueOn: new Date(validatedData.nextDueOn),
+                nextDueOn: today,
             },
             include: {
                 plant: {
@@ -148,6 +151,9 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
                 },
             },
         });
+        taskSyncService_1.taskSyncService.syncTaskToCalendar(task.id).catch(error => {
+            console.error('Error syncing task to calendar:', error);
+        });
         res.status(201).json({
             success: true,
             data: task,
@@ -156,6 +162,9 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
     }
     catch (error) {
         console.error('Error creating plant task:', error);
+        if (error instanceof Error) {
+            console.error('Error stack:', error.stack);
+        }
         if (error instanceof zod_1.z.ZodError) {
             return res.status(400).json({
                 success: false,
@@ -246,6 +255,9 @@ router.put('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, valid
                 },
             },
         });
+        taskSyncService_1.taskSyncService.updateTaskInCalendar(updatedTask.id).catch(error => {
+            console.error('Error updating task in calendar:', error);
+        });
         res.json({
             success: true,
             data: updatedTask,
@@ -293,6 +305,9 @@ router.delete('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async 
                 error: 'Task not found',
             });
         }
+        taskSyncService_1.taskSyncService.removeTaskFromCalendar(taskId).catch(error => {
+            console.error('Error removing task from calendar:', error);
+        });
         await prisma_1.prisma.plantTask.delete({
             where: { id: taskId },
         });

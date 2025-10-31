@@ -71,8 +71,12 @@ export const plantsAPI = {
   getTaskTemplates: () => api.get('/api/plants/task-templates'),
   completeTask: (plantId: string, taskId: string) => 
     api.post(`/api/tasks/${taskId}/complete`, {}),
+  createTask: (plantId: string, data: { taskKey: string; frequencyDays: number }) =>
+    api.post(`/api/plants/${plantId}/tasks`, data),
   updateTask: (plantId: string, taskId: string, data: { frequencyDays?: number; nextDueOn?: string }) =>
     api.put(`/api/plants/${plantId}/tasks/${taskId}`, data),
+  deleteTask: (plantId: string, taskId: string) =>
+    api.delete(`/api/plants/${plantId}/tasks/${taskId}`),
   // Plant tracking endpoints
   getTrackingUpdates: (plantId: string, page?: number, limit?: number) => 
     api.get(`/api/plants/${plantId}/tracking`, { params: { page, limit } }),

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Create PlantTask DTO
+// Create PlantTask DTO (for /api/tasks endpoint where plantId and nextDueOn come from request body)
 export const createPlantTaskSchema = z.object({
   plantId: z.string().uuid('Invalid plant ID'),
   taskKey: z.string().min(1, 'Task key is required'),
@@ -9,6 +9,14 @@ export const createPlantTaskSchema = z.object({
 });
 
 export type CreatePlantTaskDTO = z.infer<typeof createPlantTaskSchema>;
+
+// Create PlantTask DTO (for /api/plants/:plantId/tasks endpoint where plantId comes from URL and nextDueOn is set by server)
+export const createPlantTaskWithoutIdsSchema = z.object({
+  taskKey: z.string().min(1, 'Task key is required'),
+  frequencyDays: z.number().positive('Frequency must be positive'),
+});
+
+export type CreatePlantTaskWithoutIdsDTO = z.infer<typeof createPlantTaskWithoutIdsSchema>;
 
 // Update PlantTask DTO (partial)
 export const updatePlantTaskSchema = z.object({

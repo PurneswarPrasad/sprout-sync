@@ -1,12 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.plantTaskResponseSchema = exports.updatePlantTaskSchema = exports.createPlantTaskSchema = void 0;
+exports.plantTaskResponseSchema = exports.updatePlantTaskSchema = exports.createPlantTaskWithoutIdsSchema = exports.createPlantTaskSchema = void 0;
 const zod_1 = require("zod");
 exports.createPlantTaskSchema = zod_1.z.object({
     plantId: zod_1.z.string().uuid('Invalid plant ID'),
     taskKey: zod_1.z.string().min(1, 'Task key is required'),
     frequencyDays: zod_1.z.number().positive('Frequency must be positive'),
     nextDueOn: zod_1.z.string().datetime('Invalid due date'),
+});
+exports.createPlantTaskWithoutIdsSchema = zod_1.z.object({
+    taskKey: zod_1.z.string().min(1, 'Task key is required'),
+    frequencyDays: zod_1.z.number().positive('Frequency must be positive'),
 });
 exports.updatePlantTaskSchema = zod_1.z.object({
     frequencyDays: zod_1.z.number().positive('Frequency must be positive').optional(),

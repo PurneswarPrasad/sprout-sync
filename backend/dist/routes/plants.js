@@ -194,6 +194,50 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
         });
     }
 });
+router.get('/task-templates', jwtAuth_1.authenticateJWT, async (req, res) => {
+    try {
+        let taskTemplates = await prisma_1.prisma.taskTemplate.findMany({
+            orderBy: {
+                key: 'asc',
+            },
+        });
+        if (taskTemplates.length === 0) {
+            console.log('No task templates found in /task-templates endpoint, creating defaults...');
+            const defaultTemplates = [
+                { key: 'watering', label: 'Watering', colorHex: '#3B82F6', defaultFrequencyDays: 3 },
+                { key: 'fertilizing', label: 'Fertilizing', colorHex: '#8B5CF6', defaultFrequencyDays: 14 },
+                { key: 'pruning', label: 'Pruning', colorHex: '#10B981', defaultFrequencyDays: 30 },
+                { key: 'spraying', label: 'Spraying', colorHex: '#F59E0B', defaultFrequencyDays: 7 },
+                { key: 'sunlightRotation', label: 'Sunlight Rotation', colorHex: '#F97316', defaultFrequencyDays: 14 },
+            ];
+            for (const template of defaultTemplates) {
+                await prisma_1.prisma.taskTemplate.upsert({
+                    where: { key: template.key },
+                    update: template,
+                    create: template,
+                });
+            }
+            taskTemplates = await prisma_1.prisma.taskTemplate.findMany({
+                orderBy: {
+                    key: 'asc',
+                },
+            });
+        }
+        console.log('Task templates in database:', taskTemplates.map(t => ({ key: t.key, label: t.label })));
+        res.json({
+            success: true,
+            data: taskTemplates,
+            count: taskTemplates.length,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching task templates:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch task templates',
+        });
+    }
+});
 router.get('/gifted', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -328,7 +372,7 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
         if (taskTemplates.length === 0) {
             console.log('No task templates found, creating defaults...');
             const defaultTemplates = [
-                { key: 'watering', label: 'Water', colorHex: '#3B82F6', defaultFrequencyDays: 3 },
+                { key: 'watering', label: 'Watering', colorHex: '#3B82F6', defaultFrequencyDays: 3 },
                 { key: 'fertilizing', label: 'Fertilizing', colorHex: '#8B5CF6', defaultFrequencyDays: 14 },
                 { key: 'pruning', label: 'Pruning', colorHex: '#10B981', defaultFrequencyDays: 30 },
                 { key: 'spraying', label: 'Spraying', colorHex: '#F59E0B', defaultFrequencyDays: 7 },
@@ -379,8 +423,7 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
                         const nextDueOn = new Date(today);
-                        nextDueOn.setDate(today.getDate() + task.frequency);
-                        console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]}`);
+                        console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]} (appears in today's tasks)`);
                         return {
                             taskKey,
                             frequencyDays: task.frequency,
@@ -627,50 +670,6 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to delete plant',
-        });
-    }
-});
-router.get('/task-templates', jwtAuth_1.authenticateJWT, async (req, res) => {
-    try {
-        let taskTemplates = await prisma_1.prisma.taskTemplate.findMany({
-            orderBy: {
-                key: 'asc',
-            },
-        });
-        if (taskTemplates.length === 0) {
-            console.log('No task templates found in /task-templates endpoint, creating defaults...');
-            const defaultTemplates = [
-                { key: 'watering', label: 'Water', colorHex: '#3B82F6', defaultFrequencyDays: 3 },
-                { key: 'fertilizing', label: 'Fertilizing', colorHex: '#8B5CF6', defaultFrequencyDays: 14 },
-                { key: 'pruning', label: 'Pruning', colorHex: '#10B981', defaultFrequencyDays: 30 },
-                { key: 'spraying', label: 'Spraying', colorHex: '#F59E0B', defaultFrequencyDays: 7 },
-                { key: 'sunlightRotation', label: 'Sunlight Rotation', colorHex: '#F97316', defaultFrequencyDays: 14 },
-            ];
-            for (const template of defaultTemplates) {
-                await prisma_1.prisma.taskTemplate.upsert({
-                    where: { key: template.key },
-                    update: template,
-                    create: template,
-                });
-            }
-            taskTemplates = await prisma_1.prisma.taskTemplate.findMany({
-                orderBy: {
-                    key: 'asc',
-                },
-            });
-        }
-        console.log('Task templates in database:', taskTemplates.map(t => ({ key: t.key, label: t.label })));
-        res.json({
-            success: true,
-            data: taskTemplates,
-            count: taskTemplates.length,
-        });
-    }
-    catch (error) {
-        console.error('Error fetching task templates:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch task templates',
         });
     }
 });

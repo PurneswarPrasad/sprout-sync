@@ -316,9 +316,11 @@ router.delete('/:id', authenticateJWT, async (req, res) => {
     }
     
     // Trigger Google Calendar sync removal if enabled
-    taskSyncService.removeTaskFromCalendar(taskId).catch(error => {
+    try {
+      await taskSyncService.removeTaskFromCalendar(taskId);
+    } catch (error) {
       console.error('Error removing task from calendar:', error);
-    });
+    }
     
     await prisma.plantTask.delete({
       where: { id: taskId },

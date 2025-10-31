@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
-import { createPlantTaskSchema, updatePlantTaskSchema } from '../dtos';
+import { createPlantTaskWithoutIdsSchema, updatePlantTaskSchema } from '../dtos';
+import { taskSyncService } from '../services/taskSyncService';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // Middleware to check if user owns the plant
 const checkPlantOwnership = async (req: any, res: any, next: any) => {
@@ -103,10 +104,10 @@ router.get('/', authenticateJWT, checkPlantOwnership, async (req, res) => {
 });
 
 // POST /api/plants/:plantId/tasks - Create new task for a specific plant
-router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskSchema), async (req, res) => {
+router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskWithoutIdsSchema), async (req, res) => {
   try {
     const plantId = req.params['plantId'];
-    const validatedData = createPlantTaskSchema.parse(req.body);
+    const validatedData = createPlantTaskWithoutIdsSchema.parse(req.body);
     
     // Override plantId to ensure it matches the URL parameter
     // New tasks should appear in today's tasks - set nextDueOn to today
@@ -133,6 +134,11 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskS
       },
     });
     
+    // Trigger Google Calendar sync if enabled
+    taskSyncService.syncTaskToCalendar(task.id).catch(error => {
+      console.error('Error syncing task to calendar:', error);
+    });
+    
     res.status(201).json({
       success: true,
       data: task,
@@ -140,6 +146,9 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskS
     });
   } catch (error) {
     console.error('Error creating plant task:', error);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -239,6 +248,11 @@ router.put('/:taskId', authenticateJWT, checkPlantOwnership, validate(updatePlan
       },
     });
     
+    // Trigger Google Calendar sync if enabled
+    taskSyncService.updateTaskInCalendar(updatedTask.id).catch(error => {
+      console.error('Error updating task in calendar:', error);
+    });
+    
     res.json({
       success: true,
       data: updatedTask,
@@ -289,6 +303,13 @@ router.delete('/:taskId', authenticateJWT, checkPlantOwnership, async (req, res)
         success: false,
         error: 'Task not found',
       });
+    }
+    
+    // Trigger Google Calendar sync removal if enabled
+    try {
+      await taskSyncService.removeTaskFromCalendar(taskId!);
+    } catch (error) {
+      console.error('Error removing task from calendar:', error);
     }
     
     await prisma.plantTask.delete({

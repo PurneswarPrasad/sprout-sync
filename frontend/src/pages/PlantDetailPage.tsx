@@ -506,6 +506,7 @@ export function PlantDetailPage() {
           secureUrl: plant.photos[0].secureUrl,
           cloudinaryPublicId: plant.photos[0].cloudinaryPublicId,
         } : null}
+        plantTasks={plant?.tasks || []}
         onUpdate={() => {
           fetchPlant();
         }}
