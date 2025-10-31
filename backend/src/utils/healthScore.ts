@@ -79,34 +79,9 @@ export function calculateCareStreak(tasks: PlantTask[], createdAt: Date): number
     // All tasks are up to date - streak is days since creation
     currentStreak = daysSinceCreation + 1;
   } else {
-    // Calculate based on last completed dates
-    // Find the most recent task completion
-    let mostRecentCompletion: Date | null = null;
-
-    for (const task of activeTasks) {
-      if (task.lastCompletedOn) {
-        const completedDate = new Date(task.lastCompletedOn);
-        if (!mostRecentCompletion || completedDate > mostRecentCompletion) {
-          mostRecentCompletion = completedDate;
-        }
-      }
-    }
-
-    if (mostRecentCompletion) {
-      mostRecentCompletion.setHours(0, 0, 0, 0);
-      const daysSinceLastCompletion = Math.floor(
-        (today.getTime() - mostRecentCompletion.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      // If completed recently and not too overdue, give partial credit
-      if (daysSinceLastCompletion <= 7) {
-        currentStreak = Math.max(1, daysSinceCreation - daysSinceLastCompletion);
-      } else {
-        currentStreak = 1; // Minimum streak for having the plant
-      }
-    } else {
-      currentStreak = 1; // Minimum streak
-    }
+    // When tasks are overdue, streak is broken
+    // Since we don't track lastCompletedOn, we set streak to 1
+    currentStreak = 1;
   }
 
   return currentStreak;

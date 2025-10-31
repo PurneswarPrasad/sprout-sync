@@ -161,7 +161,7 @@ class NotificationService {
                         continue;
                     }
                 }
-                const lastNotificationSentAt = task.lastCompletedOn || new Date(plant.createdAt);
+                const lastNotificationSentAt = new Date(plant.createdAt);
                 const recentNotification = await prisma_1.prisma.notificationLog.findFirst({
                     where: {
                         userId,

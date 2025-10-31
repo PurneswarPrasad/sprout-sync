@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Leaf, Edit2 } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { plantsAPI, plantGiftsAPI } from '../services/api';
@@ -20,7 +20,6 @@ interface PlantTask {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 
@@ -88,6 +87,7 @@ const getPlantDisplayName = (plant: Plant): string => {
 export function PlantDetailPage() {
   const { plantId } = useParams<{ plantId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -152,6 +152,13 @@ export function PlantDetailPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTaskUpdated = () => {
+    // Refresh plant data
+    fetchPlant();
+    // Set location state to trigger refresh on other pages
+    navigate(location.pathname, { state: { taskUpdated: true }, replace: true });
   };
 
   const fetchTrackingUpdates = async () => {
@@ -377,6 +384,7 @@ export function PlantDetailPage() {
           <PlantCareTab
             plant={plant}
             onMarkComplete={handleMarkComplete}
+            onTaskUpdated={handleTaskUpdated}
           />
         )}
 

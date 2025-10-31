@@ -7,6 +7,7 @@ const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
+const cloudinaryService_1 = require("../services/cloudinaryService");
 const router = (0, express_1.Router)({ mergeParams: true });
 exports.plantPhotosRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
@@ -116,6 +117,55 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
             success: false,
             error: 'Failed to create plant photo',
             details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+router.delete('/:photoId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res) => {
+    try {
+        const plantId = req.params['plantId'];
+        const photoId = req.params['photoId'];
+        if (!plantId || !photoId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Plant ID and Photo ID are required',
+            });
+        }
+        const existingPhoto = await prisma_1.prisma.photo.findFirst({
+            where: {
+                id: photoId,
+                plantId: plantId,
+            },
+        });
+        if (!existingPhoto) {
+            return res.status(404).json({
+                success: false,
+                error: 'Photo not found',
+            });
+        }
+        if (existingPhoto.cloudinaryPublicId) {
+            try {
+                await cloudinaryService_1.CloudinaryService.deleteImage(existingPhoto.cloudinaryPublicId);
+                console.log(`Deleted photo from Cloudinary: ${existingPhoto.cloudinaryPublicId}`);
+            }
+            catch (error) {
+                console.error('Error deleting photo from Cloudinary:', error);
+            }
+        }
+        await prisma_1.prisma.photo.delete({
+            where: {
+                id: photoId,
+            },
+        });
+        res.json({
+            success: true,
+            message: 'Photo deleted successfully',
+        });
+    }
+    catch (error) {
+        console.error('Error deleting plant photo:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete plant photo',
         });
     }
 });

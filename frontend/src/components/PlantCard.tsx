@@ -16,7 +16,6 @@ interface PlantTask {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 
@@ -74,8 +73,7 @@ const getTaskStatus = (task: PlantTask) => {
   const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   // Check if task was completed today
-  const isCompletedToday = task.lastCompletedOn ?
-    Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+  const isCompletedToday = false; // Removed: lastCompletedOn tracking
 
   // If task is due today and was completed today, show "Done"
   if ((daysUntilDue === 0 || task.frequencyDays === 1) && isCompletedToday) {
@@ -191,30 +189,19 @@ export function PlantCard({ plant, onDelete }: PlantCardProps) {
           {activeTasks.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {(() => {
-                // Sort tasks by priority: completed first, then by due date (most urgent first)
+                // Sort tasks by due date (most urgent first)
                 const sortedTasks = [...activeTasks].sort((a, b) => {
-                  const aCompleted = a.lastCompletedOn !== null;
-                  const bCompleted = b.lastCompletedOn !== null;
-
-                  if (aCompleted && !bCompleted) return -1;
-                  if (!aCompleted && bCompleted) return 1;
-
-                  if (aCompleted === bCompleted) {
-                    const now = new Date();
-                    const aDue = new Date(a.nextDueOn);
-                    const bDue = new Date(b.nextDueOn);
-                    const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    return aDaysUntilDue - bDaysUntilDue;
-                  }
-
-                  return 0;
+                  const now = new Date();
+                  const aDue = new Date(a.nextDueOn);
+                  const bDue = new Date(b.nextDueOn);
+                  const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  return aDaysUntilDue - bDaysUntilDue;
                 });
 
                 return sortedTasks.slice(0, 3).map((task) => {
                   const now = new Date();
-                  const isCompleted = task.lastCompletedOn ?
-                    Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+                  const isCompleted = false; // Removed: lastCompletedOn tracking
 
                   if (isCompleted) {
                     return (

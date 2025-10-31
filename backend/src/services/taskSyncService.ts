@@ -15,7 +15,6 @@ export class TaskSyncService {
           taskKey: true,
           frequencyDays: true,
           nextDueOn: true,
-          lastCompletedOn: true,
           active: true,
           googleCalendarEventId: true,
           plant: {
@@ -87,7 +86,6 @@ export class TaskSyncService {
           taskKey: true,
           frequencyDays: true,
           nextDueOn: true,
-          lastCompletedOn: true,
           active: true,
           googleCalendarEventId: true,
           plant: {
@@ -283,7 +281,6 @@ export class TaskSyncService {
           taskKey: true,
           frequencyDays: true,
           nextDueOn: true,
-          lastCompletedOn: true,
           googleCalendarEventId: true,
           plant: {
             select: {

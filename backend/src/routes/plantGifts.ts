@@ -260,15 +260,17 @@ router.post('/accept', authenticateJWT, validate(acceptGiftSchema), async (req, 
         },
       });
 
-      // Copy all tasks
+      // Copy all tasks - set nextDueOn to today so they appear in today's tasks
       if (gift.plant.tasks.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
         await tx.plantTask.createMany({
           data: gift.plant.tasks.map(task => ({
             plantId: newPlant.id,
             taskKey: task.taskKey,
             frequencyDays: task.frequencyDays,
-            nextDueOn: task.nextDueOn,
-            lastCompletedOn: task.lastCompletedOn,
+            nextDueOn: new Date(today), // New tasks appear in today's tasks
             active: task.active,
           })),
         });

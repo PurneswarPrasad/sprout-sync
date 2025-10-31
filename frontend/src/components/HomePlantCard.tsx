@@ -15,7 +15,6 @@ interface PlantTask {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 
@@ -102,35 +101,22 @@ export const HomePlantCard: React.FC<HomePlantCardProps> = ({
             <p className="text-xs font-medium text-gray-700">Active Tasks:</p>
             <div className="flex flex-wrap gap-1 sm:gap-2">
               {(() => {
-                // Sort tasks by priority: completed first, then by due date (most urgent first)
+                // Sort tasks by due date (most urgent first)
                 const sortedTasks = [...activeTasks].sort((a, b) => {
-                  const aCompleted = a.lastCompletedOn !== null;
-                  const bCompleted = b.lastCompletedOn !== null;
+                  const now = new Date();
+                  const aDue = new Date(a.nextDueOn);
+                  const bDue = new Date(b.nextDueOn);
+                  const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                   
-                  // Completed tasks appear first
-                  if (aCompleted && !bCompleted) return -1;
-                  if (!aCompleted && bCompleted) return 1;
-                  
-                  // If both are completed or both are pending, sort by due date
-                  if (aCompleted === bCompleted) {
-                    const now = new Date();
-                    const aDue = new Date(a.nextDueOn);
-                    const bDue = new Date(b.nextDueOn);
-                    const aDaysUntilDue = Math.ceil((aDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    const bDaysUntilDue = Math.ceil((bDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    
-                    // Most urgent (smaller days until due) appears first
-                    return aDaysUntilDue - bDaysUntilDue;
-                  }
-                  
-                  return 0;
+                  // Most urgent (smaller days until due) appears first
+                  return aDaysUntilDue - bDaysUntilDue;
                 });
                 
                 return sortedTasks.slice(0, 2).map((task) => {
                   // Check if task was completed today, not just if it has ever been completed
                   const now = new Date();
-                  const isCompleted = task.lastCompletedOn ? 
-                    Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
+                  const isCompleted = false; // Removed: lastCompletedOn tracking
                   
                   if (isCompleted) {
                     return (

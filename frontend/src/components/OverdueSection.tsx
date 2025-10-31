@@ -6,7 +6,6 @@ interface PlantTask {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 

@@ -220,9 +220,9 @@ export class NotificationService {
           }
         }
 
-        // Check if we've already sent a notification for this task since it was last completed
+        // Check if we've already sent a notification for this task since plant creation
         // This prevents sending repeated notifications for overdue tasks
-        const lastNotificationSentAt = task.lastCompletedOn || new Date(plant.createdAt);
+        const lastNotificationSentAt = new Date(plant.createdAt);
         const recentNotification = await prisma.notificationLog.findFirst({
           where: {
             userId,

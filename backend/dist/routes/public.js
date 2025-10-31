@@ -38,6 +38,19 @@ router.get('/u/:username/:plantSlug', async (req, res) => {
                     orderBy: { takenAt: 'desc' },
                     take: 1,
                 },
+                trackingUpdates: {
+                    where: {
+                        photoUrl: {
+                            not: null,
+                        },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    select: {
+                        id: true,
+                        photoUrl: true,
+                        createdAt: true,
+                    },
+                },
                 appreciations: {
                     include: {
                         user: {
@@ -106,6 +119,13 @@ router.get('/u/:username/:plantSlug', async (req, res) => {
                 careStreak,
                 daysThriving,
                 badge,
+                healthTrackingPhotos: plant.trackingUpdates
+                    .filter((tracking) => tracking.photoUrl)
+                    .map((tracking) => ({
+                    id: tracking.id,
+                    photoUrl: tracking.photoUrl,
+                    createdAt: tracking.createdAt,
+                })),
                 appreciations: {
                     count: plant.appreciations.length,
                     users: plant.appreciations.map((a) => a.user),

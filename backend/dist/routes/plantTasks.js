@@ -82,10 +82,6 @@ router.get('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, async (req, res)
         if (taskKey) {
             whereClause.taskKey = taskKey.toString();
         }
-        if (completed !== undefined) {
-            const isCompleted = completed === 'true';
-            whereClause.lastCompletedOn = isCompleted ? { not: null } : null;
-        }
         const [tasks, totalCount] = await Promise.all([
             prisma_1.prisma.plantTask.findMany({
                 where: whereClause,
@@ -233,9 +229,6 @@ router.put('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, valid
             updateData.frequencyDays = validatedData.frequencyDays;
         if (validatedData.nextDueOn !== undefined)
             updateData.nextDueOn = new Date(validatedData.nextDueOn);
-        if (validatedData.lastCompletedOn !== undefined) {
-            updateData.lastCompletedOn = validatedData.lastCompletedOn ? new Date(validatedData.lastCompletedOn) : null;
-        }
         if (validatedData.active !== undefined)
             updateData.active = validatedData.active;
         const updatedTask = await prisma_1.prisma.plantTask.update({
@@ -332,13 +325,13 @@ router.post('/:taskId/complete', jwtAuth_1.authenticateJWT, checkPlantOwnership,
                 error: 'Task not found',
             });
         }
-        const completionTime = new Date();
-        const nextDueOn = new Date(completionTime);
-        nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nextDueOn = new Date(today);
+        nextDueOn.setDate(today.getDate() + task.frequencyDays);
         const updatedTask = await prisma_1.prisma.plantTask.update({
             where: { id: taskId },
             data: {
-                lastCompletedOn: new Date(),
                 nextDueOn,
             },
             include: {

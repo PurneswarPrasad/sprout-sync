@@ -26,7 +26,6 @@ interface PlantTask {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 
@@ -138,9 +137,9 @@ const HomePage: React.FC = () => {
     }
   }, [user]);
 
-  // Refresh plants when navigating from AddPlantPage
+  // Refresh plants when navigating from AddPlantPage or after task update
   useEffect(() => {
-    if (location.state?.plantCreated) {
+    if (location.state?.plantCreated || location.state?.taskUpdated) {
       fetchPlants();
       // Clear the state to prevent re-fetching
       navigate(location.pathname, { replace: true });
@@ -219,14 +218,7 @@ const HomePage: React.FC = () => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
     
-    // Check if task was completed today
-    const isCompletedToday = task.lastCompletedOn ? 
-      Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-    
-    // If task was completed today, show "Done"
-    if (isCompletedToday) {
-      return { status: 'completed', text: 'Done', color: 'text-green-600' };
-    }
+    // Removed: lastCompletedOn tracking - no "completed today" check
     
     // Calculate days until due for display purposes
     const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -373,10 +365,6 @@ const HomePage: React.FC = () => {
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
           
-          // Check if task was completed today
-          const isCompleted = task.lastCompletedOn ? 
-            Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-          
           // Only include tasks that are due today (dueDate === today)
           if (dueDate.getTime() === today.getTime()) {
             const status = getTaskStatus(task);
@@ -385,7 +373,7 @@ const HomePage: React.FC = () => {
               task,
               plant,
               status,
-              isCompleted
+              isCompleted: false
             };
           }
           return null;
@@ -407,10 +395,6 @@ const HomePage: React.FC = () => {
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           const dueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
           
-          // Check if task was completed today
-          const isCompleted = task.lastCompletedOn ? 
-            Math.abs(new Date(task.lastCompletedOn).getTime() - now.getTime()) < 24 * 60 * 60 * 1000 : false;
-          
           // Only include tasks that are overdue (dueDate < today)
           if (dueDate < today) {
             const status = getTaskStatus(task);
@@ -419,7 +403,7 @@ const HomePage: React.FC = () => {
               task,
               plant,
               status,
-              isCompleted
+              isCompleted: false
             };
           }
           return null;
@@ -432,18 +416,8 @@ const HomePage: React.FC = () => {
   const totalPlants = plants.length;
   const todaysTasksCount = getTodaysTasks().filter(({ isCompleted }) => !isCompleted).length;
   const overdueTasksCount = getOverdueTasks().filter(({ isCompleted }) => !isCompleted).length;
-  const completedTasksCount = plants.reduce((total, plant) => {
-    const completed = plant.tasks.filter(task => {
-      if (!task.active) return false;
-      if (!task.lastCompletedOn) return false;
-      
-      // A task is considered completed only if it was completed today
-      const now = new Date();
-      const lastCompleted = new Date(task.lastCompletedOn);
-      return Math.abs(lastCompleted.getTime() - now.getTime()) < 24 * 60 * 60 * 1000;
-    });
-    return total + completed.length;
-  }, 0);
+  // Removed: completedTasksCount calculation (no lastCompletedOn tracking)
+  const completedTasksCount = 0;
 
   if (loading) {
     return (

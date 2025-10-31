@@ -11,7 +11,6 @@ exports.createPlantTaskSchema = zod_1.z.object({
 exports.updatePlantTaskSchema = zod_1.z.object({
     frequencyDays: zod_1.z.number().positive('Frequency must be positive').optional(),
     nextDueOn: zod_1.z.string().datetime('Invalid due date').optional(),
-    lastCompletedOn: zod_1.z.string().datetime('Invalid completion date').optional(),
     active: zod_1.z.boolean().optional(),
 });
 exports.plantTaskResponseSchema = zod_1.z.object({
@@ -20,7 +19,6 @@ exports.plantTaskResponseSchema = zod_1.z.object({
     taskKey: zod_1.z.string(),
     frequencyDays: zod_1.z.number(),
     nextDueOn: zod_1.z.date(),
-    lastCompletedOn: zod_1.z.date().nullable(),
     active: zod_1.z.boolean(),
     plant: zod_1.z.object({
         id: zod_1.z.string(),

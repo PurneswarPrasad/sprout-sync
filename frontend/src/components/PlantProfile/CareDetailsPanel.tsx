@@ -5,7 +5,6 @@ interface Task {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
 }
 
 interface CareDetailsPanelProps {

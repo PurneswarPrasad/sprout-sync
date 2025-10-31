@@ -51,28 +51,7 @@ function calculateCareStreak(tasks, createdAt) {
         currentStreak = daysSinceCreation + 1;
     }
     else {
-        let mostRecentCompletion = null;
-        for (const task of activeTasks) {
-            if (task.lastCompletedOn) {
-                const completedDate = new Date(task.lastCompletedOn);
-                if (!mostRecentCompletion || completedDate > mostRecentCompletion) {
-                    mostRecentCompletion = completedDate;
-                }
-            }
-        }
-        if (mostRecentCompletion) {
-            mostRecentCompletion.setHours(0, 0, 0, 0);
-            const daysSinceLastCompletion = Math.floor((today.getTime() - mostRecentCompletion.getTime()) / (1000 * 60 * 60 * 24));
-            if (daysSinceLastCompletion <= 7) {
-                currentStreak = Math.max(1, daysSinceCreation - daysSinceLastCompletion);
-            }
-            else {
-                currentStreak = 1;
-            }
-        }
-        else {
-            currentStreak = 1;
-        }
+        currentStreak = 1;
     }
     return currentStreak;
 }

@@ -14,7 +14,6 @@ export type CreatePlantTaskDTO = z.infer<typeof createPlantTaskSchema>;
 export const updatePlantTaskSchema = z.object({
   frequencyDays: z.number().positive('Frequency must be positive').optional(),
   nextDueOn: z.string().datetime('Invalid due date').optional(),
-  lastCompletedOn: z.string().datetime('Invalid completion date').optional(),
   active: z.boolean().optional(),
 });
 
@@ -27,7 +26,6 @@ export const plantTaskResponseSchema = z.object({
   taskKey: z.string(),
   frequencyDays: z.number(),
   nextDueOn: z.date(),
-  lastCompletedOn: z.date().nullable(),
   active: z.boolean(),
   plant: z.object({
     id: z.string(),

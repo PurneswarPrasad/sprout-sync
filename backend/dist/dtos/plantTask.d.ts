@@ -19,17 +19,14 @@ export type CreatePlantTaskDTO = z.infer<typeof createPlantTaskSchema>;
 export declare const updatePlantTaskSchema: z.ZodObject<{
     frequencyDays: z.ZodOptional<z.ZodNumber>;
     nextDueOn: z.ZodOptional<z.ZodString>;
-    lastCompletedOn: z.ZodOptional<z.ZodString>;
     active: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     frequencyDays?: number | undefined;
     nextDueOn?: string | undefined;
-    lastCompletedOn?: string | undefined;
     active?: boolean | undefined;
 }, {
     frequencyDays?: number | undefined;
     nextDueOn?: string | undefined;
-    lastCompletedOn?: string | undefined;
     active?: boolean | undefined;
 }>;
 export type UpdatePlantTaskDTO = z.infer<typeof updatePlantTaskSchema>;
@@ -39,7 +36,6 @@ export declare const plantTaskResponseSchema: z.ZodObject<{
     taskKey: z.ZodString;
     frequencyDays: z.ZodNumber;
     nextDueOn: z.ZodDate;
-    lastCompletedOn: z.ZodNullable<z.ZodDate>;
     active: z.ZodBoolean;
     plant: z.ZodOptional<z.ZodObject<{
         id: z.ZodString;
@@ -60,7 +56,6 @@ export declare const plantTaskResponseSchema: z.ZodObject<{
     taskKey: string;
     frequencyDays: number;
     nextDueOn: Date;
-    lastCompletedOn: Date | null;
     active: boolean;
     plant?: {
         id: string;
@@ -73,7 +68,6 @@ export declare const plantTaskResponseSchema: z.ZodObject<{
     taskKey: string;
     frequencyDays: number;
     nextDueOn: Date;
-    lastCompletedOn: Date | null;
     active: boolean;
     plant?: {
         id: string;

@@ -28,10 +28,7 @@ router.get('/', authenticateJWT, async (req, res) => {
       whereClause.taskKey = taskKey.toString();
     }
     
-    if (completed !== undefined) {
-      const isCompleted = completed === 'true';
-      whereClause.lastCompletedOn = isCompleted ? { not: null } : null;
-    }
+    // Removed: lastCompletedOn filtering (field no longer exists)
     
     if (startDate) {
       const start = new Date(startDate.toString());
@@ -149,12 +146,16 @@ router.post('/', authenticateJWT, validate(createPlantTaskSchema), async (req, r
       });
     }
     
+    // New tasks should appear in today's tasks - set nextDueOn to today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const task = await prisma.plantTask.create({
       data: {
         plantId: validatedData.plantId,
         taskKey: validatedData.taskKey,
         frequencyDays: validatedData.frequencyDays,
-        nextDueOn: new Date(validatedData.nextDueOn),
+        nextDueOn: today, // New tasks appear in today's tasks
       },
       include: {
         plant: {
@@ -229,9 +230,6 @@ router.put('/:id', authenticateJWT, validate(updatePlantTaskSchema), async (req,
     const updateData: any = {};
     if (validatedData.frequencyDays !== undefined) updateData.frequencyDays = validatedData.frequencyDays;
     if (validatedData.nextDueOn !== undefined) updateData.nextDueOn = new Date(validatedData.nextDueOn);
-    if (validatedData.lastCompletedOn !== undefined) {
-      updateData.lastCompletedOn = validatedData.lastCompletedOn ? new Date(validatedData.lastCompletedOn) : null;
-    }
     if (validatedData.active !== undefined) updateData.active = validatedData.active;
     
     const updatedTask = await prisma.plantTask.update({
@@ -370,14 +368,15 @@ router.post('/:id/complete', authenticateJWT, async (req, res) => {
       });
     }
     
-    // Calculate next due date
-    const nextDueOn = new Date();
-    nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
+    // Calculate next due date: today at 00:00 + frequencyDays
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextDueOn = new Date(today);
+    nextDueOn.setDate(today.getDate() + task.frequencyDays);
     
     const updatedTask = await prisma.plantTask.update({
       where: { id: taskId },
       data: {
-        lastCompletedOn: new Date(),
         nextDueOn,
       },
       include: {
@@ -436,7 +435,6 @@ router.get('/upcoming', authenticateJWT, async (req, res) => {
           gte: now,
           lte: futureDate,
         },
-        lastCompletedOn: null,
         active: true,
       },
       include: {
@@ -483,7 +481,6 @@ router.get('/overdue', authenticateJWT, async (req, res) => {
         nextDueOn: {
           lt: now,
         },
-        lastCompletedOn: null,
         active: true,
       },
       include: {

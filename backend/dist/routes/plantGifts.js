@@ -232,7 +232,6 @@ router.post('/accept', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(accep
                         taskKey: task.taskKey,
                         frequencyDays: task.frequencyDays,
                         nextDueOn: task.nextDueOn,
-                        lastCompletedOn: task.lastCompletedOn,
                         active: task.active,
                     })),
                 });

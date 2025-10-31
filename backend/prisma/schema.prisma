@@ -79,7 +79,6 @@ model PlantTask {
   taskKey                String
   frequencyDays          Int
   nextDueOn              DateTime
-  lastCompletedOn        DateTime?
   active                 Boolean   @default(true)
   googleCalendarEventId  String?   // Store Google Calendar event ID for updates
 }

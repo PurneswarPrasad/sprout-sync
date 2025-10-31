@@ -16,7 +16,6 @@ interface PlantCatalogCardProps {
       taskKey: string;
       frequencyDays: number;
       nextDueOn: string;
-      lastCompletedOn: string | null;
     }>;
     healthScore: number;
     careLevel: any;

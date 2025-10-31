@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Leaf } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 
 interface PlantTask {
@@ -108,11 +108,7 @@ export const PlantTasksModal: React.FC<PlantTasksModalProps> = ({
           {tasks.map((task) => {
             const Icon = task.icon;
             const today = new Date();
-            const taskDate = new Date(task.scheduledDate.getFullYear(), task.scheduledDate.getMonth(), task.scheduledDate.getDate());
-            const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const isOverdue = taskDate < todayDate && !task.completed;
             const isToday = isSameDay(task.scheduledDate, today);
-            const canComplete = isOverdue || isToday;
 
             return (
               <div key={task.id} className="bg-gray-50 rounded-lg p-3">
@@ -131,26 +127,7 @@ export const PlantTasksModal: React.FC<PlantTasksModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center">
-                    {canComplete ? (
-                      <button
-                        onClick={() => {
-                          onClose();
-                          onTaskClick(task);
-                        }}
-                        className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm transition-colors ${
-                          isOverdue
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                        }`}
-                      >
-                        <Clock className="w-4 h-4" />
-                        <span>Complete</span>
-                      </button>
-                    ) : (
-                      <span className="text-sm text-gray-500">Future</span>
-                    )}
-                  </div>
+                  {/* Complete buttons removed */}
                 </div>
               </div>
             );

@@ -25,10 +25,6 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
         if (taskKey) {
             whereClause.taskKey = taskKey.toString();
         }
-        if (completed !== undefined) {
-            const isCompleted = completed === 'true';
-            whereClause.lastCompletedOn = isCompleted ? { not: null } : null;
-        }
         if (startDate) {
             const start = new Date(startDate.toString());
             whereClause.nextDueOn = { ...whereClause.nextDueOn, gte: start };
@@ -205,9 +201,6 @@ router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.up
             updateData.frequencyDays = validatedData.frequencyDays;
         if (validatedData.nextDueOn !== undefined)
             updateData.nextDueOn = new Date(validatedData.nextDueOn);
-        if (validatedData.lastCompletedOn !== undefined) {
-            updateData.lastCompletedOn = validatedData.lastCompletedOn ? new Date(validatedData.lastCompletedOn) : null;
-        }
         if (validatedData.active !== undefined)
             updateData.active = validatedData.active;
         const updatedTask = await prisma_1.prisma.plantTask.update({
@@ -329,12 +322,13 @@ router.post('/:id/complete', jwtAuth_1.authenticateJWT, async (req, res) => {
                 error: 'Task not found',
             });
         }
-        const nextDueOn = new Date();
-        nextDueOn.setDate(nextDueOn.getDate() + task.frequencyDays);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nextDueOn = new Date(today);
+        nextDueOn.setDate(today.getDate() + task.frequencyDays);
         const updatedTask = await prisma_1.prisma.plantTask.update({
             where: { id: taskId },
             data: {
-                lastCompletedOn: new Date(),
                 nextDueOn,
             },
             include: {
@@ -387,7 +381,6 @@ router.get('/upcoming', jwtAuth_1.authenticateJWT, async (req, res) => {
                     gte: now,
                     lte: futureDate,
                 },
-                lastCompletedOn: null,
                 active: true,
             },
             include: {
@@ -431,7 +424,6 @@ router.get('/overdue', jwtAuth_1.authenticateJWT, async (req, res) => {
                 nextDueOn: {
                     lt: now,
                 },
-                lastCompletedOn: null,
                 active: true,
             },
             include: {

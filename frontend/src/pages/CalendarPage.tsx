@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Droplets, Sun, Scissors, Zap, Clock } from 'lucide-react';
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval as eachMonthDay, setHours, addMonths, subMonths } from 'date-fns';
 import { plantsAPI } from '../services/api';
@@ -21,7 +22,6 @@ interface PlantTask {
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 
@@ -81,6 +81,8 @@ const getPlantDisplayName = (plant: Plant): string => {
 };
 
 export function CalendarPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -114,6 +116,15 @@ export function CalendarPage() {
   useEffect(() => {
     fetchPlants();
   }, []);
+
+  // Refresh plants when task is updated
+  useEffect(() => {
+    if (location.state?.taskUpdated) {
+      fetchPlants();
+      // Clear the state to prevent re-fetching
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (plants.length > 0) {
@@ -151,17 +162,13 @@ export function CalendarPage() {
             taskDate.setDate(taskDate.getDate() + (i * task.frequencyDays));
 
             if (taskDate >= startDate && taskDate <= endDate) {
-              // Check if this specific task instance was completed
-              const isThisTaskCompleted = task.lastCompletedOn ?
-                isSameDay(new Date(task.lastCompletedOn), taskDate) : false;
-
               calendarTasks.push({
                 id: `${task.id}-${i}`,
                 plantName: getPlantDisplayName(plant),
                 plantId: plant.id,
                 taskKey: task.taskKey,
                 scheduledDate: taskDate,
-                completed: isThisTaskCompleted,
+                completed: false, // Removed: lastCompletedOn tracking
                 icon: getTaskIcon(task.taskKey),
                 color: getTaskColor(task.taskKey),
                 taskId: task.id,

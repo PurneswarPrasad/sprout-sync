@@ -376,47 +376,15 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                             console.error('Available templates:', Array.from(templateMap.keys()));
                             throw new Error(`Invalid task key: ${taskKey}. Available keys: ${Array.from(templateMap.keys()).join(', ')}`);
                         }
-                        let lastCompletedOn = null;
-                        const lastCompletedKey = `last${taskKey.charAt(0).toUpperCase() + taskKey.slice(1)}`;
-                        if (lastCompletedKey in task && task[lastCompletedKey]) {
-                            lastCompletedOn = new Date(task[lastCompletedKey]);
-                            lastCompletedOn.setHours(0, 0, 0, 0);
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            if (lastCompletedOn > today) {
-                                console.warn(`Last completed date for ${taskKey} is in the future, setting to today`);
-                                lastCompletedOn = new Date(today);
-                            }
-                        }
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-                        let nextDueOn;
-                        if (lastCompletedOn) {
-                            const calculatedNextDue = new Date(lastCompletedOn);
-                            calculatedNextDue.setDate(calculatedNextDue.getDate() + task.frequency);
-                            console.log(`Task ${taskKey}: lastCompletedOn=${lastCompletedOn.toISOString().split('T')[0]}, frequency=${task.frequency}, calculatedNextDue=${calculatedNextDue.toISOString().split('T')[0]}, today=${today.toISOString().split('T')[0]}`);
-                            if (calculatedNextDue.getTime() === today.getTime()) {
-                                nextDueOn = new Date(today);
-                                console.log(`Task ${taskKey}: Task is due today`);
-                            }
-                            else if (calculatedNextDue < today) {
-                                nextDueOn = calculatedNextDue;
-                                console.log(`Task ${taskKey}: Task is overdue (was due on ${nextDueOn.toISOString().split('T')[0]})`);
-                            }
-                            else {
-                                nextDueOn = calculatedNextDue;
-                                console.log(`Task ${taskKey}: Task is due in the future on ${nextDueOn.toISOString().split('T')[0]}`);
-                            }
-                        }
-                        else {
-                            nextDueOn = new Date(today);
-                            console.log(`Task ${taskKey}: No last completed date, task is due today`);
-                        }
+                        const nextDueOn = new Date(today);
+                        nextDueOn.setDate(today.getDate() + task.frequency);
+                        console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]}`);
                         return {
                             taskKey,
                             frequencyDays: task.frequency,
                             nextDueOn,
-                            lastCompletedOn,
                         };
                     }) : [],
                 },
@@ -541,6 +509,17 @@ router.put('/:id', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.up
                     },
                 },
                 tasks: true,
+                photos: {
+                    orderBy: {
+                        takenAt: 'desc',
+                    },
+                },
+                _count: {
+                    select: {
+                        notes: true,
+                        photos: true,
+                    },
+                },
             },
         });
         res.json({

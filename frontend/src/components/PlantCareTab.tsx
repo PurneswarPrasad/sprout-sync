@@ -1,13 +1,12 @@
-import React from 'react';
-import { Droplets, Scissors, Sun, Leaf, Edit, CheckCircle, ClockAlert } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import React, { useState } from 'react';
+import { Droplets, Scissors, Sun, Leaf, Edit, ClockAlert, Save, X } from 'lucide-react';
+import { plantsAPI } from '../services/api';
 
 interface PlantTask {
   id: string;
   taskKey: string;
   frequencyDays: number;
   nextDueOn: string;
-  lastCompletedOn: string | null;
   active: boolean;
 }
 
@@ -42,6 +41,7 @@ interface Plant {
 interface PlantCareTabProps {
   plant: Plant;
   onMarkComplete: (task: PlantTask) => void;
+  onTaskUpdated?: () => void;
 }
 
 const getFrequencyText = (frequencyDays: number) => {
@@ -91,16 +91,59 @@ const getTaskName = (taskKey: string) => {
   }
 };
 
-export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
+export function PlantCareTab({ plant, onMarkComplete, onTaskUpdated }: PlantCareTabProps) {
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editFrequency, setEditFrequency] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleEditClick = (task: PlantTask) => {
+    setEditingTaskId(task.id);
+    setEditFrequency(task.frequencyDays.toString());
+    setError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTaskId(null);
+    setEditFrequency('');
+    setError(null);
+  };
+
+  const handleSaveTask = async (task: PlantTask) => {
+    const newFrequency = parseInt(editFrequency, 10);
+    
+    // Validate input
+    if (isNaN(newFrequency) || newFrequency <= 0) {
+      setError('Frequency must be a positive number');
+      return;
+    }
+
+    setIsUpdating(true);
+    setError(null);
+
+    try {
+      await plantsAPI.updateTask(plant.id, task.id, {
+        frequencyDays: newFrequency,
+      });
+
+      // Clear editing state
+      setEditingTaskId(null);
+      setEditFrequency('');
+      
+      // Refresh plant data
+      if (onTaskUpdated) {
+        onTaskUpdated();
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      setError('Failed to update task. Please try again.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const getOverdueTasks = () => {
     return plant.tasks.filter(task => {
-      // Check if task was completed today
-      const isCompletedToday = task.lastCompletedOn ?
-        Math.abs(new Date(task.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-      // Skip if completed today
-      if (isCompletedToday) return false;
-
       // Check if task is overdue (nextDueOn < today)
       const nextDue = new Date(task.nextDueOn);
       const today = new Date();
@@ -113,17 +156,7 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
 
   const getTodayTasks = () => {
     return plant.tasks.filter(task => {
-      // Check if task was completed today
-      const isCompletedToday = task.lastCompletedOn ?
-        Math.abs(new Date(task.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-      // Skip if completed today
-      if (isCompletedToday) return false;
-
-      // For daily tasks, always show if not completed today
-      if (task.frequencyDays === 1) return true;
-
-      // For other frequencies, check if due today (exactly today, not tomorrow)
+      // Check if task is due today (exactly today, not tomorrow)
       const nextDue = new Date(task.nextDueOn);
       const today = new Date();
       
@@ -131,7 +164,8 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
       const nextDueDate = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
       const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       
-      return nextDueDate.getTime() === todayDate.getTime(); // Only tasks due exactly today
+      // Only show tasks that are due exactly today (including daily tasks that haven't been completed today)
+      return nextDueDate.getTime() === todayDate.getTime();
     });
   };
 
@@ -184,27 +218,8 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
   };
 
   const getHistoryTasks = () => {
-    const today = new Date();
-
-    return plant.tasks
-      .filter(task => task.lastCompletedOn)
-      .map(task => {
-        const completedDate = new Date(task.lastCompletedOn!);
-        const daysSinceCompleted = differenceInDays(today, completedDate);
-
-        let timeText = '';
-        if (daysSinceCompleted === 0) {
-          timeText = 'Completed today';
-        } else if (daysSinceCompleted === 1) {
-          timeText = 'Completed yesterday';
-        } else {
-          timeText = `Completed ${daysSinceCompleted} days back`;
-        }
-
-        return { ...task, timeText, daysSinceCompleted };
-      })
-      .sort((a, b) => b.daysSinceCompleted - a.daysSinceCompleted) // Most recent first
-      .slice(0, 3); // Limit to 3 tasks
+    // History tracking removed - no lastCompletedOn field
+    return [];
   };
 
   return (
@@ -213,36 +228,64 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
       <div className="overflow-x-auto scrollbar-hide">
         <div className="flex gap-4 pb-2" style={{ width: 'max-content' }}>
           {/* Water */}
-          {plant.tasks.find(t => t.taskKey === 'watering') && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Droplets className="w-5 h-5 text-blue-600" />
+          {plant.tasks.find(t => t.taskKey === 'watering') && (() => {
+            const waterTask = plant.tasks.find(t => t.taskKey === 'watering')!;
+            const isEditing = editingTaskId === waterTask.id;
+            return (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Droplets className="w-5 h-5 text-blue-600" />
+                  </div>
+                  {!isEditing ? (
+                    <button 
+                      onClick={() => handleEditClick(waterTask)}
+                      className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleSaveTask(waterTask)}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4 text-emerald-600" />
+                      </button>
+                      <button 
+                        onClick={handleCancelEdit}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                  <Edit className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Water</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {getFrequencyText(plant.tasks.find(t => t.taskKey === 'watering')!.frequencyDays)}
-              </p>
+                <h3 className="font-semibold text-gray-800 mb-1">Water</h3>
+                {isEditing ? (
+                  <div className="mb-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={editFrequency}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                      disabled={isUpdating}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Days"
+                    />
+                    {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(waterTask.frequencyDays)}
+                  </p>
+                )}
               <p className="text-sm text-gray-600">
                 {(() => {
-                  const waterTask = plant.tasks.find(t => t.taskKey === 'watering');
-                  // Check if task was completed today (within 24 hours)
-                  const isCompletedToday = waterTask!.lastCompletedOn ?
-                    Math.abs(new Date(waterTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                  if (isCompletedToday) return (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Done for today</span>
-                    </div>
-                  );
-
                   const now = new Date();
-                  const nextDue = new Date(waterTask!.nextDueOn);
+                  const nextDue = new Date(waterTask.nextDueOn);
                   const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   if (daysUntilDue < 0) return (
@@ -257,39 +300,70 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
                 })()}
               </p>
             </div>
-          )}
+            );
+          })()}
 
           {/* Fertilize */}
-          {plant.tasks.find(t => t.taskKey === 'fertilizing') && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <Leaf className="w-5 h-5 text-green-600" />
+          {plant.tasks.find(t => t.taskKey === 'fertilizing') && (() => {
+            const fertilizeTask = plant.tasks.find(t => t.taskKey === 'fertilizing')!;
+            const isEditing = editingTaskId === fertilizeTask.id;
+            return (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Leaf className="w-5 h-5 text-green-600" />
+                  </div>
+                  {!isEditing ? (
+                    <button 
+                      onClick={() => handleEditClick(fertilizeTask)}
+                      className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleSaveTask(fertilizeTask)}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4 text-emerald-600" />
+                      </button>
+                      <button 
+                        onClick={handleCancelEdit}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                  <Edit className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Fertilize</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {getFrequencyText(plant.tasks.find(t => t.taskKey === 'fertilizing')!.frequencyDays)}
-              </p>
+                <h3 className="font-semibold text-gray-800 mb-1">Fertilize</h3>
+                {isEditing ? (
+                  <div className="mb-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={editFrequency}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                      disabled={isUpdating}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Days"
+                    />
+                    {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(fertilizeTask.frequencyDays)}
+                  </p>
+                )}
               <p className="text-sm text-gray-600">
                 {(() => {
-                  const fertilizeTask = plant.tasks.find(t => t.taskKey === 'fertilizing');
-                  // Check if task was completed today (within 24 hours)
-                  const isCompletedToday = fertilizeTask!.lastCompletedOn ?
-                    Math.abs(new Date(fertilizeTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                  if (isCompletedToday) return (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Done for today</span>
-                    </div>
-                  );
+                  // Removed: lastCompletedOn tracking
 
                   const now = new Date();
-                  const nextDue = new Date(fertilizeTask!.nextDueOn);
+                  const nextDue = new Date(fertilizeTask.nextDueOn);
                   const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   if (daysUntilDue < 0) return (
@@ -304,39 +378,68 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
                 })()}
               </p>
             </div>
-          )}
+            );
+          })()}
 
           {/* Prune */}
-          {plant.tasks.find(t => t.taskKey === 'pruning') && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                  <Scissors className="w-5 h-5 text-pink-600" />
+          {plant.tasks.find(t => t.taskKey === 'pruning') && (() => {
+            const pruneTask = plant.tasks.find(t => t.taskKey === 'pruning')!;
+            const isEditing = editingTaskId === pruneTask.id;
+            return (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                    <Scissors className="w-5 h-5 text-pink-600" />
+                  </div>
+                  {!isEditing ? (
+                    <button 
+                      onClick={() => handleEditClick(pruneTask)}
+                      className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleSaveTask(pruneTask)}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4 text-emerald-600" />
+                      </button>
+                      <button 
+                        onClick={handleCancelEdit}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                  <Edit className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Prune</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {getFrequencyText(plant.tasks.find(t => t.taskKey === 'pruning')!.frequencyDays)}
-              </p>
+                <h3 className="font-semibold text-gray-800 mb-1">Prune</h3>
+                {isEditing ? (
+                  <div className="mb-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={editFrequency}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                      disabled={isUpdating}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Days"
+                    />
+                    {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(pruneTask.frequencyDays)}
+                  </p>
+                )}
               <p className="text-sm text-gray-600">
                 {(() => {
-                  const pruneTask = plant.tasks.find(t => t.taskKey === 'pruning');
-                  // Check if task was completed today (within 24 hours)
-                  const isCompletedToday = pruneTask!.lastCompletedOn ?
-                    Math.abs(new Date(pruneTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                  if (isCompletedToday) return (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Done for today</span>
-                    </div>
-                  );
-
                   const now = new Date();
-                  const nextDue = new Date(pruneTask!.nextDueOn);
+                  const nextDue = new Date(pruneTask.nextDueOn);
                   const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   if (daysUntilDue < 0) return (
@@ -351,39 +454,68 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
                 })()}
               </p>
             </div>
-          )}
+            );
+          })()}
 
           {/* Spray */}
-          {plant.tasks.find(t => t.taskKey === 'spraying') && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Droplets className="w-5 h-5 text-orange-600" />
+          {plant.tasks.find(t => t.taskKey === 'spraying') && (() => {
+            const sprayTask = plant.tasks.find(t => t.taskKey === 'spraying')!;
+            const isEditing = editingTaskId === sprayTask.id;
+            return (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Droplets className="w-5 h-5 text-orange-600" />
+                  </div>
+                  {!isEditing ? (
+                    <button 
+                      onClick={() => handleEditClick(sprayTask)}
+                      className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleSaveTask(sprayTask)}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4 text-emerald-600" />
+                      </button>
+                      <button 
+                        onClick={handleCancelEdit}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                  <Edit className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Spray</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {getFrequencyText(plant.tasks.find(t => t.taskKey === 'spraying')!.frequencyDays)}
-              </p>
+                <h3 className="font-semibold text-gray-800 mb-1">Spray</h3>
+                {isEditing ? (
+                  <div className="mb-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={editFrequency}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                      disabled={isUpdating}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Days"
+                    />
+                    {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(sprayTask.frequencyDays)}
+                  </p>
+                )}
               <p className="text-sm text-gray-600">
                 {(() => {
-                  const sprayTask = plant.tasks.find(t => t.taskKey === 'spraying');
-                  // Check if task was completed today (within 24 hours)
-                  const isCompletedToday = sprayTask!.lastCompletedOn ?
-                    Math.abs(new Date(sprayTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                  if (isCompletedToday) return (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Done for today</span>
-                    </div>
-                  );
-
                   const now = new Date();
-                  const nextDue = new Date(sprayTask!.nextDueOn);
+                  const nextDue = new Date(sprayTask.nextDueOn);
                   const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   if (daysUntilDue < 0) return (
@@ -398,39 +530,68 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
                 })()}
               </p>
             </div>
-          )}
+            );
+          })()}
 
           {/* Rotate */}
-          {plant.tasks.find(t => t.taskKey === 'sunlightRotation') && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Sun className="w-5 h-5 text-purple-600" />
+          {plant.tasks.find(t => t.taskKey === 'sunlightRotation') && (() => {
+            const rotateTask = plant.tasks.find(t => t.taskKey === 'sunlightRotation')!;
+            const isEditing = editingTaskId === rotateTask.id;
+            return (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 w-48">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Sun className="w-5 h-5 text-purple-600" />
+                  </div>
+                  {!isEditing ? (
+                    <button 
+                      onClick={() => handleEditClick(rotateTask)}
+                      className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleSaveTask(rotateTask)}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4 text-emerald-600" />
+                      </button>
+                      <button 
+                        onClick={handleCancelEdit}
+                        disabled={isUpdating}
+                        className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                  <Edit className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Rotate</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {getFrequencyText(plant.tasks.find(t => t.taskKey === 'sunlightRotation')!.frequencyDays)}
-              </p>
+                <h3 className="font-semibold text-gray-800 mb-1">Rotate</h3>
+                {isEditing ? (
+                  <div className="mb-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={editFrequency}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                      disabled={isUpdating}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Days"
+                    />
+                    {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getFrequencyText(rotateTask.frequencyDays)}
+                  </p>
+                )}
               <p className="text-sm text-gray-600">
                 {(() => {
-                  const rotateTask = plant.tasks.find(t => t.taskKey === 'sunlightRotation');
-                  // Check if task was completed today (within 24 hours)
-                  const isCompletedToday = rotateTask!.lastCompletedOn ?
-                    Math.abs(new Date(rotateTask!.lastCompletedOn).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000 : false;
-
-                  if (isCompletedToday) return (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-600 font-medium">Done for today</span>
-                    </div>
-                  );
-
                   const now = new Date();
-                  const nextDue = new Date(rotateTask!.nextDueOn);
+                  const nextDue = new Date(rotateTask.nextDueOn);
                   const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
                   if (daysUntilDue < 0) return (
@@ -445,7 +606,8 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
                 })()}
               </p>
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
@@ -555,17 +717,8 @@ export function PlantCareTab({ plant, onMarkComplete }: PlantCareTabProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              {getHistoryTasks().map((task) => (
-                <div key={task.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                    {getTaskIcon(task.taskKey)}
-                    <span className="font-medium text-gray-800 text-sm sm:text-base truncate">{getTaskName(task.taskKey)}</span>
-                  </div>
-                  <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">
-                    {task.timeText}
-                  </span>
-                </div>
-              ))}
+              {/* History tracking removed - no lastCompletedOn field */}
+              <p className="text-gray-500 text-sm">Task history tracking is no longer available.</p>
             </div>
           )}
         </div>

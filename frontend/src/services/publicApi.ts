@@ -34,7 +34,6 @@ export interface PublicPlantProfile {
     taskKey: string;
     frequencyDays: number;
     nextDueOn: string;
-    lastCompletedOn: string | null;
   }>;
   healthScore: number;
   careStreak: number;
@@ -99,7 +98,6 @@ export interface PublicGardenProfile {
       taskKey: string;
       frequencyDays: number;
       nextDueOn: string;
-      lastCompletedOn: string | null;
     }>;
     healthScore: number;
     careLevel: any;

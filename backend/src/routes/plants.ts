@@ -362,59 +362,18 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
                 throw new Error(`Invalid task key: ${taskKey}. Available keys: ${Array.from(templateMap.keys()).join(', ')}`);
               }
               
-              // Extract last completed date based on task type
-              let lastCompletedOn: Date | null = null;
-              const lastCompletedKey = `last${taskKey.charAt(0).toUpperCase() + taskKey.slice(1)}`;
-              if (lastCompletedKey in task && task[lastCompletedKey]) {
-                lastCompletedOn = new Date(task[lastCompletedKey]);
-                // Set time to 00:00 for last completed date
-                lastCompletedOn.setHours(0, 0, 0, 0);
-                
-                // Validate that last completed date is not in the future
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (lastCompletedOn > today) {
-                  console.warn(`Last completed date for ${taskKey} is in the future, setting to today`);
-                  lastCompletedOn = new Date(today);
-                }
-              }
-              
-              // Calculate nextDueOn based on whether task is already due
+              // New tasks should appear in today's tasks - set nextDueOn to today
               const today = new Date();
-              today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+              today.setHours(0, 0, 0, 0); // Set to start of day
               
-              let nextDueOn: Date;
+              const nextDueOn = new Date(today);
               
-              if (lastCompletedOn) {
-                // Calculate when the next task should be due based on last completion
-                const calculatedNextDue = new Date(lastCompletedOn);
-                calculatedNextDue.setDate(calculatedNextDue.getDate() + task.frequency);
-                
-                console.log(`Task ${taskKey}: lastCompletedOn=${lastCompletedOn.toISOString().split('T')[0]}, frequency=${task.frequency}, calculatedNextDue=${calculatedNextDue.toISOString().split('T')[0]}, today=${today.toISOString().split('T')[0]}`);
-                
-                // If the calculated next due date is today, the task is due today
-                // If it's in the past, keep the original due date to show it as overdue
-                if (calculatedNextDue.getTime() === today.getTime()) {
-                  nextDueOn = new Date(today); // Due today
-                  console.log(`Task ${taskKey}: Task is due today`);
-                } else if (calculatedNextDue < today) {
-                  nextDueOn = calculatedNextDue; // Keep original due date to show as overdue
-                  console.log(`Task ${taskKey}: Task is overdue (was due on ${nextDueOn.toISOString().split('T')[0]})`);
-                } else {
-                  nextDueOn = calculatedNextDue; // Due in the future
-                  console.log(`Task ${taskKey}: Task is due in the future on ${nextDueOn.toISOString().split('T')[0]}`);
-                }
-              } else {
-                // No last completed date, task is due today
-                nextDueOn = new Date(today);
-                console.log(`Task ${taskKey}: No last completed date, task is due today`);
-              }
+              console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]} (appears in today's tasks)`);
               
               return {
                 taskKey,
                 frequencyDays: task.frequency,
                 nextDueOn,
-                lastCompletedOn,
               };
             }) : [],
         },
