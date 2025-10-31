@@ -61,7 +61,7 @@
       ]
     },
     {
-      "source": "/pwa-192x192.png",
+      "source": "/sproutsync-pwa-192x192.png",
       "headers": [
         {
           "key": "Cache-Control",
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "source": "/pwa-512x512.png",
+      "source": "/sproutsync-pwa-512x512.png",
       "headers": [
         {
           "key": "Cache-Control",

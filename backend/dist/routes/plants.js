@@ -123,6 +123,10 @@ const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
             }, 'Invalid date format'),
         }).optional(),
     }).optional(),
+    aiSuggestedTasks: zod_1.z.array(zod_1.z.object({
+        key: zod_1.z.string().min(1, 'Task key is required'),
+        frequency: zod_1.z.number().positive('Frequency must be positive'),
+    })).optional(),
 });
 router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
     try {
@@ -161,6 +165,15 @@ router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
                 tasks: {
                     include: {
                         plant: true,
+                    },
+                },
+                suggestedTasks: {
+                    select: {
+                        taskKey: true,
+                        frequencyDays: true,
+                    },
+                    orderBy: {
+                        taskKey: 'asc',
                     },
                 },
                 photos: {
@@ -257,6 +270,15 @@ router.get('/gifted', jwtAuth_1.authenticateJWT, async (req, res) => {
                         plant: true,
                     },
                 },
+                suggestedTasks: {
+                    select: {
+                        taskKey: true,
+                        frequencyDays: true,
+                    },
+                    orderBy: {
+                        taskKey: 'asc',
+                    },
+                },
                 photos: {
                     orderBy: {
                         takenAt: 'desc',
@@ -325,6 +347,15 @@ router.get('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                         plant: true,
                     },
                 },
+                suggestedTasks: {
+                    select: {
+                        taskKey: true,
+                        frequencyDays: true,
+                    },
+                    orderBy: {
+                        taskKey: 'asc',
+                    },
+                },
                 notes: {
                     orderBy: {
                         createdAt: 'desc',
@@ -389,6 +420,20 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
             console.log('Created default task templates:', taskTemplates.map(t => t.key));
         }
         const templateMap = new Map(taskTemplates.map(t => [t.key, t]));
+        const aiSuggestedTasks = Array.isArray(validatedData.aiSuggestedTasks) ? validatedData.aiSuggestedTasks : [];
+        const suggestedFrequencyMap = new Map();
+        aiSuggestedTasks.forEach((task) => {
+            if (!task?.key || typeof task.frequency !== 'number')
+                return;
+            if (!templateMap.has(task.key))
+                return;
+            const frequency = Math.max(1, Math.round(task.frequency));
+            suggestedFrequencyMap.set(task.key, frequency);
+        });
+        const suggestionsToCreate = taskTemplates.map(template => ({
+            taskKey: template.key,
+            frequencyDays: suggestedFrequencyMap.get(template.key) ?? template.defaultFrequencyDays,
+        }));
         const plantName = validatedData.petName || validatedData.commonName || validatedData.botanicalName;
         const slug = await (0, slugify_1.generatePlantSlug)(plantName, userId);
         const plant = await prisma_1.prisma.plant.create({
@@ -407,6 +452,9 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                 petFriendliness: validatedData.petFriendliness || null,
                 commonPestsAndDiseases: validatedData.commonPestsAndDiseases || null,
                 preventiveMeasures: validatedData.preventiveMeasures || null,
+                suggestedTasks: {
+                    create: suggestionsToCreate,
+                },
                 tasks: {
                     create: validatedData.careTasks ? Object.entries(validatedData.careTasks)
                         .filter(([, taskData]) => taskData)
@@ -439,6 +487,11 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                     },
                 },
                 tasks: {
+                    orderBy: {
+                        taskKey: 'asc',
+                    },
+                },
+                suggestedTasks: {
                     orderBy: {
                         taskKey: 'asc',
                     },

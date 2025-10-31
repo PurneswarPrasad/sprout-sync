@@ -41,7 +41,7 @@ const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const taskSyncService_1 = require("../services/taskSyncService");
-const router = (0, express_1.Router)();
+const router = (0, express_1.Router)({ mergeParams: true });
 exports.plantTasksRouter = router;
 const checkPlantOwnership = async (req, res, next) => {
     try {
@@ -305,9 +305,12 @@ router.delete('/:taskId', jwtAuth_1.authenticateJWT, checkPlantOwnership, async 
                 error: 'Task not found',
             });
         }
-        taskSyncService_1.taskSyncService.removeTaskFromCalendar(taskId).catch(error => {
+        try {
+            await taskSyncService_1.taskSyncService.removeTaskFromCalendar(taskId);
+        }
+        catch (error) {
             console.error('Error removing task from calendar:', error);
-        });
+        }
         await prisma_1.prisma.plantTask.delete({
             where: { id: taskId },
         });

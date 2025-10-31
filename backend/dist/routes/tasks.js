@@ -279,9 +279,12 @@ router.delete('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                 error: 'Task not found',
             });
         }
-        taskSyncService_1.taskSyncService.removeTaskFromCalendar(taskId).catch(error => {
+        try {
+            await taskSyncService_1.taskSyncService.removeTaskFromCalendar(taskId);
+        }
+        catch (error) {
             console.error('Error removing task from calendar:', error);
-        });
+        }
         await prisma_1.prisma.plantTask.delete({
             where: { id: taskId },
         });
