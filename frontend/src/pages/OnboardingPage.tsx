@@ -341,53 +341,21 @@ const OnboardingPage: React.FC = () => {
           <div className="w-10"></div> {/* Spacer for balance */}
         </div>
 
-        {/* Progress indicator */}
-        <div className="mb-8">
-          <div className="flex justify-center space-x-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((step) => (
-              <div
-                key={step}
-                className={`w-8 h-2 rounded-full transition-colors duration-300 ${
-                  step <= currentStep ? 'bg-green-500' : 'bg-gray-200'
-                }`}
-              />
-            ))}
-          </div>
-          <p className="text-center text-sm text-gray-600 mt-2">{currentStep}/8</p>
-        </div>
-
         {/* Question content */}
-        <motion.div 
-          className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full"
-          key={currentStep}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <div className="text-center mb-8">
-            <motion.h1 
-              className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
+        <div className="flex-1 flex flex-col justify-start pt-4 sm:justify-center sm:pt-0 max-w-4xl mx-auto w-full pb-24 sm:pb-8">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
               {currentQuestion.title}
-            </motion.h1>
+            </h1>
             {currentQuestion.subtitle && (
-              <motion.p 
-                className="text-gray-600 text-base sm:text-lg"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
+              <p className="text-gray-600 text-base sm:text-lg">
                 {currentQuestion.subtitle}
-              </motion.p>
+              </p>
             )}
           </div>
 
           {/* Options */}
-          <div className="space-y-3 sm:space-y-4 mb-8">
+          <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
             {currentQuestion.options.map((option, index) => {
               let isSelected = false;
               
@@ -479,7 +447,7 @@ const OnboardingPage: React.FC = () => {
 
           {/* Action buttons */}
           <motion.div 
-            className="flex justify-between items-center"
+            className="flex justify-between items-center mt-4 sm:mt-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
@@ -523,7 +491,22 @@ const OnboardingPage: React.FC = () => {
               )}
             </div>
           </motion.div>
-        </motion.div>
+        </div>
+      </div>
+
+      {/* Progress indicator - Bottom of screen on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-10 sm:relative sm:bottom-auto sm:z-auto sm:mt-8 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 pb-4 sm:pb-0">
+        <div className="max-w-4xl mx-auto px-4 sm:px-0">
+          <div className="py-4 sm:py-3 min-h-[4rem]">
+            <p className="text-center text-sm text-gray-600 mb-2">Question {currentStep} of 8</p>
+            <div className="w-full h-4 sm:h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${(currentStep / 8) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Submission Loading Overlay */}
