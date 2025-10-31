@@ -23,6 +23,11 @@ interface PlantTask {
   active: boolean;
 }
 
+interface PlantSuggestedTask {
+  taskKey: string;
+  frequencyDays: number;
+}
+
 interface PlantTrackingUpdate {
   id: string;
   plantId: string;
@@ -48,6 +53,7 @@ interface Plant {
   tasks: PlantTask[];
   tags: any[];
   photos: PlantPhoto[];
+  suggestedTasks: PlantSuggestedTask[];
   petFriendliness?: {
     isFriendly: boolean;
     reason: string;
@@ -506,6 +512,8 @@ export function PlantDetailPage() {
           secureUrl: plant.photos[0].secureUrl,
           cloudinaryPublicId: plant.photos[0].cloudinaryPublicId,
         } : null}
+        plantSuggestedTasks={plant?.suggestedTasks || []}
+        plantCommonName={plant?.commonName || plant?.botanicalName || 'Plant'}
         plantTasks={plant?.tasks || []}
         onUpdate={() => {
           fetchPlant();

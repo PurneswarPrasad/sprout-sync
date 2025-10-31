@@ -747,6 +747,9 @@ export const AddPlantPage: React.FC = () => {
       const plantData = {
         ...formData,
         careTasks: Object.keys(careTasks).length > 0 ? careTasks : undefined,
+        aiSuggestedTasks: aiSuggestedTasks.length > 0
+          ? aiSuggestedTasks.map(task => ({ key: task.key, frequency: task.frequency }))
+          : undefined,
         // Only include AI fields if they have values
         petFriendliness: formData.petFriendliness || undefined,
         commonPestsAndDiseases: formData.commonPestsAndDiseases || undefined,

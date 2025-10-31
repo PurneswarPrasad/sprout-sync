@@ -60,6 +60,7 @@ model Plant {
   gift            PlantGift?
   appreciations   PlantAppreciation[]
   comments        PlantComment[]
+  suggestedTasks  PlantSuggestedTask[]
 
   @@unique([userId, slug])
 }
@@ -81,6 +82,17 @@ model PlantTask {
   nextDueOn              DateTime
   active                 Boolean   @default(true)
   googleCalendarEventId  String?   // Store Google Calendar event ID for updates
+}
+
+model PlantSuggestedTask {
+  id             String   @id @default(uuid())
+  plantId        String
+  plant          Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  taskKey        String
+  frequencyDays  Int
+  createdAt      DateTime @default(now())
+
+  @@unique([plantId, taskKey])
 }
 
 model Tag {

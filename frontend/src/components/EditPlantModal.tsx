@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { plantsAPI } from '../services/api';
 import { CloudinaryService } from '../services/cloudinaryService';
@@ -26,6 +26,8 @@ interface SelectedTask {
   frequency: number;
   taskId?: string; // For existing tasks
   isSuggested?: boolean;
+  suggestedFrequency?: number;
+  frequencyInput?: string;
 }
 
 interface EditPlantModalProps {
@@ -38,6 +40,8 @@ interface EditPlantModalProps {
     secureUrl: string;
     cloudinaryPublicId: string;
   } | null;
+  plantSuggestedTasks: { taskKey: string; frequencyDays: number }[];
+  plantCommonName: string | null;
   plantTasks: PlantTask[];
   onUpdate: () => void;
 }
@@ -48,6 +52,8 @@ export function EditPlantModal({
   plantId,
   currentNickname,
   currentPhoto,
+  plantSuggestedTasks,
+  plantCommonName,
   plantTasks,
   onUpdate,
 }: EditPlantModalProps) {
@@ -66,6 +72,18 @@ export function EditPlantModal({
   const [selectedTasks, setSelectedTasks] = useState<SelectedTask[]>([]);
   const [showNoTasksModal, setShowNoTasksModal] = useState(false);
 
+  const suggestedFrequencyMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (Array.isArray(plantSuggestedTasks)) {
+      plantSuggestedTasks.forEach(task => {
+        if (task?.taskKey && typeof task.frequencyDays === 'number') {
+          map.set(task.taskKey, task.frequencyDays);
+        }
+      });
+    }
+    return map;
+  }, [plantSuggestedTasks]);
+
   // Fetch task templates when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -80,19 +98,22 @@ export function EditPlantModal({
         .filter(task => task.active)
         .map(task => {
           const template = taskTemplates.find(t => t.key === task.taskKey);
+          const suggestedFrequency = suggestedFrequencyMap.get(task.taskKey) ?? template?.defaultFrequencyDays;
           return {
             key: task.taskKey,
             label: template?.label || task.taskKey,
             colorHex: template?.colorHex || '#3B82F6',
             frequency: task.frequencyDays,
             taskId: task.id,
+            suggestedFrequency,
+            frequencyInput: String(task.frequencyDays),
           };
         });
       setSelectedTasks(initialSelectedTasks);
     } else if (taskTemplates.length > 0 && plantTasks.length === 0) {
       setSelectedTasks([]);
     }
-  }, [taskTemplates, plantTasks]);
+  }, [taskTemplates, plantTasks, suggestedFrequencyMap]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -129,21 +150,13 @@ export function EditPlantModal({
   };
 
   const getTaskFrequencyText = (template: TaskTemplate, selectedTask?: SelectedTask): string => {
-    if (selectedTask) {
-      const frequency = selectedTask.frequency;
-      if (frequency === 1) {
-        return 'Everyday';
-      } else {
-        return `Every ${frequency} days`;
-      }
-    } else {
-      const frequency = template.defaultFrequencyDays;
-      if (frequency === 1) {
-        return 'Default: everyday';
-      } else {
-        return `Default: every ${frequency} days`;
-      }
-    }
+    const suggestedFrequency = selectedTask?.suggestedFrequency
+      ?? suggestedFrequencyMap.get(template.key)
+      ?? template.defaultFrequencyDays;
+
+    return suggestedFrequency === 1
+      ? 'Suggested: everyday'
+      : `Suggested: every ${suggestedFrequency} days`;
   };
 
   const handleToggleTaskSelection = (template: TaskTemplate) => {
@@ -154,25 +167,44 @@ export function EditPlantModal({
       setSelectedTasks(selectedTasks.filter(t => t.key !== template.key));
     } else {
       // Select task with default frequency
+      const suggestedFrequency = suggestedFrequencyMap.get(template.key) ?? template.defaultFrequencyDays;
       setSelectedTasks([
         ...selectedTasks,
         {
           key: template.key,
           label: template.label,
           colorHex: template.colorHex,
-          frequency: template.defaultFrequencyDays,
+          frequency: suggestedFrequency,
+          suggestedFrequency,
+          frequencyInput: String(suggestedFrequency),
         },
       ]);
     }
   };
 
-  const handleUpdateTaskFrequency = (taskKey: string, frequency: number) => {
-    if (frequency < 1) return;
-    
+  const handleUpdateTaskFrequency = (taskKey: string, rawValue: string) => {
+    const sanitized = rawValue.replace(/[^0-9]/g, '');
+
     setSelectedTasks(
-      selectedTasks.map(task =>
-        task.key === taskKey ? { ...task, frequency, isSuggested: true } : task
-      )
+      selectedTasks.map(task => {
+        if (task.key !== taskKey) return task;
+
+        if (sanitized === '') {
+          return {
+            ...task,
+            frequencyInput: '',
+            isSuggested: true,
+          };
+        }
+
+        const parsed = Math.max(1, parseInt(sanitized, 10));
+        return {
+          ...task,
+          frequency: parsed,
+          frequencyInput: String(parsed),
+          isSuggested: true,
+        };
+      })
     );
   };
 
@@ -233,6 +265,18 @@ export function EditPlantModal({
         return;
       }
 
+      const frequencyMap = new Map<string, number>();
+      for (const task of selectedTasks) {
+        const inputValue = (task.frequencyInput ?? String(task.frequency)).trim();
+        const parsed = parseInt(inputValue, 10);
+        if (!inputValue || isNaN(parsed) || parsed < 1) {
+          setError('Please enter a frequency of at least 1 day for every selected task.');
+          setIsSaving(false);
+          return;
+        }
+        frequencyMap.set(task.key, Math.max(1, parsed));
+      }
+
       // Update nickname
       await plantsAPI.update(plantId, { petName: nickname.trim() || null });
 
@@ -283,13 +327,14 @@ export function EditPlantModal({
       // Find tasks to create or update
       for (const selectedTask of selectedTasks) {
         const existingTask = plantTasks.find(task => task.id === selectedTask.taskId);
+        const resolvedFrequency = frequencyMap.get(selectedTask.key)!;
         
         if (existingTask) {
           // Update existing task if frequency changed
-          if (existingTask.frequencyDays !== selectedTask.frequency) {
+          if (existingTask.frequencyDays !== resolvedFrequency) {
             try {
               await plantsAPI.updateTask(plantId, existingTask.id, {
-                frequencyDays: selectedTask.frequency,
+                frequencyDays: resolvedFrequency,
               });
             } catch (error) {
               console.error('Error updating task:', error);
@@ -300,7 +345,7 @@ export function EditPlantModal({
           try {
             await plantsAPI.createTask(plantId, {
               taskKey: selectedTask.key,
-              frequencyDays: selectedTask.frequency,
+              frequencyDays: resolvedFrequency,
             });
           } catch (error) {
             console.error('Error creating task:', error);
@@ -367,18 +412,24 @@ export function EditPlantModal({
 
             {/* Nickname */}
             <div>
-              <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="nickname" className="block text-sm font-medium text-gray-700">
                 Plant Nickname
               </label>
+              <span className="text-xs text-gray-500">Optional</span>
+            </div>
               <input
                 id="nickname"
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                placeholder="Enter plant nickname"
+              placeholder={plantCommonName || 'Enter plant nickname'}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 disabled={isSaving || isUploading}
               />
+            <p className="mt-1 text-xs text-gray-500">
+              Display name: {nickname.trim() || plantCommonName || 'Unnamed plant'}
+            </p>
             </div>
 
             {/* Photo */}
@@ -529,8 +580,8 @@ export function EditPlantModal({
                                   <input
                                     type="number"
                                     min="1"
-                                    value={selectedTask.frequency}
-                                    onChange={(e) => handleUpdateTaskFrequency(selectedTask.key, parseInt(e.target.value) || 1)}
+                                    value={selectedTask.frequencyInput ?? String(selectedTask.frequency)}
+                                    onChange={(e) => handleUpdateTaskFrequency(selectedTask.key, e.target.value)}
                                     className="w-full px-2 py-1.5 text-sm rounded-md border border-gray-200 focus:ring-1 focus:ring-emerald-500 focus:border-transparent"
                                   />
                                 </div>

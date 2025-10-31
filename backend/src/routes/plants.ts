@@ -79,6 +79,10 @@ const createPlantWithTasksSchema = createPlantSchema.extend({
       }, 'Invalid date format'),
     }).optional(),
   }).optional(),
+  aiSuggestedTasks: z.array(z.object({
+    key: z.string().min(1, 'Task key is required'),
+    frequency: z.number().positive('Frequency must be positive'),
+  })).optional(),
 });
 
 // GET /api/plants - Get all plants
@@ -123,6 +127,15 @@ router.get('/', authenticateJWT, async (req, res) => {
         tasks: {
           include: {
             plant: true,
+          },
+        },
+        suggestedTasks: {
+          select: {
+            taskKey: true,
+            frequencyDays: true,
+          },
+          orderBy: {
+            taskKey: 'asc',
           },
         },
         photos: {
@@ -229,6 +242,15 @@ router.get('/gifted', authenticateJWT, async (req, res) => {
             plant: true,
           },
         },
+        suggestedTasks: {
+          select: {
+            taskKey: true,
+            frequencyDays: true,
+          },
+          orderBy: {
+            taskKey: 'asc',
+          },
+        },
         photos: {
           orderBy: {
             takenAt: 'desc',
@@ -299,6 +321,15 @@ router.get('/:id', authenticateJWT, async (req, res) => {
         tasks: {
           include: {
             plant: true,
+          },
+        },
+        suggestedTasks: {
+          select: {
+            taskKey: true,
+            frequencyDays: true,
+          },
+          orderBy: {
+            taskKey: 'asc',
           },
         },
         notes: {
@@ -376,6 +407,21 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
     
     const templateMap = new Map(taskTemplates.map(t => [t.key, t]));
     
+    // Build AI suggested frequency map
+    const aiSuggestedTasks = Array.isArray(validatedData.aiSuggestedTasks) ? validatedData.aiSuggestedTasks : [];
+    const suggestedFrequencyMap = new Map<string, number>();
+    aiSuggestedTasks.forEach((task: any) => {
+      if (!task?.key || typeof task.frequency !== 'number') return;
+      if (!templateMap.has(task.key)) return;
+      const frequency = Math.max(1, Math.round(task.frequency));
+      suggestedFrequencyMap.set(task.key, frequency);
+    });
+
+    const suggestionsToCreate = taskTemplates.map(template => ({
+      taskKey: template.key,
+      frequencyDays: suggestedFrequencyMap.get(template.key) ?? template.defaultFrequencyDays,
+    }));
+    
     // Generate slug for the plant
     const plantName = (validatedData.petName as string) || (validatedData.commonName as string) || (validatedData.botanicalName as string);
     const slug = await generatePlantSlug(plantName, userId);
@@ -397,6 +443,9 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
         petFriendliness: validatedData.petFriendliness || null,
         commonPestsAndDiseases: validatedData.commonPestsAndDiseases || null,
         preventiveMeasures: validatedData.preventiveMeasures || null,
+        suggestedTasks: {
+          create: suggestionsToCreate,
+        },
         tasks: {
           create: validatedData.careTasks ? Object.entries(validatedData.careTasks)
             .filter(([, taskData]) => taskData)
@@ -436,6 +485,11 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
           },
         },
         tasks: {
+          orderBy: {
+            taskKey: 'asc',
+          },
+        },
+        suggestedTasks: {
           orderBy: {
             taskKey: 'asc',
           },
