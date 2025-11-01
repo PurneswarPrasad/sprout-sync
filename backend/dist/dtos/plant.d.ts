@@ -304,6 +304,7 @@ export declare const plantResponseSchema: z.ZodObject<{
         photos: number;
     }>>;
 }, "strip", z.ZodTypeAny, {
+    userId: string;
     id: string;
     createdAt: Date;
     type: string | null;
@@ -327,7 +328,6 @@ export declare const plantResponseSchema: z.ZodObject<{
         description: string;
         safetyTips: string;
     } | null;
-    userId: string;
     updatedAt: Date;
     petFriendliness?: {
         isFriendly: boolean;
@@ -340,6 +340,7 @@ export declare const plantResponseSchema: z.ZodObject<{
         photos: number;
     } | undefined;
 }, {
+    userId: string;
     id: string;
     createdAt: Date;
     type: string | null;
@@ -363,7 +364,6 @@ export declare const plantResponseSchema: z.ZodObject<{
         description: string;
         safetyTips: string;
     } | null;
-    userId: string;
     updatedAt: Date;
     petFriendliness?: {
         isFriendly: boolean;

@@ -48,7 +48,19 @@ passport.use(
           });
         }
 
-        return done(null, { ...user, isNewUser });
+        const username = (user as { username?: string | null }).username ?? null;
+
+        return done(null, {
+          userId: user.id,
+          id: user.id,
+          email: user.email,
+          name: user.name ?? '',
+          avatarUrl: user.avatarUrl ?? null,
+          username,
+          isNewUser,
+          googleId: user.googleId,
+          createdAt: user.createdAt,
+        });
       } catch (error) {
         return done(error, false);
       }

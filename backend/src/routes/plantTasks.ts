@@ -9,11 +9,27 @@ import { resolveUserTimezone, startOfDayInTimezone, startOfDayPlusDaysInTimezone
 
 const router = Router({ mergeParams: true });
 
+const getAuthenticatedUserId = (req: any): string => {
+  const userId = req.user?.userId ?? req.user?.id;
+  if (!userId) {
+    throw new Error('Authenticated user is missing identifier');
+  }
+  return userId;
+};
+
 // Middleware to check if user owns the plant
 const checkPlantOwnership = async (req: any, res: any, next: any) => {
   try {
     const plantId = req.params.plantId;
-    const userId = req.user!.userId;
+    let userId: string;
+    try {
+      userId = getAuthenticatedUserId(req);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized. Missing user identifier.',
+      });
+    }
     
     const plant = await prisma.plant.findFirst({
       where: {
@@ -114,7 +130,9 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskW
     
     // Override plantId to ensure it matches the URL parameter
     const requestContext = req as any;
-    const userTimezone = requestContext.userTimezone ?? (await resolveUserTimezone(req.user!.userId, req.headers['x-user-timezone']));
+    const userTimezone =
+      requestContext.userTimezone ??
+      (await resolveUserTimezone(getAuthenticatedUserId(req), req.headers['x-user-timezone']));
     const creationMoment = new Date();
     // New tasks should appear in today's tasks (user's timezone)
     const nextDueOn = startOfDayInTimezone(userTimezone, creationMoment);
@@ -356,7 +374,9 @@ router.post('/:taskId/complete', authenticateJWT, checkPlantOwnership, async (re
     
     // Calculate next due date based on the user's timezone
     const requestContext = req as any;
-    const userTimezone = requestContext.userTimezone ?? (await resolveUserTimezone(req.user!.userId, req.headers['x-user-timezone']));
+    const userTimezone =
+      requestContext.userTimezone ??
+      (await resolveUserTimezone(getAuthenticatedUserId(req), req.headers['x-user-timezone']));
     const nextDueOn = startOfDayPlusDaysInTimezone(userTimezone, task.frequencyDays, new Date());
     
     const updatedTask = await prisma.plantTask.update({

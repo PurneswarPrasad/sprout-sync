@@ -41,12 +41,29 @@ const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const taskSyncService_1 = require("../services/taskSyncService");
+const timezone_1 = require("../utils/timezone");
 const router = (0, express_1.Router)({ mergeParams: true });
 exports.plantTasksRouter = router;
+const getAuthenticatedUserId = (req) => {
+    const userId = req.user?.userId ?? req.user?.id;
+    if (!userId) {
+        throw new Error('Authenticated user is missing identifier');
+    }
+    return userId;
+};
 const checkPlantOwnership = async (req, res, next) => {
     try {
         const plantId = req.params.plantId;
-        const userId = req.user.userId;
+        let userId;
+        try {
+            userId = getAuthenticatedUserId(req);
+        }
+        catch {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized. Missing user identifier.',
+            });
+        }
         const plant = await prisma_1.prisma.plant.findFirst({
             where: {
                 id: plantId,
@@ -60,6 +77,8 @@ const checkPlantOwnership = async (req, res, next) => {
             });
         }
         req.plant = plant;
+        const preferredTimezone = req.headers['x-user-timezone'];
+        req.userTimezone = await (0, timezone_1.resolveUserTimezone)(userId, preferredTimezone);
         next();
     }
     catch (error) {
@@ -130,14 +149,17 @@ router.post('/', jwtAuth_1.authenticateJWT, checkPlantOwnership, (0, validate_1.
     try {
         const plantId = req.params['plantId'];
         const validatedData = dtos_1.createPlantTaskWithoutIdsSchema.parse(req.body);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const requestContext = req;
+        const userTimezone = requestContext.userTimezone ??
+            (await (0, timezone_1.resolveUserTimezone)(getAuthenticatedUserId(req), req.headers['x-user-timezone']));
+        const creationMoment = new Date();
+        const nextDueOn = (0, timezone_1.startOfDayInTimezone)(userTimezone, creationMoment);
         const task = await prisma_1.prisma.plantTask.create({
             data: {
                 plantId: plantId,
                 taskKey: validatedData.taskKey,
                 frequencyDays: validatedData.frequencyDays,
-                nextDueOn: today,
+                nextDueOn,
             },
             include: {
                 plant: {
@@ -343,10 +365,10 @@ router.post('/:taskId/complete', jwtAuth_1.authenticateJWT, checkPlantOwnership,
                 error: 'Task not found',
             });
         }
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const nextDueOn = new Date(today);
-        nextDueOn.setDate(today.getDate() + task.frequencyDays);
+        const requestContext = req;
+        const userTimezone = requestContext.userTimezone ??
+            (await (0, timezone_1.resolveUserTimezone)(getAuthenticatedUserId(req), req.headers['x-user-timezone']));
+        const nextDueOn = (0, timezone_1.startOfDayPlusDaysInTimezone)(userTimezone, task.frequencyDays, new Date());
         const updatedTask = await prisma_1.prisma.plantTask.update({
             where: { id: taskId },
             data: {

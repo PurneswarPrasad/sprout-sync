@@ -8,6 +8,7 @@ const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
 const dtos_1 = require("../dtos");
 const taskSyncService_1 = require("../services/taskSyncService");
+const timezone_1 = require("../utils/timezone");
 const router = (0, express_1.Router)();
 exports.tasksRouter = router;
 router.get('/', jwtAuth_1.authenticateJWT, async (req, res) => {
@@ -128,14 +129,17 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(dtos_1.crea
                 error: 'Plant not found',
             });
         }
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const preferredTimezone = req.headers['x-user-timezone'];
+        const userTimezone = await (0, timezone_1.resolveUserTimezone)(userId, preferredTimezone);
+        req.userTimezone = userTimezone;
+        const creationMoment = new Date();
+        const nextDueOn = (0, timezone_1.startOfDayInTimezone)(userTimezone, creationMoment);
         const task = await prisma_1.prisma.plantTask.create({
             data: {
                 plantId: validatedData.plantId,
                 taskKey: validatedData.taskKey,
                 frequencyDays: validatedData.frequencyDays,
-                nextDueOn: today,
+                nextDueOn,
             },
             include: {
                 plant: {
@@ -327,10 +331,9 @@ router.post('/:id/complete', jwtAuth_1.authenticateJWT, async (req, res) => {
                 error: 'Task not found',
             });
         }
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const nextDueOn = new Date(today);
-        nextDueOn.setDate(today.getDate() + task.frequencyDays);
+        const requestContext = req;
+        const userTimezone = requestContext.userTimezone ?? (await (0, timezone_1.resolveUserTimezone)(userId, req.headers['x-user-timezone']));
+        const nextDueOn = (0, timezone_1.startOfDayPlusDaysInTimezone)(userTimezone, task.frequencyDays, new Date());
         const updatedTask = await prisma_1.prisma.plantTask.update({
             where: { id: taskId },
             data: {

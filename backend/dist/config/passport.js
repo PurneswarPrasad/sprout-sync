@@ -42,7 +42,18 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
                 },
             });
         }
-        return done(null, { ...user, isNewUser });
+        const username = user.username ?? null;
+        return done(null, {
+            userId: user.id,
+            id: user.id,
+            email: user.email,
+            name: user.name ?? '',
+            avatarUrl: user.avatarUrl ?? null,
+            username,
+            isNewUser,
+            googleId: user.googleId,
+            createdAt: user.createdAt,
+        });
     }
     catch (error) {
         return done(error, false);

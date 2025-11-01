@@ -6,6 +6,7 @@ const zod_1 = require("zod");
 const prisma_1 = require("../lib/prisma");
 const validate_1 = require("../middleware/validate");
 const jwtAuth_1 = require("../middleware/jwtAuth");
+const timezone_1 = require("../utils/timezone");
 const router = (0, express_1.Router)();
 exports.plantGiftsRouter = router;
 const createGiftSchema = zod_1.z.object({
@@ -201,13 +202,15 @@ router.post('/accept', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(accep
                 error: 'This gift has expired',
             });
         }
+        const receiverTimezone = await (0, timezone_1.resolveUserTimezone)(receiverId, req.headers['x-user-timezone']);
+        const acceptanceMoment = new Date();
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const updatedGift = await tx.plantGift.update({
                 where: { id: gift.id },
                 data: {
                     status: 'ACCEPTED',
                     receiverId,
-                    acceptedAt: new Date(),
+                    acceptedAt: acceptanceMoment,
                 },
             });
             const newPlant = await tx.plant.create({
@@ -226,14 +229,13 @@ router.post('/accept', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(accep
                 },
             });
             if (gift.plant.tasks.length > 0) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                const todaysStart = (0, timezone_1.startOfDayInTimezone)(receiverTimezone, acceptanceMoment);
                 await tx.plantTask.createMany({
                     data: gift.plant.tasks.map(task => ({
                         plantId: newPlant.id,
                         taskKey: task.taskKey,
                         frequencyDays: task.frequencyDays,
-                        nextDueOn: new Date(today),
+                        nextDueOn: todaysStart,
                         active: task.active,
                     })),
                 });

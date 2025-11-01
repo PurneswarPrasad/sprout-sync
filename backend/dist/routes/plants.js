@@ -43,6 +43,7 @@ const dtos_1 = require("../dtos");
 const cloudinaryService_1 = require("../services/cloudinaryService");
 const taskSyncService_1 = require("../services/taskSyncService");
 const slugify_1 = require("../utils/slugify");
+const timezone_1 = require("../utils/timezone");
 const router = (0, express_1.Router)();
 exports.plantsRouter = router;
 const createPlantWithTasksSchema = dtos_1.createPlantSchema.extend({
@@ -398,6 +399,10 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
         console.log('Received plant creation request:', JSON.stringify(req.body, null, 2));
         const validatedData = createPlantWithTasksSchema.parse(req.body);
         const userId = req.user.userId;
+        const preferredTimezone = req.headers['x-user-timezone'];
+        const userTimezone = await (0, timezone_1.resolveUserTimezone)(userId, preferredTimezone);
+        req.userTimezone = userTimezone;
+        const creationMoment = new Date();
         let taskTemplates = await prisma_1.prisma.taskTemplate.findMany();
         console.log('Available task templates:', taskTemplates.map(t => t.key));
         if (taskTemplates.length === 0) {
@@ -468,10 +473,8 @@ router.post('/', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(createPlant
                             console.error('Available templates:', Array.from(templateMap.keys()));
                             throw new Error(`Invalid task key: ${taskKey}. Available keys: ${Array.from(templateMap.keys()).join(', ')}`);
                         }
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const nextDueOn = new Date(today);
-                        console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]} (appears in today's tasks)`);
+                        const nextDueOn = (0, timezone_1.startOfDayInTimezone)(userTimezone, creationMoment);
+                        console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]} (appears in today's tasks for TZ ${userTimezone})`);
                         return {
                             taskKey,
                             frequencyDays: task.frequency,

@@ -5,13 +5,13 @@ export declare const createUserSchema: z.ZodObject<{
     name: z.ZodString;
     avatarUrl: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    googleId: string;
     email: string;
+    googleId: string;
     name: string;
     avatarUrl?: string | undefined;
 }, {
-    googleId: string;
     email: string;
+    googleId: string;
     name: string;
     avatarUrl?: string | undefined;
 }>;
@@ -25,15 +25,15 @@ export declare const userResponseSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     id: string;
     email: string;
+    createdAt: Date;
     name: string | null;
     avatarUrl: string | null;
-    createdAt: Date;
 }, {
     id: string;
     email: string;
+    createdAt: Date;
     name: string | null;
     avatarUrl: string | null;
-    createdAt: Date;
 }>;
 export type UserResponseDTO = z.infer<typeof userResponseSchema>;
 //# sourceMappingURL=user.d.ts.map

@@ -24,14 +24,14 @@ export declare const notificationLogResponseSchema: z.ZodObject<{
     sentAt: z.ZodDate;
     channel: z.ZodEnum<["WEB_PUSH"]>;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     userId: string;
+    id: string;
     payloadJson: string;
     sentAt: Date;
     channel: "WEB_PUSH";
 }, {
-    id: string;
     userId: string;
+    id: string;
     payloadJson: string;
     sentAt: Date;
     channel: "WEB_PUSH";

@@ -21,14 +21,14 @@ export declare const userSettingsResponseSchema: z.ZodObject<{
     timezone: z.ZodString;
     onesignalPlayerId: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     userId: string;
+    id: string;
     persona: "PRIMARY" | "SECONDARY" | "TERTIARY";
     timezone: string;
     onesignalPlayerId: string | null;
 }, {
-    id: string;
     userId: string;
+    id: string;
     persona: "PRIMARY" | "SECONDARY" | "TERTIARY";
     timezone: string;
     onesignalPlayerId: string | null;
