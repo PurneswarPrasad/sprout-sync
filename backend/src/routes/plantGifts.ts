@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
+import { resolveUserTimezone, startOfDayInTimezone } from '../utils/timezone';
 
 const router = Router();
 
@@ -231,6 +232,9 @@ router.post('/accept', authenticateJWT, validate(acceptGiftSchema), async (req, 
       });
     }
 
+    const receiverTimezone = await resolveUserTimezone(receiverId, req.headers['x-user-timezone']);
+    const acceptanceMoment = new Date();
+
     // Use transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
       // Update the gift status
@@ -239,7 +243,7 @@ router.post('/accept', authenticateJWT, validate(acceptGiftSchema), async (req, 
         data: {
           status: 'ACCEPTED',
           receiverId,
-          acceptedAt: new Date(),
+          acceptedAt: acceptanceMoment,
         },
       });
 
@@ -260,17 +264,16 @@ router.post('/accept', authenticateJWT, validate(acceptGiftSchema), async (req, 
         },
       });
 
-      // Copy all tasks - set nextDueOn to today so they appear in today's tasks
+      // Copy all tasks - set nextDueOn to today's start in receiver's timezone
       if (gift.plant.tasks.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const todaysStart = startOfDayInTimezone(receiverTimezone, acceptanceMoment);
         
         await tx.plantTask.createMany({
           data: gift.plant.tasks.map(task => ({
             plantId: newPlant.id,
             taskKey: task.taskKey,
             frequencyDays: task.frequencyDays,
-            nextDueOn: new Date(today), // New tasks appear in today's tasks
+            nextDueOn: todaysStart,
             active: task.active,
           })),
         });

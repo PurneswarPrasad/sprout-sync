@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate';
 import { authenticateJWT } from '../middleware/jwtAuth';
 import { createPlantTaskWithoutIdsSchema, updatePlantTaskSchema } from '../dtos';
 import { taskSyncService } from '../services/taskSyncService';
+import { resolveUserTimezone, startOfDayInTimezone, startOfDayPlusDaysInTimezone } from '../utils/timezone';
 
 const router = Router({ mergeParams: true });
 
@@ -29,6 +30,8 @@ const checkPlantOwnership = async (req: any, res: any, next: any) => {
     }
     
     req.plant = plant;
+    const preferredTimezone = req.headers['x-user-timezone'];
+    req.userTimezone = await resolveUserTimezone(userId, preferredTimezone);
     next();
   } catch (error) {
     console.error('Error checking plant ownership:', error);
@@ -110,16 +113,18 @@ router.post('/', authenticateJWT, checkPlantOwnership, validate(createPlantTaskW
     const validatedData = createPlantTaskWithoutIdsSchema.parse(req.body);
     
     // Override plantId to ensure it matches the URL parameter
-    // New tasks should appear in today's tasks - set nextDueOn to today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const requestContext = req as any;
+    const userTimezone = requestContext.userTimezone ?? (await resolveUserTimezone(req.user!.userId, req.headers['x-user-timezone']));
+    const creationMoment = new Date();
+    // New tasks should appear in today's tasks (user's timezone)
+    const nextDueOn = startOfDayInTimezone(userTimezone, creationMoment);
     
     const task = await prisma.plantTask.create({
       data: {
         plantId: plantId!,
         taskKey: validatedData.taskKey,
         frequencyDays: validatedData.frequencyDays,
-        nextDueOn: today, // New tasks appear in today's tasks
+        nextDueOn, // New tasks appear in today's tasks (user's timezone)
       },
       include: {
         plant: {
@@ -349,11 +354,10 @@ router.post('/:taskId/complete', authenticateJWT, checkPlantOwnership, async (re
       });
     }
     
-    // Calculate next due date: today at 00:00 + frequencyDays
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const nextDueOn = new Date(today);
-    nextDueOn.setDate(today.getDate() + task.frequencyDays);
+    // Calculate next due date based on the user's timezone
+    const requestContext = req as any;
+    const userTimezone = requestContext.userTimezone ?? (await resolveUserTimezone(req.user!.userId, req.headers['x-user-timezone']));
+    const nextDueOn = startOfDayPlusDaysInTimezone(userTimezone, task.frequencyDays, new Date());
     
     const updatedTask = await prisma.plantTask.update({
       where: { id: taskId! },

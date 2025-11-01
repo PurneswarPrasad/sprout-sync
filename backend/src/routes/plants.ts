@@ -7,6 +7,7 @@ import { createPlantSchema, updatePlantSchema } from '../dtos';
 import { CloudinaryService } from '../services/cloudinaryService';
 import { taskSyncService } from '../services/taskSyncService';
 import { generatePlantSlug, toSlug } from '../utils/slugify';
+import { resolveUserTimezone, startOfDayInTimezone } from '../utils/timezone';
 
 const router = Router();
 
@@ -377,6 +378,10 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
     console.log('Received plant creation request:', JSON.stringify(req.body, null, 2));
     const validatedData = createPlantWithTasksSchema.parse(req.body) as any;
     const userId = (req.user as any).userId;
+    const preferredTimezone = req.headers['x-user-timezone'];
+    const userTimezone = await resolveUserTimezone(userId, preferredTimezone);
+    (req as any).userTimezone = userTimezone;
+    const creationMoment = new Date();
     
     // Get task templates to validate task keys and get defaults
     let taskTemplates = await prisma.taskTemplate.findMany();
@@ -462,13 +467,10 @@ router.post('/', authenticateJWT, validate(createPlantWithTasksSchema), async (r
                 throw new Error(`Invalid task key: ${taskKey}. Available keys: ${Array.from(templateMap.keys()).join(', ')}`);
               }
               
-              // New tasks should appear in today's tasks - set nextDueOn to today
-              const today = new Date();
-              today.setHours(0, 0, 0, 0); // Set to start of day
-              
-              const nextDueOn = new Date(today);
-              
-              console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]} (appears in today's tasks)`);
+              // New tasks should appear in today's tasks - set nextDueOn to start of day in user's timezone
+              const nextDueOn = startOfDayInTimezone(userTimezone, creationMoment);
+
+              console.log(`Task ${taskKey}: frequency=${task.frequency}, nextDueOn=${nextDueOn.toISOString().split('T')[0]} (appears in today's tasks for TZ ${userTimezone})`);
               
               return {
                 taskKey,

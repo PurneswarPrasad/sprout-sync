@@ -23,6 +23,11 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezone) {
+      config.headers['X-User-Timezone'] = timezone;
+    }
     
     if (import.meta.env.DEV) {
       console.log('API Request:', config.method?.toUpperCase(), config.url);
