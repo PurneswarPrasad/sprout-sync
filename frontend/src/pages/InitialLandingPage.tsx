@@ -5,12 +5,21 @@ import { authAPI } from '../services/api';
 import { Footer } from '../components/Footer';
 import { InstallPromptBanner } from '../components/InstallPromptBanner';
 
+const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyjWd-PJGtmO6QdR4UPRTjERLgNsK-JBxU-rUKU_36cbHY95slU8T3LV7xUUrvTdiSv/exec';
+
 const InitialLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showFloatingHeader, setShowFloatingHeader] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const { scrollYProgress } = useScroll();
+  
+  // Newsletter form state
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterName, setNewsletterName] = useState('');
+  const [isNewsletterSubmitting, setIsNewsletterSubmitting] = useState(false);
+  const [showNewsletterSuccess, setShowNewsletterSuccess] = useState(false);
+  const [newsletterError, setNewsletterError] = useState('');
   
   // Transform scroll progress to create gentle gradient shifts
   const backgroundOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.3, 0.6, 0.8]);
@@ -67,6 +76,50 @@ const InitialLandingPage: React.FC = () => {
 
   const handleSignIn = () => {
     navigate('/signin');
+  };
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewsletterError('');
+
+    if (!newsletterEmail.trim()) {
+      setNewsletterError('Please enter your email address');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newsletterEmail.trim())) {
+      setNewsletterError('Please enter a valid email address');
+      return;
+    }
+
+    setIsNewsletterSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('name', newsletterName.trim() || '');
+      formData.append('email', newsletterEmail.trim());
+
+      await fetch(GOOGLE_SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: formData,
+      });
+
+      setShowNewsletterSuccess(true);
+      setNewsletterName('');
+      setNewsletterEmail('');
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => setShowNewsletterSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error submitting newsletter form:', err);
+      setNewsletterError('Failed to subscribe. Please try again later.');
+    } finally {
+      setIsNewsletterSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -455,6 +508,77 @@ const InitialLandingPage: React.FC = () => {
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">Watch your confidence grow as your plant does. Every new leaf is a victory!</p>
             </div>
           </motion.div>
+        </motion.div>
+
+        {/* Newsletter Section */}
+        <motion.div 
+          className="max-w-2xl mx-auto mb-12 sm:mb-16"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true, margin: "-100px" }}
+        >
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 sm:p-8">
+            {/* Success Message */}
+            {showNewsletterSuccess && (
+              <motion.div 
+                className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center space-x-3"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <svg
+                  className="w-5 h-5 text-emerald-600 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <p className="text-emerald-700 font-medium">Successfully subscribed! Check your email for confirmation.</p>
+              </motion.div>
+            )}
+
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 text-center">
+              We ask better questions.
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 text-center mb-6 leading-relaxed">
+            Your plants don’t need daily emails... and neither do you.<br/> Once a week, we send one question that helps you grow a little greener together.
+            </p>
+
+            <form onSubmit={handleNewsletterSubmit} className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  required
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                />
+                <motion.button
+                  type="submit"
+                  disabled={isNewsletterSubmitting}
+                  className="px-8 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  whileHover={{ scale: isNewsletterSubmitting ? 1 : 1.02 }}
+                  whileTap={{ scale: isNewsletterSubmitting ? 1 : 0.98 }}
+                >
+                  {isNewsletterSubmitting ? 'Subscribing...' : 'I want!'}
+                </motion.button>
+              </div>
+              {newsletterError && (
+                <p className="text-red-500 text-sm text-center">{newsletterError}</p>
+              )}
+              <p className="text-gray-500 text-xs text-center">
+                No spam, we hate it more than you do.
+              </p>
+            </form>
+          </div>
         </motion.div>
 
         {/* Footer */}

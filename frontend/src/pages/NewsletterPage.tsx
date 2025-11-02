@@ -94,7 +94,7 @@ export const NewsletterPage: React.FC = () => {
         {/* Header Section */}
         <div className="text-center mb-12 mt-8">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
-            Plant Care Insights Newsletter
+            SproutSync Insights
           </h1>
           <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">
             Stay updated with the latest plant care tips, growing techniques, and botanical knowledge. 
@@ -103,7 +103,7 @@ export const NewsletterPage: React.FC = () => {
         </div>
 
         {/* Call to Action Section */}
-        <div className="text-center mb-12">
+        {/* <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Stay Updated with Plant Care Insights
           </h2>
@@ -111,6 +111,46 @@ export const NewsletterPage: React.FC = () => {
             Get weekly plant care tips, seasonal growing guides, and expert advice delivered to your inbox. 
             Join thousands of plant lovers who are cultivating thriving gardens.
           </p>
+        </div> */}
+
+        {/* Subscription Form Section */}
+        <div className="max-w-2xl mx-auto">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <input
+                type="text"
+                placeholder="First name (optional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="flex-1 px-4 py-3 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-8 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+                </button>
+              </div>
+            </div>
+            {error && (
+              <p className="text-red-200 text-sm text-center">{error}</p>
+            )}
+            <p className="text-white/80 text-sm text-center">
+              No spam, ever. Unsubscribe anytime with one click.
+            </p>
+            <br/><br/>
+            <br/>
+          </form>
         </div>
 
         {/* Content Section - Two Columns */}
@@ -164,43 +204,6 @@ export const NewsletterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Subscription Form Section */}
-        <div className="max-w-2xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <input
-                type="text"
-                placeholder="First name (optional)"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
-              <div className="flex-1 flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="flex-1 px-4 py-3 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-8 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-                </button>
-              </div>
-            </div>
-            {error && (
-              <p className="text-red-200 text-sm text-center">{error}</p>
-            )}
-            <p className="text-white/80 text-sm text-center">
-              No spam, ever. Unsubscribe anytime with one click.
-            </p>
-          </form>
-        </div>
       </div>
 
       {/* Footer */}

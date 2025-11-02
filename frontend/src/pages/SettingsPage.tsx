@@ -214,14 +214,6 @@ export const SettingsPage: React.FC = () => {
                   ) : (
                     <div>
                       <p className="text-base text-gray-900 mb-1">@{user.username || 'Not set'}</p>
-                      {user.username && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <LinkIcon className="w-4 h-4" />
-                          <span className="font-mono">
-                            {window.location.origin}/u/{user.username}/...
-                          </span>
-                        </div>
-                      )}
                       <p className="text-xs text-gray-500 mt-2">
                         Your username is used in shareable plant profile URLs
                       </p>
