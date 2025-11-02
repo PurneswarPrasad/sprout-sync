@@ -475,13 +475,17 @@ export function PlantDetailPage() {
               </div>
             ) : null}
             {showActionsMenu && !isGiftedSenderView ? (
-              <div className="fixed inset-0 z-30">
+              <>
                 <button
-                  className="absolute inset-0 w-full h-full"
+                  type="button"
+                  className="fixed inset-0 z-30"
                   onClick={() => setShowActionsMenu(false)}
                   aria-label="Close actions menu"
                 />
-                <div className="absolute right-4 top-20 sm:right-0 sm:top-full sm:mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="absolute right-0 top-full mt-2 z-40 w-48 bg-white border border-gray-200 rounded-lg shadow-lg"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     onClick={handleGiftPlant}
                     disabled={plant.isGifted || giftLoading}
@@ -490,7 +494,7 @@ export function PlantDetailPage() {
                     {giftLoading ? 'Creating gift…' : '🎁 Gift this plant'}
                   </button>
                 </div>
-              </div>
+              </>
             ) : null}
           </div>
         </div>
