@@ -18,9 +18,21 @@ interface GiftData {
     type: string | null;
     acquisitionDate: string | null;
     city: string | null;
-    careLevel: string | null;
-    sunRequirements: string | null;
-    toxicityLevel: string | null;
+    careLevel: string | {
+      level: string;
+      description: string;
+      maintenanceTips: string;
+    } | null;
+    sunRequirements: string | {
+      level: string;
+      description: string;
+      placementTips: string;
+    } | null;
+    toxicityLevel: string | {
+      level: string;
+      description: string;
+      safetyTips: string;
+    } | null;
     tasks: Array<{
       id: string;
       taskKey: string;
@@ -123,6 +135,12 @@ export function AcceptGiftPage() {
     } else {
       return 'Unknown Plant';
     }
+  };
+
+  // Helper to get the display value from care level or sun requirements (can be string or object)
+  const getDisplayValue = (value: string | { level: string; description: string; [key: string]: any } | null): string => {
+    if (!value) return 'Unknown';
+    return typeof value === 'string' ? value : value.level;
   };
 
   if (loading) {
@@ -262,13 +280,13 @@ export function AcceptGiftPage() {
             {gift.plant.careLevel && (
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Care Level:</span>
-                <span className="text-sm font-medium text-gray-900">{gift.plant.careLevel}</span>
+                <span className="text-sm font-medium text-gray-900">{getDisplayValue(gift.plant.careLevel)}</span>
               </div>
             )}
             {gift.plant.sunRequirements && (
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Sun Requirements:</span>
-                <span className="text-sm font-medium text-gray-900">{gift.plant.sunRequirements}</span>
+                <span className="text-sm font-medium text-gray-900">{getDisplayValue(gift.plant.sunRequirements)}</span>
               </div>
             )}
             <div className="flex justify-between">

@@ -42,6 +42,7 @@ interface PlantCareTabProps {
   plant: Plant;
   onMarkComplete: (task: PlantTask) => void;
   onTaskUpdated?: () => void;
+  readOnly?: boolean;
 }
 
 const getFrequencyText = (frequencyDays: number) => {
@@ -91,11 +92,44 @@ const getTaskName = (taskKey: string) => {
   }
 };
 
-export function PlantCareTab({ plant, onMarkComplete, onTaskUpdated }: PlantCareTabProps) {
+export function PlantCareTab({ plant, onMarkComplete, onTaskUpdated, readOnly = false }: PlantCareTabProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editFrequency, setEditFrequency] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (readOnly) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Care Schedule</h2>
+          {plant.tasks.length === 0 ? (
+            <p className="text-sm text-gray-500">No care tasks available.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {plant.tasks.map((task) => (
+                <div key={task.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      {getTaskIcon(task.taskKey)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{getTaskName(task.taskKey)}</h3>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Task</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600">{getFrequencyText(task.frequencyDays)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg p-4 text-sm">
+          Tasks are view-only because this plant has already been gifted.
+        </div>
+      </div>
+    );
+  }
 
   const handleEditClick = (task: PlantTask) => {
     setEditingTaskId(task.id);

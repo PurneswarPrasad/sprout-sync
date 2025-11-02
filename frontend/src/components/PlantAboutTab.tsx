@@ -44,6 +44,7 @@ interface Plant {
 
 interface PlantAboutTabProps {
   plant: Plant;
+  canShare?: boolean;
 }
 
 // Helper function to get display name for plant
@@ -61,7 +62,7 @@ const getPlantDisplayName = (plant: Plant): string => {
   }
 };
 
-export function PlantAboutTab({ plant }: PlantAboutTabProps) {
+export function PlantAboutTab({ plant, canShare = true }: PlantAboutTabProps) {
   const [currentSlug, setCurrentSlug] = useState(plant.slug || null);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
@@ -159,20 +160,22 @@ export function PlantAboutTab({ plant }: PlantAboutTabProps) {
             </span>
           </button>
           
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105 hover:shadow-md"
-          >
-            <Share2 
-              className="w-5 h-5" 
-              style={{
-                fill: '#10b981',
-                color: '#10b981',
-                filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.4)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
-              }}
-            />
-            <span className="text-sm font-medium text-gray-700">Share</span>
-          </button>
+          {canShare && (
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105 hover:shadow-md"
+            >
+              <Share2 
+                className="w-5 h-5" 
+                style={{
+                  fill: '#10b981',
+                  color: '#10b981',
+                  filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.4)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+                }}
+              />
+              <span className="text-sm font-medium text-gray-700">Share</span>
+            </button>
+          )}
         </div>
 
         {/* Basic Information */}
@@ -336,14 +339,16 @@ export function PlantAboutTab({ plant }: PlantAboutTabProps) {
         plantId={plant.id}
         plantName={getPlantDisplayName(plant)}
       />
-      <ShareableProfileModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        plantId={plant.id}
-        slug={currentSlug}
-        onSlugUpdated={handleSlugUpdated}
-        plantName={getPlantDisplayName(plant)}
-      />
+      {canShare && (
+        <ShareableProfileModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          plantId={plant.id}
+          slug={currentSlug}
+          onSlugUpdated={handleSlugUpdated}
+          plantName={getPlantDisplayName(plant)}
+        />
+      )}
     </div>
   );
 }

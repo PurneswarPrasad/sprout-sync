@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Leaf, Edit2 } from 'lucide-react';
+import { ArrowLeft, Leaf, Edit2, Link as LinkIcon, MoreVertical } from 'lucide-react';
 import { Layout } from '../components/Layout';
 import { plantsAPI, plantGiftsAPI } from '../services/api';
 import { TaskCompletionDialog } from '../components/TaskCompletionDialog';
@@ -54,6 +54,16 @@ interface Plant {
   tags: any[];
   photos: PlantPhoto[];
   suggestedTasks: PlantSuggestedTask[];
+  gift?: {
+    id: string;
+    giftToken: string;
+    status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED';
+    receiver?: {
+      id: string;
+      name: string | null;
+      email: string;
+    } | null;
+  } | null;
   petFriendliness?: {
     isFriendly: boolean;
     reason: string;
@@ -116,9 +126,13 @@ export function PlantDetailPage() {
   const [giftToken, setGiftToken] = useState<string | null>(null);
   const [giftLoading, setGiftLoading] = useState(false);
   const [giftLinkCopied, setGiftLinkCopied] = useState(false);
+  const [giftData, setGiftData] = useState<{ giftToken: string; status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED' } | null>(null);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
   
   // Edit plant modal state
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const isGiftedSenderView = plant?.isGifted ?? false;
 
   useEffect(() => {
     if (plantId) {
@@ -136,7 +150,18 @@ export function PlantDetailPage() {
     try {
       const response = await plantsAPI.getById(plantId!);
       console.log('Plant fetched successfully:', response.data);
-      setPlant(response.data.data);
+      const plantData = response.data.data;
+      setPlant(plantData);
+      if (plantData.gift) {
+        setGiftData({
+          giftToken: plantData.gift.giftToken,
+          status: plantData.gift.status,
+        });
+        setGiftToken(plantData.gift.giftToken);
+      } else {
+        setGiftData(null);
+        setGiftToken(null);
+      }
     } catch (error) {
       console.error('Error fetching plant:', error);
       // If plant not found, it might still be processing - retry once after a delay
@@ -235,6 +260,7 @@ export function PlantDetailPage() {
   };
 
   const handleGiftPlant = () => {
+    setShowActionsMenu(false);
     setShowGiftModal(true);
   };
 
@@ -249,6 +275,25 @@ export function PlantDetailPage() {
       });
       
       setGiftToken(response.data.data.giftToken);
+      setGiftData({
+        giftToken: response.data.data.giftToken,
+        status: response.data.data.status || 'PENDING',
+      });
+      const createdGift = response.data.data;
+      setPlant(prev => prev ? {
+        ...prev,
+        isGifted: true,
+        gift: {
+          id: createdGift.id,
+          giftToken: createdGift.giftToken,
+          status: createdGift.status || 'PENDING',
+          receiver: createdGift.receiver ? {
+            id: createdGift.receiver.id,
+            name: createdGift.receiver.name,
+            email: createdGift.receiver.email,
+          } : null,
+        },
+      } : prev);
       setShowGiftModal(false);
       setShowShareModal(true);
     } catch (error) {
@@ -260,8 +305,54 @@ export function PlantDetailPage() {
   };
 
   const handleGiftLinkCopied = () => {
-    setGiftLinkCopied(true);
+    if (!isGiftedSenderView) {
+      setGiftLinkCopied(true);
+    }
     setShowShareModal(false);
+  };
+
+  const handleOpenPendingGiftLink = () => {
+    const token = giftData?.giftToken || plant?.gift?.giftToken;
+    if (!token) return;
+    setGiftToken(token);
+    setGiftLinkCopied(false);
+    setShowShareModal(true);
+  };
+
+  const getGiftReceiverLabel = () => {
+    if (!plant?.gift) return null;
+    const receiverName = plant.gift.receiver?.name?.trim();
+    if (receiverName) {
+      return receiverName;
+    }
+    if (plant.gift.receiver?.email) {
+      return plant.gift.receiver.email;
+    }
+    return null;
+  };
+
+  const giftStatusLabel = () => {
+    if (!plant?.gift && !giftData) {
+      return 'Gifted';
+    }
+    const receiverLabel = getGiftReceiverLabel();
+    if (receiverLabel) {
+      return `Gifted to ${receiverLabel}`;
+    }
+    const status = plant?.gift?.status || giftData?.status;
+    if (status === 'PENDING') {
+      return 'Gift pending acceptance';
+    }
+    if (status === 'ACCEPTED') {
+      return 'Gift accepted';
+    }
+    if (status === 'EXPIRED') {
+      return 'Gift link expired';
+    }
+    if (status === 'CANCELLED') {
+      return 'Gift cancelled';
+    }
+    return 'Gifted';
   };
 
 
@@ -299,18 +390,22 @@ export function PlantDetailPage() {
     );
   }
 
+  const primaryName = plant.petName || plant.commonName || plant.botanicalName || 'Unknown Plant';
+  const secondaryName = plant.petName ? (plant.commonName || null) : (plant.commonName && plant.commonName !== primaryName ? plant.commonName : null);
+  const plantTypeDisplay = plant.type || 'Unknown type';
+
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <button
-            onClick={() => navigate('/plants')}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+            <button
+              onClick={() => navigate('/plants')}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
             {plant.photos && plant.photos.length > 0 ? (
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex-shrink-0">
                 <img
@@ -325,33 +420,79 @@ export function PlantDetailPage() {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate" title={getPlantDisplayName(plant)}>{getPlantDisplayName(plant)}</h1>
-                <button
-                  onClick={() => setShowEditModal(true)}
-                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
-                  title="Edit plant"
-                >
-                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                </button>
+              <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h1
+                    className="text-lg sm:text-2xl font-bold text-gray-800 whitespace-normal break-words"
+                    title={primaryName}
+                  >
+                    {primaryName}
+                  </h1>
+                  {!isGiftedSenderView && (
+                    <button
+                      onClick={() => setShowEditModal(true)}
+                      className="p-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                      title="Edit plant"
+                    >
+                      <Edit2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                    </button>
+                  )}
+                </div>
+                {!isGiftedSenderView && (
+                  <button
+                    onClick={() => setShowActionsMenu(prev => !prev)}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors ml-1"
+                    title="Plant actions"
+                  >
+                    <MoreVertical className="w-5 h-5 text-gray-600" />
+                  </button>
+                )}
               </div>
-              <p className="text-sm sm:text-base text-emerald-600 truncate" title={plant.type || 'Unknown type'}>{plant.type || 'Unknown type'}</p>
+              {secondaryName && (
+                <p className="text-sm text-emerald-600 truncate" title={secondaryName}>
+                  {secondaryName}
+                </p>
+              )}
+              <p className="text-xs sm:text-sm text-gray-500 truncate" title={plantTypeDisplay}>
+                {plantTypeDisplay}
+              </p>
             </div>
           </div>
-          {giftLinkCopied ? (
-            <div className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium flex items-center gap-2">
-              <span>✓</span>
-              Plant gifted!
-            </div>
-          ) : (
-            <button
-              onClick={handleGiftPlant}
-              disabled={plant.isGifted || giftLoading}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-            >
-              {giftLoading ? 'Creating...' : '🎁 Gift your plant'}
-            </button>
-          )}
+          <div className="flex w-full sm:w-auto justify-start sm:justify-end min-w-0 relative">
+            {isGiftedSenderView ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200 w-full sm:w-auto overflow-hidden">
+                <span className="truncate min-w-0">{giftStatusLabel()}</span>
+                {((plant?.gift?.status || giftData?.status) === 'PENDING') && (giftData?.giftToken || plant?.gift?.giftToken) && (
+                  <button
+                    type="button"
+                    onClick={handleOpenPendingGiftLink}
+                    className="p-1 rounded-full hover:bg-emerald-100 text-emerald-600 flex-shrink-0"
+                    title="Copy gift link"
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ) : null}
+            {showActionsMenu && !isGiftedSenderView ? (
+              <div className="fixed inset-0 z-30">
+                <button
+                  className="absolute inset-0 w-full h-full"
+                  onClick={() => setShowActionsMenu(false)}
+                  aria-label="Close actions menu"
+                />
+                <div className="absolute right-4 top-20 sm:right-0 sm:top-full sm:mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={handleGiftPlant}
+                    disabled={plant.isGifted || giftLoading}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {giftLoading ? 'Creating gift…' : '🎁 Gift this plant'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -391,6 +532,7 @@ export function PlantDetailPage() {
             plant={plant}
             onMarkComplete={handleMarkComplete}
             onTaskUpdated={handleTaskUpdated}
+            readOnly={isGiftedSenderView}
           />
         )}
 
@@ -403,11 +545,12 @@ export function PlantDetailPage() {
             onMonitorHealth={handleMonitorHealth}
             onOpenTracking={handleOpenTracking}
             onDeleteTracking={handleDeleteTracking}
+            readOnly={isGiftedSenderView}
           />
         )}
 
         {activeTab === 'about' && (
-          <PlantAboutTab plant={plant} />
+          <PlantAboutTab plant={plant} canShare={!isGiftedSenderView} />
         )}
 
 
@@ -430,40 +573,44 @@ export function PlantDetailPage() {
         cancelText="No, Cancel"
         icon="🌿"
       />
-      <PlantTrackingModal
-        isOpen={showTrackingModal}
-        plantName={getPlantDisplayName(plant!)}
-        plantId={plant?.id || ''}
-        onClose={() => setShowTrackingModal(false)}
-        onSubmit={async (data: PlantTrackingData) => {
-          if (!plant?.id) return;
-          try {
-            await plantsAPI.createTrackingUpdate(plant.id, data);
-            setShowTrackingModal(false);
-            // Refresh tracking updates to show the new one
-            fetchTrackingUpdates();
-          } catch (error) {
-            console.error('Error creating tracking update:', error);
-          }
-        }}
-      />
-      <PlantHealthModal
-        isOpen={showMonitorHealthModal}
-        plantName={getPlantDisplayName(plant!)}
-        plantId={plant?.id || ''}
-        onClose={() => setShowMonitorHealthModal(false)}
-        onSubmit={async (data: PlantTrackingData) => {
-          if (!plant?.id) return;
-          try {
-            await plantsAPI.createTrackingUpdate(plant.id, data);
-            setShowMonitorHealthModal(false);
-            // Refresh tracking updates to show the new one
-            fetchTrackingUpdates();
-          } catch (error) {
-            console.error('Error creating tracking update:', error);
-          }
-        }}
-      />
+      {!isGiftedSenderView && (
+        <>
+          <PlantTrackingModal
+            isOpen={showTrackingModal}
+            plantName={getPlantDisplayName(plant!)}
+            plantId={plant?.id || ''}
+            onClose={() => setShowTrackingModal(false)}
+            onSubmit={async (data: PlantTrackingData) => {
+              if (!plant?.id) return;
+              try {
+                await plantsAPI.createTrackingUpdate(plant.id, data);
+                setShowTrackingModal(false);
+                // Refresh tracking updates to show the new one
+                fetchTrackingUpdates();
+              } catch (error) {
+                console.error('Error creating tracking update:', error);
+              }
+            }}
+          />
+          <PlantHealthModal
+            isOpen={showMonitorHealthModal}
+            plantName={getPlantDisplayName(plant!)}
+            plantId={plant?.id || ''}
+            onClose={() => setShowMonitorHealthModal(false)}
+            onSubmit={async (data: PlantTrackingData) => {
+              if (!plant?.id) return;
+              try {
+                await plantsAPI.createTrackingUpdate(plant.id, data);
+                setShowMonitorHealthModal(false);
+                // Refresh tracking updates to show the new one
+                fetchTrackingUpdates();
+              } catch (error) {
+                console.error('Error creating tracking update:', error);
+              }
+            }}
+          />
+        </>
+      )}
       <PlantTrackingViewModal
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
@@ -489,36 +636,42 @@ export function PlantDetailPage() {
         confirmText="Delete"
         cancelText="Cancel"
       />
-      <GiftPlantModal
-        isOpen={showGiftModal}
-        onClose={() => setShowGiftModal(false)}
-        onConfirm={handleGiftConfirm}
-        plantName={getPlantDisplayName(plant!)}
-        plantImage={plant?.photos && plant.photos.length > 0 ? plant.photos[0].secureUrl : undefined}
-      />
-      <ShareGiftModal
-        isOpen={showShareModal}
-        onClose={handleGiftLinkCopied}
-        plantName={getPlantDisplayName(plant!)}
-        giftToken={giftToken || ''}
-      />
-      <EditPlantModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        plantId={plant?.id || ''}
-        currentNickname={plant?.petName || null}
-        currentPhoto={plant?.photos && plant.photos.length > 0 ? {
-          id: plant.photos[0].id,
-          secureUrl: plant.photos[0].secureUrl,
-          cloudinaryPublicId: plant.photos[0].cloudinaryPublicId,
-        } : null}
-        plantSuggestedTasks={plant?.suggestedTasks || []}
-        plantCommonName={plant?.commonName || plant?.botanicalName || 'Plant'}
-        plantTasks={plant?.tasks || []}
-        onUpdate={() => {
-          fetchPlant();
-        }}
-      />
+      {!isGiftedSenderView && (
+        <>
+          <GiftPlantModal
+            isOpen={showGiftModal}
+            onClose={() => setShowGiftModal(false)}
+            onConfirm={handleGiftConfirm}
+            plantName={getPlantDisplayName(plant!)}
+            plantImage={plant?.photos && plant.photos.length > 0 ? plant.photos[0].secureUrl : undefined}
+          />
+          <EditPlantModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            plantId={plant?.id || ''}
+            currentNickname={plant?.petName || null}
+            currentPhoto={plant?.photos && plant.photos.length > 0 ? {
+              id: plant.photos[0].id,
+              secureUrl: plant.photos[0].secureUrl,
+              cloudinaryPublicId: plant.photos[0].cloudinaryPublicId,
+            } : null}
+            plantSuggestedTasks={plant?.suggestedTasks || []}
+            plantCommonName={plant?.commonName || plant?.botanicalName || 'Plant'}
+            plantTasks={plant?.tasks || []}
+            onUpdate={() => {
+              fetchPlant();
+            }}
+          />
+        </>
+      )}
+      {showShareModal && plant && (giftToken || giftData?.giftToken || plant?.gift?.giftToken) && (
+        <ShareGiftModal
+          isOpen={showShareModal}
+          onClose={handleGiftLinkCopied}
+          plantName={getPlantDisplayName(plant)}
+          giftToken={(giftToken || giftData?.giftToken || plant?.gift?.giftToken)!}
+        />
+      )}
     </Layout>
   );
 }

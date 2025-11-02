@@ -49,6 +49,7 @@ interface PlantHealthTabProps {
   onMonitorHealth: () => void;
   onOpenTracking: (tracking: PlantTrackingUpdate) => void;
   onDeleteTracking: (trackingId: string) => void;
+  readOnly?: boolean;
 }
 
 // Helper function to get display name for plant
@@ -73,21 +74,23 @@ export function PlantHealthTab({
   onTrackPlant,
   onMonitorHealth,
   onOpenTracking,
-  onDeleteTracking
+  onDeleteTracking,
+  readOnly = false
 }: PlantHealthTabProps) {
   return (
     <div className="flex flex-col">
-      {/* Action Buttons - Centered in remaining space */}
-      <div className={`flex items-center justify-center ${trackingUpdates.length > 0 ? 'py-8' : 'min-h-[60vh]'}`}>
-        <PlantActionButtons
-          plantName={getPlantDisplayName(plant)}
-          onTrackPlant={onTrackPlant}
-          onMonitorHealth={onMonitorHealth}
-        />
-      </div>
+      {!readOnly && (
+        <div className={`flex items-center justify-center ${trackingUpdates.length > 0 ? 'py-8' : 'min-h-[60vh]'}`}>
+          <PlantActionButtons
+            plantName={getPlantDisplayName(plant)}
+            onTrackPlant={onTrackPlant}
+            onMonitorHealth={onMonitorHealth}
+          />
+        </div>
+      )}
 
       {/* Tracking Updates - Only show if there are updates */}
-      {trackingUpdates.length > 0 && (
+      {trackingUpdates.length > 0 ? (
         <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Tracking Updates</h2>
           {loadingTracking ? (
@@ -102,11 +105,18 @@ export function PlantHealthTab({
                   key={update.id}
                   tracking={update}
                   onOpen={onOpenTracking}
-                  onDelete={onDeleteTracking}
+                  onDelete={readOnly ? undefined : onDeleteTracking}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
           )}
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg p-6 border border-gray-200 text-center text-gray-500 text-sm">
+          {readOnly
+            ? 'No health notes available for this gifted plant.'
+            : 'No health updates yet. Start tracking your plant to see them here.'}
         </div>
       )}
     </div>

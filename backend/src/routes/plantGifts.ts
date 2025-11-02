@@ -260,6 +260,9 @@ router.post('/accept', authenticateJWT, validate(acceptGiftSchema), async (req, 
           careLevel: gift.plant.careLevel as any,
           sunRequirements: gift.plant.sunRequirements as any,
           toxicityLevel: gift.plant.toxicityLevel as any,
+          petFriendliness: gift.plant.petFriendliness as any,
+          commonPestsAndDiseases: gift.plant.commonPestsAndDiseases,
+          preventiveMeasures: gift.plant.preventiveMeasures,
           isGifted: false, // New plant is not gifted
         },
       });

@@ -12,20 +12,25 @@ interface PlantTrackingCardProps {
   };
   onOpen?: (tracking: any) => void;
   onDelete?: (trackingId: string) => void;
+  readOnly?: boolean;
 }
 
 export const PlantTrackingCard: React.FC<PlantTrackingCardProps> = ({ 
   tracking, 
   onOpen, 
-  onDelete 
+  onDelete,
+  readOnly = false
 }) => {
   const parsedNote = parseHealthNote(tracking.note);
   const hasStructuredNote = parsedNote.hasIssue || parsedNote.isHealthy;
 
   return (
-    <div className="relative group bg-white rounded-lg p-4 border border-gray-200 shadow-sm overflow-hidden">
+    <div
+      className={`relative group bg-white rounded-lg p-4 border border-gray-200 shadow-sm overflow-hidden ${readOnly && onOpen ? 'cursor-pointer' : ''}`}
+      onClick={readOnly && onOpen ? () => onOpen(tracking) : undefined}
+    >
       {/* Main content */}
-      <div className="transition-all duration-300 group-hover:blur-sm">
+      <div className={`transition-all duration-300 ${!readOnly ? 'group-hover:blur-sm' : ''}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="w-4 h-4" />
@@ -87,24 +92,28 @@ export const PlantTrackingCard: React.FC<PlantTrackingCardProps> = ({
       </div>
 
       {/* Hover overlay with action buttons */}
-      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <div className="flex gap-3">
-          <button
-            onClick={() => onOpen?.(tracking)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-            Open
-          </button>
-          <button
-            onClick={() => onDelete?.(tracking.id)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
+      {!readOnly && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex gap-3">
+            <button
+              onClick={() => onOpen?.(tracking)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              Open
+            </button>
+            {onDelete && (
+              <button
+                onClick={() => onDelete?.(tracking.id)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

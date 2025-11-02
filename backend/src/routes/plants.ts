@@ -343,6 +343,17 @@ router.get('/:id', authenticateJWT, async (req, res) => {
             takenAt: 'desc',
           },
         },
+        gift: {
+          include: {
+            receiver: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             notes: true,
