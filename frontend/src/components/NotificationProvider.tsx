@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { notificationService, NotificationPayload } from '../services/notificationService';
 import { NotificationToastContainer } from './NotificationToast';
+import { useErrorToast } from './ErrorToastProvider';
 
 interface Notification {
   id: string;
@@ -27,21 +28,43 @@ export const useNotifications = () => {
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { showError } = useErrorToast();
 
   useEffect(() => {
     // Initialize notification service
-    notificationService.initialize();
+    const initializeService = async () => {
+      try {
+        await notificationService.initialize();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorDetails = error instanceof Error ? error.stack : undefined;
+        showError(
+          `Failed to initialize notification service: ${errorMessage}`,
+          errorDetails
+        );
+      }
+    };
+
+    initializeService();
 
     // Setup foreground message handler
     const handleForegroundMessage = (payload: NotificationPayload) => {
-      const notification: Notification = {
-        id: `${Date.now()}-${Math.random()}`,
-        title: payload.notification?.title || 'SproutSync',
-        body: payload.notification?.body || '',
-        plantId: payload.data?.plantId,
-      };
-      
-      setNotifications((prev) => [...prev, notification]);
+      try {
+        const notification: Notification = {
+          id: `${Date.now()}-${Math.random()}`,
+          title: payload.notification?.title || 'SproutSync',
+          body: payload.notification?.body || '',
+          plantId: payload.data?.plantId,
+        };
+        
+        setNotifications((prev) => [...prev, notification]);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        showError(
+          `Failed to handle foreground notification: ${errorMessage}`,
+          error instanceof Error ? error.stack : undefined
+        );
+      }
     };
 
     notificationService.onForegroundMessage(handleForegroundMessage);
@@ -49,7 +72,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     return () => {
       notificationService.offForegroundMessage(handleForegroundMessage);
     };
-  }, []);
+  }, [showError]);
 
   const addNotification = (notification: Omit<Notification, 'id'>) => {
     const newNotification: Notification = {

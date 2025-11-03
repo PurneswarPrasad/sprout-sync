@@ -367,6 +367,17 @@ router.get('/:id', jwtAuth_1.authenticateJWT, async (req, res) => {
                         takenAt: 'desc',
                     },
                 },
+                gift: {
+                    include: {
+                        receiver: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                    },
+                },
                 _count: {
                     select: {
                         notes: true,

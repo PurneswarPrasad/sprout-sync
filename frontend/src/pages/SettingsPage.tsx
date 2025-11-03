@@ -5,6 +5,7 @@ import { Layout } from '../components/Layout';
 import { notificationService } from '../services/notificationService';
 import { authAPI, usersAPI } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
+import { useErrorToast } from '../components/ErrorToastProvider';
 
 interface User {
   id: string;
@@ -16,6 +17,7 @@ interface User {
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { showError } = useErrorToast();
   const [user, setUser] = useState<User | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [hasToken, setHasToken] = useState(false);
@@ -92,6 +94,12 @@ export const SettingsPage: React.FC = () => {
       setHasToken(settings.hasToken);
     } catch (error) {
       console.error('Error fetching notification settings:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorDetails = error instanceof Error ? error.stack : undefined;
+      showError(
+        `Failed to load notification settings: ${errorMessage}`,
+        errorDetails
+      );
     } finally {
       setIsLoading(false);
     }
@@ -104,20 +112,57 @@ export const SettingsPage: React.FC = () => {
 
       // If enabling and no token, request permission
       if (newValue && !hasToken) {
-        const success = await notificationService.requestPermission();
-        if (!success) {
-          alert('Unable to enable notifications. Please allow notifications in your browser settings.');
+        try {
+          const success = await notificationService.requestPermission();
+          if (!success) {
+            showError(
+              'Unable to enable notifications',
+              'Please allow notifications in your browser settings. On iOS, you may need to enable notifications in Safari settings after installing the PWA.'
+            );
+            return;
+          }
+          setHasToken(true);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorDetails = error instanceof Error ? error.stack : undefined;
+          
+          // Check if it's a permission denied error
+          if (errorMessage.includes('permission denied')) {
+            showError(
+              'Notification permission denied',
+              'Please enable notifications in your browser settings. On iOS Safari, go to Settings > Safari > Website Settings > Notifications.'
+            );
+          } else {
+            showError(
+              `Failed to request notification permission: ${errorMessage}`,
+              errorDetails
+            );
+          }
           return;
         }
-        setHasToken(true);
       }
 
       // Update settings
-      await notificationService.updateSettings(newValue);
-      setNotificationsEnabled(newValue);
+      try {
+        await notificationService.updateSettings(newValue);
+        setNotificationsEnabled(newValue);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorDetails = error instanceof Error ? error.stack : undefined;
+        showError(
+          `Failed to update notification settings: ${errorMessage}`,
+          errorDetails
+        );
+        // Don't update local state if API call failed
+      }
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      alert('Failed to update notification settings. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorDetails = error instanceof Error ? error.stack : undefined;
+      showError(
+        `Unexpected error toggling notifications: ${errorMessage}`,
+        errorDetails
+      );
     } finally {
       setIsSaving(false);
     }

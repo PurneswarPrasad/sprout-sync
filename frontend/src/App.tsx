@@ -20,13 +20,15 @@ import PublicGardenProfile from './pages/PublicGardenProfile';
 import { NewsletterPage } from './pages/NewsletterPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { NotificationProvider } from './components/NotificationProvider';
+import { ErrorToastProvider } from './components/ErrorToastProvider';
 import './App.css'
 
 function App() {
   return (
     <Router>
-      <NotificationProvider>
-        <div className="App">
+      <ErrorToastProvider>
+        <NotificationProvider>
+          <div className="App">
           <Routes>
           <Route path="/" element={<InitialLandingPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
@@ -49,6 +51,7 @@ function App() {
         </Routes>
         </div>
       </NotificationProvider>
+      </ErrorToastProvider>
     </Router>
   );
 }
