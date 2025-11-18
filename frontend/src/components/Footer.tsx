@@ -64,21 +64,6 @@ export const Footer: React.FC = () => {
               </Link>
             </div>
           </div>
-
-          {/* Supported By Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Supported by</h3>
-            <div className="flex items-center space-x-3">
-              <img
-                src="/C4E-logo.jpg"
-                alt="C4E Logo"
-                className="w-12 h-12 object-contain"
-              />
-            </div>
-            <p className="text-sm text-gray-600">
-              C4E is a collective of dreamers and doers.
-            </p>
-          </div>
         </div>
 
         {/* Copyright */}
