@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, BellOff } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
-import { useErrorToast } from '../components/ErrorToastProvider';
 
 export const NotificationPromptPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const { showError } = useErrorToast();
 
   const handleEnableNotifications = async () => {
     setIsLoading(true);
@@ -17,40 +15,18 @@ export const NotificationPromptPage: React.FC = () => {
       if (success) {
         console.log('✅ Notifications enabled');
       } else {
-        // This shouldn't happen now since requestPermission throws on error
-        showError(
-          'Notification permission was denied or could not be obtained',
-          'Please enable notifications in your browser settings'
-        );
+        console.log('❌ Notifications permission denied');
       }
       
       // Mark prompt as shown regardless of outcome
-      try {
-        await notificationService.markPromptShown();
-      } catch (error) {
-        // Log but don't show toast for markPromptShown errors
-        console.error('Error marking prompt as shown:', error);
-      }
+      await notificationService.markPromptShown();
       
       // Navigate to home
       navigate('/home', { replace: true });
     } catch (error) {
       console.error('Error enabling notifications:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorDetails = error instanceof Error ? error.stack : undefined;
-      showError(
-        `Failed to enable notifications: ${errorMessage}`,
-        errorDetails
-      );
-      
-      // Still try to mark prompt as shown even if there's an error
-      try {
-        await notificationService.markPromptShown();
-      } catch (markError) {
-        console.error('Error marking prompt as shown after error:', markError);
-      }
-      
       // Still navigate even if there's an error
+      await notificationService.markPromptShown();
       navigate('/home', { replace: true });
     } finally {
       setIsLoading(false);
@@ -61,34 +37,13 @@ export const NotificationPromptPage: React.FC = () => {
     setIsLoading(true);
     try {
       // Mark prompt as shown AND disable notifications
-      try {
-        await notificationService.markPromptShown();
-      } catch (error) {
-        // Log but don't show toast for markPromptShown errors
-        console.error('Error marking prompt as shown:', error);
-      }
-      
-      try {
-        await notificationService.updateSettings(false);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const errorDetails = error instanceof Error ? error.stack : undefined;
-        showError(
-          `Failed to disable notifications: ${errorMessage}`,
-          errorDetails
-        );
-      }
+      await notificationService.markPromptShown();
+      await notificationService.updateSettings(false);
       
       // Navigate to home
       navigate('/home', { replace: true });
     } catch (error) {
-      console.error('Error in handleNotNow:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorDetails = error instanceof Error ? error.stack : undefined;
-      showError(
-        `Failed to save notification preferences: ${errorMessage}`,
-        errorDetails
-      );
+      console.error('Error marking prompt as shown:', error);
       // Still navigate even if there's an error
       navigate('/home', { replace: true });
     } finally {

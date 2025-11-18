@@ -225,9 +225,6 @@ router.post('/accept', jwtAuth_1.authenticateJWT, (0, validate_1.validate)(accep
                     careLevel: gift.plant.careLevel,
                     sunRequirements: gift.plant.sunRequirements,
                     toxicityLevel: gift.plant.toxicityLevel,
-                    petFriendliness: gift.plant.petFriendliness,
-                    commonPestsAndDiseases: gift.plant.commonPestsAndDiseases,
-                    preventiveMeasures: gift.plant.preventiveMeasures,
                     isGifted: false,
                 },
             });

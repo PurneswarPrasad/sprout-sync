@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { authAPI } from '../services/api';
 import { notificationService } from '../services/notificationService';
-import { useErrorToast } from './ErrorToastProvider';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,7 +12,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { token, isAuthenticated, logout } = useAuthStore();
-  const { showError } = useErrorToast();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,13 +44,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
               }
             } catch (notifError) {
               console.error('Error checking notification settings, continuing anyway:', notifError);
-              // Show error toast but don't block navigation
-              const errorMessage = notifError instanceof Error ? notifError.message : String(notifError);
-              const errorDetails = notifError instanceof Error ? notifError.stack : undefined;
-              showError(
-                `Failed to check notification settings: ${errorMessage}`,
-                errorDetails
-              );
               // Continue to page even if notification check fails
             }
           }
